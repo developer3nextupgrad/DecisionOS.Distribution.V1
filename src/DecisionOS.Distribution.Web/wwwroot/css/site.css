@@ -1,0 +1,1020 @@
+/* ============================================================
+   DecisionOS Dashboard — site.css
+   Production-grade executive dashboard stylesheet
+   ============================================================ */
+
+/* ----- Reset & Base ----- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-size: 15px;
+  line-height: 1.6;
+  color: #1e293b;
+  background-color: #f8fafc;
+}
+
+img, svg {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: #6366f1;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button, select, input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* ----- Keyframes ----- */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+
+/* ============================================================
+   Navbar
+   ============================================================ */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 24px;
+  background-color: #0f172a;
+  color: #f1f5f9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  color: #fff;
+  text-decoration: none;
+}
+
+.navbar-brand:hover {
+  text-decoration: none;
+  color: #c7d2fe;
+}
+
+.navbar-brand svg,
+.navbar-brand img {
+  height: 28px;
+  width: auto;
+}
+
+.navbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+}
+
+.navbar-nav a {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #cbd5e1;
+  transition: background-color .15s, color .15s;
+}
+
+.navbar-nav a:hover,
+.navbar-nav a.active {
+  background-color: rgba(255, 255, 255, .08);
+  color: #fff;
+  text-decoration: none;
+}
+
+/* Hamburger toggle */
+.navbar-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: #f1f5f9;
+  cursor: pointer;
+  padding: 8px;
+  line-height: 0;
+}
+
+.navbar-toggle svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* ============================================================
+   Container
+   ============================================================ */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 24px 48px;
+}
+
+/* ============================================================
+   Card System
+   ============================================================ */
+.card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+  overflow: hidden;
+  animation: fadeInUp .4s ease both;
+}
+
+.card + .card {
+  margin-top: 20px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.card-header h2,
+.card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.card-body {
+  padding: 20px;
+}
+
+.card-footer {
+  padding: 12px 20px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+/* ============================================================
+   KPI Status Grid
+   ============================================================ */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.kpi-tile {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08), 0 1px 2px rgba(15, 23, 42, .04);
+  padding: 20px;
+  border-left: 4px solid #e2e8f0;
+  animation: fadeInUp .4s ease both;
+  transition: box-shadow .2s, transform .2s;
+}
+
+.kpi-tile:hover {
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .1);
+  transform: translateY(-2px);
+}
+
+.kpi-tile.border-green  { border-left-color: #10b981; }
+.kpi-tile.border-yellow { border-left-color: #f59e0b; }
+.kpi-tile.border-red    { border-left-color: #ef4444; }
+.kpi-tile.border-blue   { border-left-color: #6366f1; }
+
+.kpi-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: 6px;
+}
+
+.kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #0f172a;
+}
+
+.kpi-meta {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================================================
+   Status Colors — Pills & Badges
+   ============================================================ */
+.status-green {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.status-yellow {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.status-red {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.green  { background-color: #10b981; }
+.status-dot.yellow { background-color: #f59e0b; }
+.status-dot.red    { background-color: #ef4444; }
+
+/* Solid background pills with white text */
+.badge-green {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #10b981;
+  color: #fff;
+}
+
+.badge-yellow {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #f59e0b;
+  color: #fff;
+}
+
+.badge-red {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #ef4444;
+  color: #fff;
+}
+
+/* ============================================================
+   Alert Banner
+   ============================================================ */
+.alert-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: #fff;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+  margin-bottom: 20px;
+  animation: fadeInUp .35s ease both;
+}
+
+.alert-banner.alert-green  { border-left-color: #10b981; background-color: #f0fdf4; }
+.alert-banner.alert-yellow { border-left-color: #f59e0b; background-color: #fffbeb; }
+.alert-banner.alert-red    { border-left-color: #ef4444; background-color: #fef2f2; }
+
+.alert-banner-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+}
+
+.alert-banner-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-banner-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 2px;
+}
+
+.alert-banner-subtitle {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Data Table
+   ============================================================ */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #64748b;
+  border-bottom: 2px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.data-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+  vertical-align: middle;
+}
+
+.data-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============================================================
+   Weekly Focus Card
+   ============================================================ */
+.focus-card {
+  background: #fff;
+  border-radius: 12px;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, .08);
+  padding: 24px;
+  margin-bottom: 20px;
+  animation: fadeInUp .45s ease both;
+}
+
+.focus-card-question {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.focus-card-action {
+  font-size: 15px;
+  color: #334155;
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.focus-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.focus-card-meta .pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  background-color: #eef2ff;
+  color: #4338ca;
+}
+
+/* ============================================================
+   Tenant / Week Selector Bar
+   ============================================================ */
+.selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  margin-bottom: 8px;
+}
+
+.selector-bar label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.selector-bar select,
+.selector-bar .select-styled {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 36px 8px 14px;
+  font-size: 14px;
+  color: #1e293b;
+  min-width: 180px;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.selector-bar select:focus,
+.selector-bar .select-styled:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+
+.selector-bar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, box-shadow .15s;
+}
+
+.selector-bar .btn-primary {
+  background-color: #6366f1;
+  color: #fff;
+}
+
+.selector-bar .btn-primary:hover {
+  background-color: #4f46e5;
+}
+
+/* ============================================================
+   Empty State
+   ============================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty-state-icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 16px;
+  color: #cbd5e1;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 4px;
+}
+
+.empty-state-message {
+  font-size: 14px;
+  color: #94a3b8;
+  max-width: 340px;
+}
+
+/* ============================================================
+   WoW (Week-over-Week) Indicators
+   ============================================================ */
+.wow-positive {
+  color: #059669;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.wow-positive::before {
+  content: "\25B2\00a0";
+  font-size: 10px;
+}
+
+.wow-negative {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.wow-negative::before {
+  content: "\25BC\00a0";
+  font-size: 10px;
+}
+
+.wow-neutral {
+  color: #64748b;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* ============================================================
+   Badge (generic pill)
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 600;
+  background-color: #e2e8f0;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.badge-indigo {
+  background-color: #eef2ff;
+  color: #4338ca;
+}
+
+/* ============================================================
+   Utility — Typography
+   ============================================================ */
+.text-muted  { color: #94a3b8; }
+.text-sm     { font-size: 13px; }
+.text-lg     { font-size: 18px; }
+.text-xl     { font-size: 22px; }
+.text-bold   { font-weight: 700; }
+.text-medium { font-weight: 500; }
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.text-nowrap { white-space: nowrap; }
+
+/* ============================================================
+   Utility — Flexbox
+   ============================================================ */
+.flex            { display: flex; }
+.flex-col        { display: flex; flex-direction: column; }
+.flex-between    { display: flex; align-items: center; justify-content: space-between; }
+.flex-center     { display: flex; align-items: center; justify-content: center; }
+.flex-start      { display: flex; align-items: center; justify-content: flex-start; }
+.flex-wrap       { flex-wrap: wrap; }
+.items-start     { align-items: flex-start; }
+.items-center    { align-items: center; }
+.gap-xs          { gap: 4px; }
+.gap-sm          { gap: 8px; }
+.gap-md          { gap: 16px; }
+.gap-lg          { gap: 24px; }
+
+/* ============================================================
+   Utility — Spacing
+   ============================================================ */
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mt-4 { margin-top: 32px; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+.mb-4 { margin-bottom: 32px; }
+
+.p-0 { padding: 0; }
+.p-1 { padding: 8px; }
+.p-2 { padding: 16px; }
+.p-3 { padding: 24px; }
+
+.px-1 { padding-left: 8px; padding-right: 8px; }
+.px-2 { padding-left: 16px; padding-right: 16px; }
+
+/* ============================================================
+   Utility — Visibility & Misc
+   ============================================================ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rounded { border-radius: 8px; }
+.rounded-full { border-radius: 9999px; }
+.shadow-sm { box-shadow: 0 1px 2px rgba(15, 23, 42, .06); }
+.shadow-md { box-shadow: 0 4px 12px rgba(15, 23, 42, .08); }
+
+/* ============================================================
+   Section Headings
+   ============================================================ */
+.section-heading {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 16px;
+}
+
+.section-subheading {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: -12px;
+  margin-bottom: 20px;
+}
+
+/* ============================================================
+   Last-updated bar
+   ============================================================ */
+.last-updated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.last-updated .dot-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10b981;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Buttons (general)
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color .15s, box-shadow .15s;
+  line-height: 1.4;
+}
+
+.btn-primary {
+  background-color: #6366f1;
+  color: #fff;
+}
+.btn-primary:hover { background-color: #4f46e5; }
+
+.btn-secondary {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+.btn-secondary:hover { background-color: #cbd5e1; }
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+}
+.btn-outline:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-sm {
+  padding: 5px 12px;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+/* ============================================================
+   Tooltip (simple CSS-only)
+   ============================================================ */
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%) scale(.92);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  background-color: #0f172a;
+  color: #f1f5f9;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s, transform .15s;
+}
+
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+/* ============================================================
+   Responsive — Tablet (≤ 1024px)
+   ============================================================ */
+@media (max-width: 1024px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .container {
+    padding: 20px 16px 40px;
+  }
+}
+
+/* ============================================================
+   Responsive — Mobile (≤ 768px)
+   ============================================================ */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 16px;
+  }
+
+  .navbar-nav {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background-color: #0f172a;
+    padding: 8px 16px 16px;
+    gap: 2px;
+    transform: translateY(-110%);
+    transition: transform .25s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .3);
+    z-index: 99;
+  }
+
+  .navbar-nav.open {
+    transform: translateY(0);
+  }
+
+  .navbar-nav a {
+    padding: 12px 14px;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .navbar-toggle {
+    display: block;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .container {
+    padding: 16px 12px 32px;
+  }
+
+  .card-header {
+    padding: 14px 16px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .selector-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selector-bar select,
+  .selector-bar .select-styled {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .selector-bar .btn {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .focus-card-question {
+    font-size: 16px;
+  }
+
+  .focus-card-meta {
+    gap: 6px;
+  }
+
+  .data-table {
+    font-size: 13px;
+  }
+
+  .data-table thead th,
+  .data-table tbody td {
+    padding: 10px 12px;
+  }
+}
+
+/* ============================================================
+   Responsive — Small phones (≤ 480px)
+   ============================================================ */
+@media (max-width: 480px) {
+  .kpi-value {
+    font-size: 24px;
+  }
+
+  .section-heading {
+    font-size: 18px;
+  }
+}
+
+/* ============================================================
+   Page Title
+   ============================================================ */
+.page-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 1.5rem;
+  line-height: 1.3;
+}
+
+/* ============================================================
+   Form Elements
+   ============================================================ */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-control {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2364748b' viewBox='0 0 16 16'%3E%3Cpath d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px 36px 10px 14px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, .15);
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.footer {
+  margin-top: 3rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+/* ============================================================
+   Print Styles
+   ============================================================ */
+@media print {
+  .navbar,
+  .navbar-toggle,
+  .selector-bar .btn {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 12pt;
+  }
+
+  .container {
+    max-width: 100%;
+    padding: 0;
+  }
+
+  .card,
+  .kpi-tile,
+  .focus-card,
+  .alert-banner {
+    box-shadow: none;
+    border: 1px solid #d1d5db;
+    break-inside: avoid;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 10pt;
+    color: #666;
+  }
+}

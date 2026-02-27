@@ -1,0 +1,11 @@
+pillar_code,driver_name,dimension1,dimension2,current,wow,context,rank,status,why_it_matters
+AR_PastDue31p%,Acme Corp,Customer,Northeast,45000,-2000,18% of total AR,1,RED,Largest single overdue balance growing weekly
+AR_PastDue31p%,Beta Industries,Customer,Southeast,32000,5000,12% of total AR,2,YELLOW,Fastest growing overdue - up $5K this week
+AR_PastDue31p%,Gamma LLC,Customer,West,28000,0,10% of total AR,3,YELLOW,Stale 90+ day balance not moving
+AR_PastDue31p%,Delta Supply,Customer,Central,18000,-1000,7% of total AR,4,GREEN,Improving - payment plan in place
+AR_PastDue31p%,Epsilon Co,Customer,Northeast,15000,3000,6% of total AR,5,YELLOW,New overdue - was current last week
+CCC,Days Sales Outstanding,DSO Component,,35,2,Drives 67% of CCC,1,YELLOW,DSO up 2 days - collections slowing
+CCC,Days Inventory Outstanding,DIO Component,,42,-1,Drives 80% of CCC,2,GREEN,Slight improvement in inventory turns
+CCC,Days Payable Outstanding,DPO Component,,25,-3,Offsets DSO+DIO,3,RED,DPO dropped - paying vendors too fast
+GrossMargin%,Product Mix,Category,,0.24,0.01,Heavy industrial 40% of revenue,1,YELLOW,Low-margin product share growing
+GrossMargin%,Freight Costs,Cost Driver,,0.03,0.005,3% of revenue,2,RED,Freight surcharges hitting margin

@@ -1,0 +1,43 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Executive Dashboard";
+}
+
+<h1 class="page-title">Executive Dashboard</h1>
+
+@if (Model.Tenants.Any())
+{
+    <div class="card">
+        <form method="get" asp-page="Index" class="selector-bar">
+            <div class="form-group">
+                <label for="SelectedClientId">Distributor</label>
+                <select asp-for="SelectedClientId"
+                        asp-items="Model.Tenants"
+                        onchange="this.form.submit()"
+                        class="form-control">
+                    <option value="">-- Select a distributor --</option>
+                </select>
+            </div>
+
+            @if (Model.Weeks.Any())
+            {
+                <div class="form-group">
+                    <label for="SelectedPeriodEnd">Week Ending</label>
+                    <select asp-for="SelectedPeriodEnd"
+                            asp-items="Model.Weeks"
+                            onchange="this.form.submit()"
+                            class="form-control">
+                        <option value="">-- Select a week --</option>
+                    </select>
+                </div>
+            }
+        </form>
+    </div>
+}
+else
+{
+    <div class="empty-state">
+        <p>No distributors configured. Import data using the CLI to get started.</p>
+    </div>
+}
