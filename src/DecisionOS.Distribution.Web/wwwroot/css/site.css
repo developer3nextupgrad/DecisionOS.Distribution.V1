@@ -922,6 +922,15 @@ button, select, input {
 /* ============================================================
    Page Title
    ============================================================ */
+.page-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 10px 0 18px;
+}
+
 .page-title {
   font-size: 1.75rem;
   font-weight: 700;

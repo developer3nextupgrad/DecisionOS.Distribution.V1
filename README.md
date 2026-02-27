@@ -384,6 +384,49 @@ dotnet run --project src/DecisionOS.Distribution.Web
 
 ---
 
+## Helper Scripts (PowerShell)
+
+From the repo root (`DecisionOS.Distribution.V1`), you can use these scripts:
+
+### Free a Port
+
+```powershell
+cd C:\Users\emran\Downloads\hello\DecisionOS.Distribution.V1
+powershell -ExecutionPolicy Bypass -File .\scripts\free-port.ps1 -Port 5276 -Force
+```
+
+- **Port**: TCP port to free (e.g. `5276`).
+- **-Force**: (optional) force kill the owning process.
+
+### One-Command Run (DB migrate → import sample data → start web UI)
+
+```powershell
+cd C:\Users\emran\Downloads\hello\DecisionOS.Distribution.V1
+
+powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
+  -WebPort 5276 `
+  -DbHost localhost `
+  -DbPort 5432 `
+  -DbName decisionos `
+  -DbUser postgres `
+  -DbPassword postgres `
+  -ClientId DIST-001 `
+  -PeriodEnd 2026-02-28 `
+  -KpiCsvPath .\samples\kpi_snapshots_upload.csv `
+  -DriversCsvPath .\samples\driver_values_upload.csv `
+  -OpenBrowser
+```
+
+- **-WebPort**: Port for the web UI (defaults to `5276`).
+- **-SkipMigrate**: Skip `dotnet ef database update` if schema is already up to date.
+- **-SkipImport**: Skip sample data import.
+- **-NoFreePort**: Do not auto-kill any process on `WebPort`.
+- **-OpenBrowser**: Automatically open the dashboard in your default browser.
+
+The script sets `ConnectionStrings__DecisionOs` from the DB parameters and runs the web app with `ASPNETCORE_URLS=http://localhost:<WebPort>`.
+
+---
+
 ## Design Document Reference
 
 This solution implements the architecture described in `Decision_OS_Distribution_V1_DotNet_Architecture_and_Design.md`:

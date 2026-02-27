@@ -4,40 +4,73 @@
     ViewData["Title"] = "Executive Dashboard";
 }
 
-<h1 class="page-title">Executive Dashboard</h1>
+<div class="page-header" style="margin-top: 8px;">
+    <div>
+        <h1 class="page-title" style="margin-bottom: 6px;">Executive Dashboard</h1>
+        <p class="text-muted text-sm" style="margin: 0;">Select a distributor and week to view KPIs, Top Alert, Weekly Focus, and Drivers.</p>
+    </div>
+</div>
 
 @if (Model.Tenants.Any())
 {
     <div class="card">
-        <form method="get" asp-page="Index" class="selector-bar">
-            <div class="form-group">
-                <label for="SelectedClientId">Distributor</label>
-                <select asp-for="SelectedClientId"
-                        asp-items="Model.Tenants"
-                        onchange="this.form.submit()"
-                        class="form-control">
-                    <option value="">-- Select a distributor --</option>
-                </select>
-            </div>
-
-            @if (Model.Weeks.Any())
-            {
+        <div class="card-header">
+            <h2>Selection</h2>
+            <span class="badge">Pilot V1</span>
+        </div>
+        <div class="card-body">
+            <form method="get" asp-page="Index" class="selector-bar" style="padding: 0; margin-bottom: 0;">
                 <div class="form-group">
-                    <label for="SelectedPeriodEnd">Week Ending</label>
-                    <select asp-for="SelectedPeriodEnd"
-                            asp-items="Model.Weeks"
+                    <label for="SelectedClientId">Distributor</label>
+                    <select asp-for="SelectedClientId"
+                            asp-items="Model.Tenants"
                             onchange="this.form.submit()"
                             class="form-control">
-                        <option value="">-- Select a week --</option>
+                        <option value="">-- Select a distributor --</option>
                     </select>
                 </div>
-            }
-        </form>
+
+                @if (Model.Weeks.Any())
+                {
+                    <div class="form-group">
+                        <label for="SelectedPeriodEnd">Week Ending</label>
+                        <select asp-for="SelectedPeriodEnd"
+                                asp-items="Model.Weeks"
+                                onchange="this.form.submit()"
+                                class="form-control">
+                            <option value="">-- Select a week --</option>
+                        </select>
+                    </div>
+                }
+                else if (!string.IsNullOrEmpty(Model.SelectedClientId))
+                {
+                    <div class="empty-state" style="padding: 14px 16px; margin: 0; text-align: left;">
+                        <strong>No weeks found for this distributor.</strong>
+                        <div class="text-muted text-sm">Import KPI snapshots for at least one week, then come back here.</div>
+                    </div>
+                }
+            </form>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 16px;">
+        <div class="card-body">
+            <div class="text-muted text-sm">
+                Tip: Use the sample files in <code>samples/</code> and run the one-command script:
+                <code>powershell -ExecutionPolicy Bypass -File .\\scripts\\run.ps1 -OpenBrowser</code>
+            </div>
+        </div>
     </div>
 }
 else
 {
     <div class="empty-state">
-        <p>No distributors configured. Import data using the CLI to get started.</p>
+        <h2 style="margin-bottom: 8px;">No distributors configured</h2>
+        <p class="text-muted" style="max-width: 58ch; margin: 0 auto 14px;">
+            Import data using the CLI (or the included scripts) to create your first tenant and weekly snapshots.
+        </p>
+        <div class="text-muted text-sm">
+            Run: <code>powershell -ExecutionPolicy Bypass -File .\\scripts\\run.ps1 -OpenBrowser</code>
+        </div>
     </div>
 }
