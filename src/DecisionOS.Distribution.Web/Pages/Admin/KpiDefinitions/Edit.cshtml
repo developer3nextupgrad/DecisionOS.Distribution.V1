@@ -1,0 +1,64 @@
+@page
+@model EditModel
+@{
+    ViewData["Title"] = "Edit KPI";
+}
+<h1 class="page-title">Edit KPI definition</h1>
+<form method="post" class="card">
+    <input type="hidden" asp-for="Id" />
+    <div class="card-body" style="max-width:720px;">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="form-group">
+            <label>Code</label>
+            <input class="form-control" value="@Model.Input.Code" disabled />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Name"></label>
+            <input asp-for="Input.Name" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Unit"></label>
+            <input asp-for="Input.Unit" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Direction"></label>
+            <select asp-for="Input.Direction" class="form-control"
+                    asp-items="Html.GetEnumSelectList<DecisionOS.Distribution.Domain.KpiDirection>()"></select>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Target"></label>
+            <input asp-for="Input.Target" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.AmberThreshold"></label>
+            <input asp-for="Input.AmberThreshold" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.RedThreshold"></label>
+            <input asp-for="Input.RedThreshold" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.AlertPriority"></label>
+            <input asp-for="Input.AlertPriority" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.MinValue"></label>
+            <input asp-for="Input.MinValue" class="form-control" />
+            <span class="text-muted text-sm">Optional import lower bound.</span>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.MaxValue"></label>
+            <input asp-for="Input.MaxValue" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.RecommendedAction"></label>
+            <textarea asp-for="Input.RecommendedAction" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.DiagnosticChecks"></label>
+            <textarea asp-for="Input.DiagnosticChecks" class="form-control" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="/Admin/KpiDefinitions" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+    </div>
+</form>

@@ -1,0 +1,31 @@
+@page
+@model DeleteModel
+@{
+    ViewData["Title"] = "Delete tenant";
+}
+@if (Model.Tenant is null)
+{
+    <p>Tenant not found.</p>
+}
+else
+{
+<h1 class="page-title">Delete tenant</h1>
+<div class="card" style="max-width:560px;">
+    <div class="card-body">
+        <p>Delete <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)?</p>
+        @if (!Model.CanDelete)
+        {
+            <p class="text-danger">This tenant has KPI data and cannot be deleted.</p>
+            <a href="/Admin/Tenants">Back</a>
+        }
+        else
+        {
+            <form method="post">
+                <input type="hidden" asp-for="Id" />
+                <button type="submit" class="btn" style="background:#dc2626;color:white;border:none;">Delete</button>
+                <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+            </form>
+        }
+    </div>
+</div>
+}

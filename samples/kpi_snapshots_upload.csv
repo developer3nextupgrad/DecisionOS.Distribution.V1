@@ -1,8 +1,8 @@
-kpi_code,value
-CCC,52
-GrossMargin%,0.27
-NetProfit%,0.05
-AR_PastDue31p%,0.14
-DOH,48
-AP_PastDue31p%,0.11
-PerfectOrderRate,0.92
+kpi_code,value,card_detail_line1,card_detail_line2
+CCC,52,DSO + DIO elevated vs target — collections cadence review,Drives working capital risk this week
+GrossMargin%,0.27,Discounting ~6% of revenue — review top accounts by bracket,Freight surcharges trimming net contribution
+NetProfit%,0.05,Opex pacing ahead of plan — largest bucket: logistics,Margin leakage from prior row items
+AR_PastDue31p%,0.14,28% of AR past 90 days vs target under 20% — top 5 accounts drive half,Collections owner: daily stand-up on oldest buckets
+DOH,48,Slow movers in industrial category — excess tied to 3 SKUs,Stockouts on top 5 revenue SKUs cleared
+AP_PastDue31p%,0.11,60+ bucket stable — negotiate terms on two strategic vendors,Discount capture rate 82% vs 90% goal
+PerfectOrderRate,0.92,On-time 94% / fill 96% — carrier lane variability East region,Late shipments concentrated Tue–Wed waves

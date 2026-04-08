@@ -1,0 +1,20 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Administration";
+}
+<div class="page-header">
+    <h1 class="page-title">Administration</h1>
+</div>
+<div class="card">
+    <div class="card-body">
+        <ul style="line-height:2; margin:0; padding-left:1.2rem;">
+            <li><a href="/Admin/Tenants">Tenants (distributors)</a></li>
+            <li><a href="/Admin/KpiDefinitions">KPI definitions &amp; action templates</a></li>
+            <li><a href="/Admin/DriverDefinitions">Driver catalog</a></li>
+            <li><a href="/Admin/Users">Users &amp; roles (OPSPEC)</a></li>
+        </ul>
+        <p class="text-muted text-sm" style="margin-top:16px;"><a href="/Operations/ImportRuns">Import history (ops)</a></p>
+        <p class="text-sm"><a href="/">&larr; Executive dashboard</a></p>
+    </div>
+</div>

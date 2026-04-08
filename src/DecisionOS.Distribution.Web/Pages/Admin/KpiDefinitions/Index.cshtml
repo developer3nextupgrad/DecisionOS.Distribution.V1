@@ -1,0 +1,25 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "KPI definitions & templates";
+}
+<h1 class="page-title">KPI definitions &amp; action templates</h1>
+<p class="text-muted text-sm">Thresholds drive status (GREEN/YELLOW/RED). Recommended action &amp; diagnostic text feed Weekly Focus generation.</p>
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Code</th><th>Name</th><th>Unit</th><th>Priority</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var k in Model.Items)
+        {
+            <tr>
+                <td><code>@k.Code</code></td>
+                <td>@k.Name</td>
+                <td>@k.Unit</td>
+                <td>@k.AlertPriority</td>
+                <td><a href="/Admin/KpiDefinitions/Edit?id=@k.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

@@ -15,6 +15,7 @@ public class AlertService : IAlertService
 
         var winner = nonGreen
             .OrderByDescending(s => StatusScore(s.Status))
+            .ThenBy(s => definitionsById[s.KpiDefinitionId].AlertPriority)
             .ThenByDescending(s => RelativeDeviation(s, definitionsById))
             .First();
 
@@ -26,9 +27,17 @@ public class AlertService : IAlertService
             PeriodEnd = periodEnd,
             KpiDefinitionId = winner.KpiDefinitionId,
             Severity = winner.Status,
-            ReasonSummary = $"{definition.Name} is {winner.Status} at {winner.Value} (target: {definition.Target})"
+            ReasonSummary =
+                $"{definition.Name} is {winner.Status} at {FormatKpiValue(definition, winner.Value)} (target: {FormatKpiValue(definition, definition.Target)})"
         };
     }
+
+    private static string FormatKpiValue(KpiDefinition def, decimal v) => def.Unit switch
+    {
+        "pct" => (v * 100m).ToString("F1") + "%",
+        "days" => v.ToString("F0") + " days",
+        _ => v.ToString("F2")
+    };
 
     private static int StatusScore(string status) => status switch
     {

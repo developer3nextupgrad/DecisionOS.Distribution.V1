@@ -9,16 +9,17 @@ public class AlertServiceTests
     private static readonly Guid TenantId = Guid.NewGuid();
     private static readonly DateOnly PeriodEnd = new(2026, 2, 27);
 
-    private static KpiDefinition MakeDefinition(int id, string name, decimal target) => new()
+    private static KpiDefinition MakeDefinition(int id, string name, decimal target, int alertPriority = 100) => new()
     {
         Id = id,
         Code = name.ToUpperInvariant(),
         Name = name,
-        Unit = "%",
+        Unit = "index",
         Direction = KpiDirection.HigherIsBetter,
         Target = target,
         AmberThreshold = target * 0.95m,
         RedThreshold = target * 0.90m,
+        AlertPriority = alertPriority,
         RecommendedAction = $"Fix {name}",
         DiagnosticChecks = $"Check {name} logs"
     };
@@ -82,13 +83,33 @@ public class AlertServiceTests
     {
         var definitions = new List<KpiDefinition>
         {
-            MakeDefinition(1, "Revenue", 100m),
-            MakeDefinition(2, "Margin", 100m)
+            MakeDefinition(1, "Revenue", 100m, alertPriority: 10),
+            MakeDefinition(2, "Margin", 100m, alertPriority: 10)
         };
         var snapshots = new List<KpiSnapshot>
         {
             MakeSnapshot(1, 90m, "RED"),   // |90-100|/100 = 0.10
             MakeSnapshot(2, 60m, "RED")    // |60-100|/100 = 0.40  ← larger deviation
+        };
+
+        var result = _sut.SelectTopAlert(TenantId, PeriodEnd, snapshots, definitions);
+
+        Assert.NotNull(result);
+        Assert.Equal(2, result.KpiDefinitionId);
+    }
+
+    [Fact]
+    public void SelectTopAlert_SameSeverityAndDeviation_BusinessPriorityWins()
+    {
+        var definitions = new List<KpiDefinition>
+        {
+            MakeDefinition(1, "Service", 100m, alertPriority: 30),
+            MakeDefinition(2, "Cash", 100m, alertPriority: 5)
+        };
+        var snapshots = new List<KpiSnapshot>
+        {
+            MakeSnapshot(1, 80m, "RED"),
+            MakeSnapshot(2, 80m, "RED")
         };
 
         var result = _sut.SelectTopAlert(TenantId, PeriodEnd, snapshots, definitions);
@@ -107,7 +128,7 @@ public class AlertServiceTests
 
         Assert.NotNull(result);
         Assert.Equal("RED", result.Severity);
-        Assert.Equal("Revenue is RED at 80 (target: 100)", result.ReasonSummary);
+        Assert.Equal("Revenue is RED at 80.00 (target: 100.00)", result.ReasonSummary);
         Assert.Equal(TenantId, result.TenantId);
         Assert.Equal(PeriodEnd, result.PeriodEnd);
     }

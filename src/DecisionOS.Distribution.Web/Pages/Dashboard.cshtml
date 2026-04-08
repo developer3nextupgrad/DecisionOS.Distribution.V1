@@ -202,96 +202,198 @@
 
     .progress-fill {
         height: 100%;
-        /* Gradient overlay for a polished look */
         background-image: linear-gradient(rgba(255,255,255,0.2), rgba(0,0,0,0.1));
+    }
+
+    .bg-neutral {
+        background-color: #64748b;
+    }
+
+    .insight-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 12px 0 8px;
+        font-size: 0.8rem;
+        color: #334155;
+    }
+
+    .insight-chip {
+        background: white;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-weight: 600;
+    }
+
+    .focus-banner {
+        background: linear-gradient(90deg, #eff6ff, #f0fdf4);
+        border: 1px solid #94a3b8;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 16px;
+        color: #0f172a;
+    }
+
+    .focus-banner h3 { margin: 0 0 6px; font-size: 1rem; }
+    .focus-banner p { margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.45; }
+
+    .kpi-context {
+        font-size: 0.72rem;
+        opacity: 0.95;
+        line-height: 1.35;
+        margin-top: 6px;
+    }
+
+    .empty-panel {
+        background: white;
+        border-radius: 12px;
+        padding: 48px 24px;
+        text-align: center;
+        color: #475569;
+        border: 1px dashed #94a3b8;
     }
 </style>
 
 <div class="header-bar">
     Decision OS &ndash; Distribution
+    @if (Model.Tenant is not null)
+    {
+        <span style="float:right; font-weight: 400; font-size: 0.95rem; opacity: 0.95;">@Model.Tenant.Name &middot; Week ending @Model.ParsedPeriodEnd.ToString("MMMM d, yyyy")</span>
+    }
 </div>
 
 <div class="dashboard-wrapper">
-    <div class="kpi-container">
-        @foreach (var snapshot in Model.Snapshots.Take(4))
+    @if (Model.Snapshots.Count == 0)
+    {
+        <div class="empty-panel">
+            <h2 style="margin-top:0; color:#1e293b;">No KPI data for this week</h2>
+            <p>Import snapshots for this period or pick another week.</p>
+            <a href="/" style="color:#3b82f6; font-weight:600;">Change selection</a>
+        </div>
+    }
+    else
+    {
+        <div class="insight-strip">
+            <span class="insight-chip" style="border-color:#10b981; color:#047857;">On track: @Model.GreenCount</span>
+            <span class="insight-chip" style="border-color:#f59e0b; color:#b45309;">Attention: @Model.YellowCount</span>
+            <span class="insight-chip" style="border-color:#ef4444; color:#b91c1c;">Critical: @Model.RedCount</span>
+        </div>
+
+        @if (Model.TopAlert is not null)
         {
-            var colorClass = snapshot.Status.ToLower() == "green" ? "card-green" : (snapshot.Status.ToLower() == "yellow" ? "card-amber" : "card-red");
-            <div class="kpi-card @colorClass">
-                <div class="kpi-title">@snapshot.KpiDefinition.Name</div>
-                <div class="kpi-main-val">@Model.FormatValue(snapshot)</div>
-                <div class="kpi-target">Target: @Model.FormatTarget(snapshot.KpiDefinition)</div>
-                <div class="kpi-footer">
-                    • WoW: @Model.FormatWoW(snapshot) <br />
-                    • Status: @snapshot.Status
-                </div>
+            <div class="focus-banner" style="border-left: 4px solid #ef4444;">
+                <h3>Top alert: @Model.TopAlert.KpiDefinition.Name</h3>
+                <p>@Model.TopAlert.ReasonSummary</p>
             </div>
         }
 
-        <div class="mini-column">
-            @foreach (var snapshot in Model.Snapshots.Skip(4))
+        @if (Model.Focus is not null)
+        {
+            <div class="focus-banner">
+                <h3>Weekly focus &mdash; @Model.Focus.DecisionQuestion</h3>
+                <p><strong>Action:</strong> @Model.Focus.RecommendedAction</p>
+                <p style="margin-top:8px;"><strong>Why now:</strong> @Model.Focus.WhyNow</p>
+                <p style="margin-top:8px; font-size:0.8rem;">Owner: @Model.Focus.Owner &middot; Cadence: @Model.Focus.Cadence</p>
+            </div>
+        }
+
+        <div class="kpi-container">
+            @foreach (var snapshot in Model.Snapshots.Take(4))
             {
-                <div class="mini-card">
-                    <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 4px;">@snapshot.KpiDefinition.Name</div>
-                    <div style="font-size: 0.75rem;">Target: @Model.FormatTarget(snapshot.KpiDefinition)</div>
+                var colorClass = snapshot.Status.Equals("GREEN", StringComparison.OrdinalIgnoreCase) ? "card-green" : (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" : "card-red");
+                <div class="kpi-card @colorClass">
+                    <div class="kpi-title">@snapshot.KpiDefinition.Name</div>
+                    <div class="kpi-main-val">@Model.FormatValue(snapshot)</div>
+                    <div class="kpi-target">Target: @Model.FormatTarget(snapshot.KpiDefinition)</div>
+                    @if (!string.IsNullOrWhiteSpace(snapshot.CardDetailLine1) || !string.IsNullOrWhiteSpace(snapshot.CardDetailLine2))
+                    {
+                        <div class="kpi-footer kpi-context">
+                            @if (!string.IsNullOrWhiteSpace(snapshot.CardDetailLine1))
+                            {<div>@snapshot.CardDetailLine1</div>}
+                            @if (!string.IsNullOrWhiteSpace(snapshot.CardDetailLine2))
+                            {<div>@snapshot.CardDetailLine2</div>}
+                        </div>
+                    }
+                    <div class="kpi-footer">
+                        &bull; WoW: @Model.FormatWoW(snapshot)<br />
+                        &bull; Status: @snapshot.Status
+                    </div>
                 </div>
             }
-        </div>
-    </div>
 
-    <div class="improvements-panel">
-        <div class="panel-title">Holdover Improvements</div>
-        <table class="imp-table">
-            <thead>
-                <tr>
-                    <th>Pillar KPI</th>
-                    <th>Driver / Concern</th>
-                    <th>Target | Actual</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
+            <div class="mini-column">
+                @foreach (var snapshot in Model.Snapshots.Skip(4))
+                {
+                    <div class="mini-card">
+                        <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 4px;">@snapshot.KpiDefinition.Name</div>
+                        <div style="font-size: 1.1rem; font-weight: 800;">@Model.FormatValue(snapshot)</div>
+                        <div style="font-size: 0.7rem; margin-top:4px;">Target @Model.FormatTarget(snapshot.KpiDefinition)</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="improvements-panel">
+            <div class="panel-title">Holdover Improvements</div>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin: -8px 0 16px;">Open improvements across pillars. @if (Model.TopAlert is not null){<span>Top alert pillar: <strong>@Model.TopAlert.KpiDefinition.Name</strong>.</span>}</p>
+            <table class="imp-table">
+                <thead>
+                    <tr>
+                        <th>Pillar KPI</th>
+                        <th>Driver</th>
+                        <th>Assigned / Target / Current</th>
+                        <th>Owner</th>
+                        <th>Fix status</th>
+                    </tr>
+                </thead>
+                <tbody>
                 @foreach (var driver in Model.Drivers)
                 {
+                    var pillarSt = Model.PillarBadgeStatus(driver);
+                    var tone = Model.ProgressToneClass(pillarSt);
+                    var pct = Model.FixProgressDisplayPercent(driver);
+                    var fillColor = tone == "red" ? "#ef4444" : tone == "amber" ? "#f59e0b" : tone == "green" ? "#10b981" : "#6366f1";
                     <tr>
-                        <td><span class="label-pill bg-@driver.Status.ToLower()">@driver.DriverName</span></td>
                         <td>
-                            <div style="font-weight: 700;">@driver.Dimension1</div>
-                            <div style="font-size: 0.75rem; color: #64748b;">@driver.WhyItMatters</div>
-                        </td>
-                        <td style="font-family: monospace; font-weight: 700;">
-                            @driver.Target.ToString("N1") | @driver.Current.ToString("N1")
+                            <span class="label-pill bg-@tone">@Model.PillarLabel(driver.PillarCode)</span>
                         </td>
                         <td>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <div class="progress-bar">
-                                    @{
-                                        // Dynamic color based on status
-                                        string fillColor = driver.Status.ToLower() switch
-                                        {
-                                            "red" => "#ef4444",
-                                            "amber" => "#f59e0b",
-                                            "green" => "#10b981",
-                                            _ => "#6366f1"
-                                        };
-                                        // Mock width - replace with (Actual/Target)*100 logic if needed
-                                        string progressWidth = "45%";
-                                    }
-                                    <div class="progress-fill" style="width: @progressWidth; background-color: @fillColor;"></div>
+                            <div style="font-weight: 700;">@driver.DriverName</div>
+                            @if (!string.IsNullOrWhiteSpace(driver.Dimension1))
+                            {
+                                <div style="font-size: 0.75rem; color: #64748b;">@driver.Dimension1@(!string.IsNullOrWhiteSpace(driver.Dimension2) ? $" / {driver.Dimension2}" : "")</div>
+                            }
+                            <div style="font-size: 0.72rem; color: #64748b; margin-top:4px;">@driver.WhyItMatters</div>
+                        </td>
+                        <td style="font-family: system-ui, sans-serif; font-weight: 600; font-size: 0.82rem;">
+                            @Model.FormatHoldoverMetrics(driver)
+                        </td>
+                        <td>@(string.IsNullOrWhiteSpace(driver.Owner) ? "—" : driver.Owner)</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <div class="progress-bar" style="min-width: 120px;">
+                                    <div class="progress-fill" style="width: @(pct)%; background-color: @fillColor;"></div>
                                 </div>
-                                <span style="font-size: 0.75rem; font-weight: bold; color: #475569;">@progressWidth</span>
+                                <span style="font-size: 0.75rem; font-weight: bold; color: #475569;">@pct%</span>
+                                <span class="label-pill bg-@Model.ProgressToneClass(driver.Status)" style="min-width:72px; font-size:0.65rem;">@driver.Status</span>
                             </div>
                         </td>
                     </tr>
                 }
-            </tbody>
-        </table>
+                </tbody>
+            </table>
 
-        <div style="text-align:center; margin-top:20px; font-weight:bold; font-size:0.9rem; color:#475569;">
-            @{
-               
-                var nextReviewDate = Model.ParsedPeriodEnd.AddDays(1);
-            }
-            Next Review: @nextReviewDate.ToString("ddd, MMM dd") (Weekly Leadership Cadence)
+            <p style="font-size:0.78rem; color:#475569; margin: 20px 0 8px; text-align:center;">
+                Note: implemented improvements will roll off Holdover once the driver is back on target (GREEN) and fix progress reaches 100%.
+            </p>
+            <div style="text-align:center; margin-top:12px; font-weight:bold; font-size:0.9rem; color:#475569;">
+                Next Review: @Model.NextReviewDate.ToString("ddd, MMM dd")
+                @if (Model.Focus is not null)
+                {<span> (@Model.Focus.Cadence)</span>}
+                else
+                {<span> (Weekly leadership cadence)</span>}
+            </div>
         </div>
-    </div>
+    }
 </div>

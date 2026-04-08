@@ -1,0 +1,26 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Driver catalog";
+}
+<div class="page-header"><h1 class="page-title">Driver catalog</h1> <a class="btn btn-primary" href="/Admin/DriverDefinitions/Create">Add driver</a></div>
+<p class="text-muted text-sm">Imports require <code>driver_code</code> for pillars that have active catalog entries.</p>
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Pillar</th><th>Driver code</th><th>Display name</th><th>Order</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var d in Model.Items)
+        {
+            <tr>
+                <td><code>@d.PillarCode</code></td>
+                <td><code>@d.DriverCode</code></td>
+                <td>@d.DisplayName</td>
+                <td>@d.SortOrder</td>
+                <td>@(d.IsActive ? "Yes" : "No")</td>
+                <td><a href="/Admin/DriverDefinitions/Edit?id=@d.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

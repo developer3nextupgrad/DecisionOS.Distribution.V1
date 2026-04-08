@@ -1,0 +1,23 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Users";
+}
+<div class="page-header"><h1 class="page-title">Users &amp; roles</h1> <a class="btn btn-primary" href="/Admin/Users/Create">Add user</a></div>
+<p class="text-muted text-sm">OPSPEC roles: <strong>Admin</strong> (full admin UI), <strong>Operator</strong> (imports/ops), <strong>Viewer</strong> (dashboard/API read), <strong>Developer</strong> (ops + technical).</p>
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Email</th><th>Roles</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var u in Model.Items)
+        {
+            <tr>
+                <td>@u.Email</td>
+                <td>@u.Roles</td>
+                <td><a href="/Admin/Users/Edit?id=@u.Id">Edit roles</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

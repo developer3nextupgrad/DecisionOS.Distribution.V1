@@ -1,0 +1,22 @@
+@page
+@model LoginModel
+@{
+    ViewData["Title"] = "Sign in";
+}
+<div class="card" style="max-width: 420px; margin: 40px auto;">
+    <div class="card-header"><h1 style="margin:0; font-size:1.25rem;">Sign in</h1></div>
+    <div class="card-body">
+        <form method="post">
+            <div asp-validation-summary="All" class="text-danger" style="margin-bottom:12px;"></div>
+            <div class="form-group">
+                <label asp-for="Email"></label>
+                <input asp-for="Email" class="form-control" autocomplete="username" />
+            </div>
+            <div class="form-group">
+                <label asp-for="Password"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+            </div>
+            <button type="submit" class="btn btn-primary" style="margin-top:12px; width:100%;">Sign in</button>
+        </form>
+    </div>
+</div>

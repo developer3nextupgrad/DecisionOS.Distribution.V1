@@ -1,0 +1,23 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Tenants";
+}
+<div class="page-header"><h1 class="page-title">Tenants</h1> <a class="btn btn-primary" href="/Admin/Tenants/Create">Add tenant</a></div>
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Client ID</th><th>Name</th><th>Archetype</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var t in Model.Items)
+        {
+            <tr>
+                <td><code>@t.ClientId</code></td>
+                <td>@t.Name</td>
+                <td>@(t.Archetype ?? "—")</td>
+                <td><a href="/Admin/Tenants/Edit?id=@t.Id">Edit</a> &middot; <a href="/Admin/Tenants/Delete?id=@t.Id">Delete</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

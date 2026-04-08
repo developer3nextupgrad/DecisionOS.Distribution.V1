@@ -108,8 +108,29 @@
                 </svg>
                 <span>Decision OS</span>
             </a>
-            <div class="navbar-links" id="navLinks">
+            <div class="navbar-links" id="navLinks" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
                 <a href="/" class="nav-link">Dashboard</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <span class="text-muted" style="font-size:0.8rem;">@User.Identity.Name</span>
+                    @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin))
+                    {
+                        <a href="/Admin" class="nav-link">Admin</a>
+                    }
+                    @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin)
+                        || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Operator)
+                        || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
+                    {
+                        <a href="/Operations/ImportRuns" class="nav-link">Imports</a>
+                    }
+                    <form method="post" asp-page="/Account/Logout" style="display:inline;margin:0;">
+                        <button type="submit" style="background:none;border:none;color:#94a3b8;cursor:pointer;font:inherit;">Log out</button>
+                    </form>
+                }
+                else
+                {
+                    <a href="/Account/Login" class="nav-link">Sign in</a>
+                }
             </div>
         </div>
     </nav>

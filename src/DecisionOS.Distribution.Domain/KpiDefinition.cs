@@ -10,6 +10,11 @@ public class KpiDefinition
     public decimal Target { get; set; }
     public decimal AmberThreshold { get; set; }
     public decimal RedThreshold { get; set; }
+    /// <summary>Optional inclusive bounds validated during import.</summary>
+    public decimal? MinValue { get; set; }
+    public decimal? MaxValue { get; set; }
+    /// <summary>Lower value = higher business priority when severities tie (cash before profit, etc.).</summary>
+    public int AlertPriority { get; set; } = 100;
     public string RecommendedAction { get; set; } = null!;
     public string DiagnosticChecks { get; set; } = null!;
 }

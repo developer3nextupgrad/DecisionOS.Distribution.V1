@@ -1,0 +1,36 @@
+@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Add driver definition";
+}
+<h1 class="page-title">Add driver definition</h1>
+<form method="post" class="card" style="max-width:640px;">
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="form-group">
+            <label asp-for="Input.PillarCode"></label>
+            <select asp-for="Input.PillarCode" class="form-control" asp-items="Model.PillarOptions"></select>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.DriverCode"></label>
+            <input asp-for="Input.DriverCode" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.DisplayName"></label>
+            <input asp-for="Input.DisplayName" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Description"></label>
+            <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.SortOrder"></label>
+            <input asp-for="Input.SortOrder" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label><input asp-for="Input.IsActive" /> Active</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="/Admin/DriverDefinitions" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+    </div>
+</form>

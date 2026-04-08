@@ -1,0 +1,22 @@
+@page
+@model EditModel
+@{
+    ViewData["Title"] = "Edit user roles";
+}
+<h1 class="page-title">Roles for @Model.Email</h1>
+<form method="post" class="card" style="max-width:560px;">
+    <input type="hidden" asp-for="Id" />
+    <div class="card-body">
+        <div asp-validation-summary="All" class="text-danger"></div>
+        @foreach (var r in AppRoles.All)
+        {
+            var on = Model.SelectedRoles.Contains(r);
+            <label style="display:block;">
+                <input type="checkbox" name="SelectedRoles" value="@r" checked="@on" />
+                @r
+            </label>
+        }
+        <button type="submit" class="btn btn-primary" style="margin-top:12px;">Save</button>
+        <a href="/Admin/Users" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+    </div>
+</form>

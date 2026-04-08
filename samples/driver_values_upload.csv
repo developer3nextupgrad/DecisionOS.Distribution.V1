@@ -1,11 +1,14 @@
-pillar_code,driver_name,dimension1,dimension2,current,wow,context,rank,status,why_it_matters
-AR_PastDue31p%,Acme Corp,Customer,Northeast,45000,-2000,18% of total AR,1,RED,Largest single overdue balance growing weekly
-AR_PastDue31p%,Beta Industries,Customer,Southeast,32000,5000,12% of total AR,2,YELLOW,Fastest growing overdue - up $5K this week
-AR_PastDue31p%,Gamma LLC,Customer,West,28000,0,10% of total AR,3,YELLOW,Stale 90+ day balance not moving
-AR_PastDue31p%,Delta Supply,Customer,Central,18000,-1000,7% of total AR,4,GREEN,Improving - payment plan in place
-AR_PastDue31p%,Epsilon Co,Customer,Northeast,15000,3000,6% of total AR,5,YELLOW,New overdue - was current last week
-CCC,Days Sales Outstanding,DSO Component,,35,2,Drives 67% of CCC,1,YELLOW,DSO up 2 days - collections slowing
-CCC,Days Inventory Outstanding,DIO Component,,42,-1,Drives 80% of CCC,2,GREEN,Slight improvement in inventory turns
-CCC,Days Payable Outstanding,DPO Component,,25,-3,Offsets DSO+DIO,3,RED,DPO dropped - paying vendors too fast
-GrossMargin%,Product Mix,Category,,0.24,0.01,Heavy industrial 40% of revenue,1,YELLOW,Low-margin product share growing
-GrossMargin%,Freight Costs,Cost Driver,,0.03,0.005,3% of revenue,2,RED,Freight surcharges hitting margin
+pillar_code,driver_code,driver_name,dimension1,dimension2,current,wow,context,rank,status,why_it_matters,owner,assigned_summary,target_summary,current_summary,fix_progress
+AR_PastDue31p%,ar_acme,Acme Corp,Customer,Northeast,45000,-2000,18% of total AR,1,RED,Largest single overdue balance growing weekly,Credit Mgr,55,< 10%,48,35
+AR_PastDue31p%,ar_beta,Beta Industries,Customer,Southeast,32000,5000,12% of total AR,2,YELLOW,Fastest growing overdue - up $5K this week,Collections Lead,62,< 10%,58,55
+AR_PastDue31p%,ar_gamma,Gamma LLC,Customer,West,28000,0,10% of total AR,3,YELLOW,Stale 90+ day balance not moving,AR Analyst,58,< 10%,54,45
+AR_PastDue31p%,ar_delta,Delta Supply,Customer,Central,18000,-1000,7% of total AR,4,GREEN,Improving - payment plan in place,Field Sales,48,< 10%,47,100
+AR_PastDue31p%,ar_epsilon,Epsilon Co,Customer,Northeast,15000,3000,6% of total AR,5,YELLOW,New overdue - was current last week,Credit Mgr,51,< 10%,49,30
+CCC,ccc_dso,Days Sales Outstanding,DSO Component,,35,2,Drives 67% of CCC,1,YELLOW,DSO up 2 days - collections slowing,CFO Office,52 days,< 45 days,52 days,40
+CCC,ccc_dio,Days Inventory Outstanding,DIO Component,,42,-1,Drives 80% of CCC,2,GREEN,Slight improvement in inventory turns,COO,55 days,< 45 days,42 days,85
+CCC,ccc_dpo,Days Payable Outstanding,DPO Component,,25,-3,Offsets DSO+DIO,3,RED,DPO dropped - paying vendors too fast,Finance Dir,30 days,>= 28 days,25 days,20
+GrossMargin%,gm_mix,Product Mix,Category,,0.24,0.01,Heavy industrial 40% of revenue,1,YELLOW,Low-margin product share growing,VP Sales,5%,>= 8%,6%,50
+GrossMargin%,gm_freight,Freight Costs,Cost Driver,,0.03,0.005,3% of revenue,2,RED,Freight surcharges hitting margin,Operations,4%,< 3%,3.5%,25
+GrossMargin%,gm_discount,Discounting,Commercial,,0.09,0.002,9% of revenue,3,YELLOW,Price exceptions above guardrails,Pricing Lead,5%,< 5%,9%,45
+PerfectOrderRate,por_late,Late Shipments,Carrier East,,0.12,0.02,40% of service misses,1,RED,Carrier capacity constrained Tue–Wed,Logistics Mgr,8%,< 5%,12%,40
+DOH,doh_slow,Industrial slow movers,SKU bucket,,18,1,12% of inventory $,1,YELLOW,Aged stock consuming warehouse space,Inventory Mgr,12%,< 10%,18%,40
