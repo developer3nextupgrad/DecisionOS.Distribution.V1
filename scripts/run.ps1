@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-  One-command run for DecisionOS Distribution V1 (migrate DB, import sample data, start web UI).
+  One-command run for DecisionOS Distribution V1 (database setup via setup-database.ps1, then web UI).
 
 .DESCRIPTION
   - Frees the configured web port (optional)
-  - Applies EF Core migrations to PostgreSQL
-  - Imports sample CSV data (or your provided CSVs)
+  - Delegates to scripts\setup-database.ps1 for: build (when migrate/import run), EF migrations, Import CLI
   - Starts the web application on the chosen port
+
+  For database-only work (no web server), use .\scripts\setup-database.ps1 directly.
 
 .PARAMETER WebPort
   Port for the web UI (default: 5276).
@@ -27,10 +28,10 @@
   CSV paths to import.
 
 .PARAMETER SkipMigrate
-  Skip `dotnet ef database update`.
+  Passed to setup-database.ps1 — skip `dotnet ef database update`.
 
 .PARAMETER SkipImport
-  Skip import CLI step.
+  Passed to setup-database.ps1 — skip Import CLI.
 
 .PARAMETER NoFreePort
   Do not attempt to stop processes listening on WebPort.
@@ -75,6 +76,8 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot "..")
+$setupScript = Join-Path $PSScriptRoot "setup-database.ps1"
+
 Push-Location $repoRoot
 try {
     $connectionString = "Host=$DbHost;Port=$DbPort;Database=$DbName;Username=$DbUser;Password=$DbPassword"
@@ -91,27 +94,28 @@ try {
         & ".\\scripts\\free-port.ps1" -Port $WebPort -Force | Out-Host
     }
 
-    Write-Host "Building solution..."
-    dotnet build ".\\DecisionOS.Distribution.V1.sln"
+    $skipAllDb = $SkipMigrate -and $SkipImport
+    if (-not $skipAllDb) {
+        $setupParams = @{
+            DbHost          = $DbHost
+            DbPort          = $DbPort
+            DbName          = $DbName
+            DbUser          = $DbUser
+            DbPassword      = $DbPassword
+            ClientId        = $ClientId
+            PeriodEnd       = $PeriodEnd
+            KpiCsvPath      = $KpiCsvPath
+            DriversCsvPath  = $DriversCsvPath
+        }
+        if ($SkipMigrate) { $setupParams.SkipMigrate = $true }
+        if ($SkipImport) { $setupParams.SkipImport = $true }
 
-    if (-not $SkipMigrate) {
-        Write-Host "Applying EF Core migrations to database..."
-        dotnet ef database update `
-            --project ".\\src\\DecisionOS.Distribution.Infrastructure" `
-            --startup-project ".\\src\\DecisionOS.Distribution.Web"
+        Write-Host "Running database setup ( scripts\setup-database.ps1 )..."
+        & $setupScript @setupParams
     }
-
-    if (-not $SkipImport) {
-        if (-not (Test-Path $KpiCsvPath)) {
-            throw "KPI CSV not found: $KpiCsvPath"
-        }
-
-        if (-not (Test-Path $DriversCsvPath)) {
-            throw "Drivers CSV not found: $DriversCsvPath"
-        }
-
-        Write-Host "Importing data..."
-        dotnet run --project ".\\src\\DecisionOS.Distribution.Import" -- $ClientId $PeriodEnd $KpiCsvPath $DriversCsvPath
+    else {
+        Write-Host "Skipping database migrate/import (SkipMigrate and SkipImport). Building solution..."
+        dotnet build ".\\DecisionOS.Distribution.V1.sln"
     }
 
     if ($OpenBrowser) {
@@ -119,10 +123,8 @@ try {
     }
 
     Write-Host "Starting web app (Ctrl+C to stop)..."
-    # Use ASPNETCORE_URLS from this script (avoid launchSettings.json overriding ports).
     dotnet run --no-launch-profile --project ".\\src\\DecisionOS.Distribution.Web"
 }
 finally {
     Pop-Location
 }
-
