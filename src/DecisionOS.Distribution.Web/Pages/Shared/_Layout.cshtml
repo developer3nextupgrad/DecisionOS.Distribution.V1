@@ -5,38 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Decision OS</title>
     <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        /* Modern reset and layout variables */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #cbd5e1; /* Matches dashboard bg */
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Fixed Dark Top Nav */
+        .navbar {
+            background-color: #1e293b; /* Dark Navy */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.5px;
+        }
+
+            .navbar-brand svg {
+                color: #38bdf8; /* Light Blue Accent */
+            }
+
+        .navbar-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+            .navbar-links a:hover {
+                color: white;
+            }
+
+        /* Main Content Container */
+        .main-wrapper {
+            flex: 1;
+            width: 100%;
+            max-width: 1400px;
+            margin: 20px auto; /* Centered with breathing room */
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+
+        /* Styled Footer */
+        .footer {
+            background-color: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            margin-top: auto;
+        }
+
+        .footer-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .text-muted {
+            color: #64748b;
+            font-size: 0.85rem;
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
         <div class="navbar-inner">
             <a href="/" class="navbar-brand">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="12" width="4" height="9" rx="1"/>
-                    <rect x="10" y="7" width="4" height="14" rx="1"/>
-                    <rect x="17" y="3" width="4" height="18" rx="1"/>
+                    <rect x="3" y="12" width="4" height="9" rx="1" />
+                    <rect x="10" y="7" width="4" height="14" rx="1" />
+                    <rect x="17" y="3" width="4" height="18" rx="1" />
                 </svg>
                 <span>Decision OS</span>
             </a>
             <div class="navbar-links" id="navLinks">
                 <a href="/" class="nav-link">Dashboard</a>
             </div>
-            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="6" x2="21" y2="6"/>
-                    <line x1="3" y1="12" x2="21" y2="12"/>
-                    <line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-            </button>
         </div>
     </nav>
 
-    <main class="container">
+    <main class="main-wrapper">
         @RenderBody()
     </main>
 
     <footer class="footer">
-        <div class="container">
-            <span class="text-muted text-sm">Decision OS Distribution V1 &copy; @DateTime.UtcNow.Year</span>
+        <div class="footer-inner">
+            <span class="text-muted">Decision OS Distribution V1</span>
+            <span class="text-muted">&copy; @DateTime.UtcNow.Year</span>
         </div>
     </footer>
 
