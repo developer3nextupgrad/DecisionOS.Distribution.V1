@@ -1,0 +1,58 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Influencers.IndexModel
+@{
+    ViewData["Title"] = "Influencers";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Influencer catalog</h1>
+    <a class="btn btn-primary" href="/Admin/Influencers/Create?profileId=@Model.ProfileId">Add influencer</a>
+</div>
+
+<form method="get" class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+        <div class="form-group">
+            <label for="ProfileId">Business profile</label>
+            <select id="ProfileId" name="ProfileId" class="form-control" asp-items="Model.ProfileOptions" onchange="this.form.submit()">
+                <option value="">-- Select a profile --</option>
+            </select>
+            <div class="text-muted text-sm">Influencers are profile-scoped (not global).</div>
+        </div>
+    </div>
+</form>
+
+@if (Model.ProfileId is null)
+{
+    <div class="empty-state">
+        <h2>Select a profile</h2>
+        <p class="text-muted">Pick a business profile to view and manage its influencer catalog.</p>
+    </div>
+}
+else
+{
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead><tr><th>Pillar</th><th>Driver</th><th>Influencer code</th><th>Name</th><th>Direction</th><th>Weight</th><th>Active</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var i in Model.Items)
+            {
+                <tr>
+                    <td><code>@i.PillarCode</code></td>
+                    <td><code>@i.DriverCode</code></td>
+                    <td><code>@i.InfluencerCode</code></td>
+                    <td>
+                        <div style="font-weight:600;">@i.DisplayName</div>
+                        <div class="text-muted text-sm">@i.Description</div>
+                    </td>
+                    <td>@i.Direction</td>
+                    <td>@i.Weight</td>
+                    <td>@(i.IsActive ? "Yes" : "No")</td>
+                    <td><a href="/Admin/Influencers/Edit?id=@i.Id">Edit</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+    <p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
+}
+

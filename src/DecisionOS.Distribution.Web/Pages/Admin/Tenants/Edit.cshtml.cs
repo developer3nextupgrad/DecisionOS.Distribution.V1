@@ -16,6 +16,7 @@ public class EditModel : PageModel
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
+    public Microsoft.AspNetCore.Mvc.Rendering.SelectList? ProfileOptions { get; private set; }
 
     public class InputModel
     {
@@ -24,17 +25,25 @@ public class EditModel : PageModel
         public string Name { get; set; } = "";
         [MaxLength(120)]
         public string? Archetype { get; set; }
+        public Guid? BusinessProfileId { get; set; }
     }
 
     public async Task<IActionResult> OnGetAsync()
     {
         var t = await _db.Tenants.FirstOrDefaultAsync(x => x.Id == Id);
         if (t is null) return NotFound();
+        var profiles = await _db.BusinessProfiles
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync();
+        ProfileOptions = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(profiles, "Id", "Name");
         Input = new InputModel
         {
             ClientId = t.ClientId,
             Name = t.Name,
-            Archetype = t.Archetype
+            Archetype = t.Archetype,
+            BusinessProfileId = t.BusinessProfileId
         };
         return Page();
     }
@@ -43,6 +52,12 @@ public class EditModel : PageModel
     {
         var t = await _db.Tenants.FirstOrDefaultAsync(x => x.Id == Id);
         if (t is null) return NotFound();
+        var profiles = await _db.BusinessProfiles
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync();
+        ProfileOptions = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(profiles, "Id", "Name");
         if (!ModelState.IsValid)
         {
             Input.ClientId = t.ClientId;
@@ -51,6 +66,7 @@ public class EditModel : PageModel
 
         t.Name = Input.Name.Trim();
         t.Archetype = string.IsNullOrWhiteSpace(Input.Archetype) ? null : Input.Archetype.Trim();
+        t.BusinessProfileId = Input.BusinessProfileId;
         await _db.SaveChangesAsync();
         return RedirectToPage("Index");
     }

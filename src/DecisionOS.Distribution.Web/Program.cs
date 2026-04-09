@@ -75,6 +75,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
     if (tenant is null) return Results.NotFound();
 
     var holdoverView = string.Equals(req.Query["view"], "holdover", StringComparison.OrdinalIgnoreCase);
+    var profileId = tenant.BusinessProfileId;
 
     var snapshots = await db.KpiSnapshots
         .Include(s => s.KpiDefinition)
@@ -133,7 +134,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
 
     return Results.Ok(new
     {
-        Tenant = new { tenant.ClientId, tenant.Name, tenant.Archetype },
+        Tenant = new { tenant.ClientId, tenant.Name, tenant.Archetype, tenant.BusinessProfileId },
         PeriodEnd = periodEnd,
         Kpis = snapshots,
         TopAlert = alert is null
@@ -161,7 +162,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
 api.MapGet("/tenants", async (DecisionOsDbContext db) =>
 {
     var tenants = await db.Tenants
-        .Select(t => new { t.ClientId, t.Name, t.Archetype })
+        .Select(t => new { t.ClientId, t.Name, t.Archetype, t.BusinessProfileId })
         .ToListAsync();
 
     return Results.Ok(tenants);

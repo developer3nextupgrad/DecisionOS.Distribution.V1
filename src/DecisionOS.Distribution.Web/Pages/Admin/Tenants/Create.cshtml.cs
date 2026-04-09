@@ -14,6 +14,7 @@ public class CreateModel : PageModel
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
+    public Microsoft.AspNetCore.Mvc.Rendering.SelectList? ProfileOptions { get; private set; }
 
     public class InputModel
     {
@@ -23,14 +24,28 @@ public class CreateModel : PageModel
         public string Name { get; set; } = "";
         [MaxLength(120)]
         public string? Archetype { get; set; }
+        public Guid? BusinessProfileId { get; set; }
     }
 
-    public void OnGet()
+    public async Task OnGetAsync()
     {
+        var profiles = await _db.BusinessProfiles
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync();
+        ProfileOptions = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(profiles, "Id", "Name");
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var profiles = await _db.BusinessProfiles
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Name)
+            .Select(p => new { p.Id, p.Name })
+            .ToListAsync();
+        ProfileOptions = new Microsoft.AspNetCore.Mvc.Rendering.SelectList(profiles, "Id", "Name");
+
         if (!ModelState.IsValid)
             return Page();
 
@@ -45,7 +60,8 @@ public class CreateModel : PageModel
             Id = Guid.NewGuid(),
             ClientId = Input.ClientId.Trim(),
             Name = Input.Name.Trim(),
-            Archetype = string.IsNullOrWhiteSpace(Input.Archetype) ? null : Input.Archetype.Trim()
+            Archetype = string.IsNullOrWhiteSpace(Input.Archetype) ? null : Input.Archetype.Trim(),
+            BusinessProfileId = Input.BusinessProfileId
         });
         await _db.SaveChangesAsync();
         return RedirectToPage("Index");

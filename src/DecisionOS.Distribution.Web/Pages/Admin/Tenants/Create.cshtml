@@ -20,6 +20,13 @@
             <label asp-for="Input.Archetype"></label>
             <input asp-for="Input.Archetype" class="form-control" />
         </div>
+        <div class="form-group">
+            <label asp-for="Input.BusinessProfileId">Business profile</label>
+            <select asp-for="Input.BusinessProfileId" class="form-control" asp-items="Model.ProfileOptions">
+                <option value="">-- Global / default --</option>
+            </select>
+            <div class="text-muted text-sm">Select an industry/business-type standard set for this tenant.</div>
+        </div>
         <button type="submit" class="btn btn-primary">Save</button>
         <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
     </div>

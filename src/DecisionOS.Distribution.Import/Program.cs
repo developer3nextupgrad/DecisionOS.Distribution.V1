@@ -56,6 +56,7 @@ if (tenant is null)
     await db.SaveChangesAsync();
 }
 
+await SeedBusinessProfilesIfNeeded(db);
 await SeedKpiDefinitionsIfNeeded(db);
 await SyncKpiDefinitionPriorities(db);
 await SeedDriverDefinitionsIfNeeded(db);
@@ -94,7 +95,7 @@ try
     ValidateKpiCsvHeaders(kpiCsvPath);
     if (!string.IsNullOrWhiteSpace(driversCsvPath))
     {
-        var requireDriverCode = await db.DriverDefinitions.AnyAsync(d => d.IsActive);
+        var requireDriverCode = await RequiresDriverCodeForTenantAsync(db, tenant);
         await ValidateDriverCsvHeadersAsync(driversCsvPath, requireDriverCode);
     }
 
@@ -210,6 +211,33 @@ static async Task SeedDriverDefinitionsIfNeeded(DecisionOsDbContext db)
 
     db.DriverDefinitions.AddRange(defs);
     await db.SaveChangesAsync();
+}
+
+static async Task SeedBusinessProfilesIfNeeded(DecisionOsDbContext db)
+{
+    if (await db.BusinessProfiles.AnyAsync()) return;
+
+    db.BusinessProfiles.Add(new BusinessProfile
+    {
+        Id = Guid.NewGuid(),
+        Code = "DISTRIBUTION_DEFAULT",
+        Name = "Distribution (Default)",
+        Description = "Default pilot KPI/driver standards for distribution-style businesses."
+    });
+
+    await db.SaveChangesAsync();
+}
+
+static async Task<bool> RequiresDriverCodeForTenantAsync(DecisionOsDbContext db, Tenant tenant)
+{
+    var profileId = tenant.BusinessProfileId;
+    if (profileId is null)
+        return await db.DriverDefinitions.AnyAsync(d => d.IsActive && d.BusinessProfileId == null);
+
+    var hasProfileCatalog = await db.DriverDefinitions.AnyAsync(d => d.IsActive && d.BusinessProfileId == profileId);
+    if (hasProfileCatalog) return true;
+
+    return await db.DriverDefinitions.AnyAsync(d => d.IsActive && d.BusinessProfileId == null);
 }
 
 static async Task SeedKpiDefinitionsIfNeeded(DecisionOsDbContext db)
@@ -374,6 +402,50 @@ static string? GetOptionalCsvField(IDictionary<string, object?> dict, string can
     return string.IsNullOrEmpty(raw) ? null : raw;
 }
 
+static async Task<Dictionary<string, KpiDefinition>> ResolveKpiDefinitionsForTenantAsync(DecisionOsDbContext db, Tenant tenant)
+{
+    var profileId = tenant.BusinessProfileId;
+    var defs = await db.KpiDefinitions
+        .Where(d => d.BusinessProfileId == null || d.BusinessProfileId == profileId)
+        .ToListAsync();
+
+    if (profileId is not null && defs.All(d => d.BusinessProfileId is null))
+    {
+        // No profile-specific overrides exist yet; fall back to global set.
+        defs = await db.KpiDefinitions.Where(d => d.BusinessProfileId == null).ToListAsync();
+    }
+
+    var resolved = defs
+        .GroupBy(d => d.Code, StringComparer.OrdinalIgnoreCase)
+        .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
+        .ToDictionary(d => d.Code, d => d, StringComparer.OrdinalIgnoreCase);
+
+    return resolved;
+}
+
+static async Task<List<DriverDefinition>> ResolveDriverDefinitionsForTenantAsync(DecisionOsDbContext db, Tenant tenant)
+{
+    var profileId = tenant.BusinessProfileId;
+    var defs = await db.DriverDefinitions
+        .Where(d => d.BusinessProfileId == null || d.BusinessProfileId == profileId)
+        .ToListAsync();
+
+    if (profileId is not null && defs.All(d => d.BusinessProfileId is null))
+    {
+        // No profile-specific overrides exist yet; fall back to global set.
+        defs = await db.DriverDefinitions.Where(d => d.BusinessProfileId == null).ToListAsync();
+    }
+
+    var resolved = defs
+        .GroupBy(d =>
+            ((d.PillarCode ?? string.Empty).Trim().ToUpperInvariant() + "||" +
+             (d.DriverCode ?? string.Empty).Trim().ToUpperInvariant()))
+        .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
+        .ToList();
+
+    return resolved;
+}
+
 static async Task<int> ImportKpisAsync(
     DecisionOsDbContext db,
     Tenant tenant,
@@ -387,7 +459,7 @@ static async Task<int> ImportKpisAsync(
     using var csv = new CsvReader(reader, config);
 
     var records = csv.GetRecords<dynamic>().ToList();
-    var definitions = (await db.KpiDefinitions.ToListAsync()).ToDictionary(d => d.Code, StringComparer.Ordinal);
+    var definitions = await ResolveKpiDefinitionsForTenantAsync(db, tenant);
 
     var row = 2;
     var pending = new List<(int DefId, decimal Value, string? L1, string? L2)>();
@@ -489,8 +561,8 @@ static async Task<int> ImportDriversAsync(
     var existing = db.DriverValues.Where(d => d.TenantId == tenant.Id && d.PeriodEnd == periodEnd);
     db.DriverValues.RemoveRange(existing);
 
-    var activeDefs = await db.DriverDefinitions.Where(d => d.IsActive).ToListAsync();
-    var byPillar = activeDefs.ToLookup(d => d.PillarCode, StringComparer.OrdinalIgnoreCase);
+    var activeDefs = await ResolveDriverDefinitionsForTenantAsync(db, tenant);
+    var byPillar = activeDefs.Where(d => d.IsActive).ToLookup(d => d.PillarCode, StringComparer.OrdinalIgnoreCase);
 
     var pillarCodes = await db.KpiDefinitions
         .Select(k => k.Code)

@@ -1,0 +1,47 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Profiles.IndexModel
+@{
+    ViewData["Title"] = "Business profiles";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Business profiles</h1>
+    <a class="btn btn-primary" href="/Admin/Profiles/Create">Add profile</a>
+</div>
+
+<p class="text-muted text-sm">
+    Profiles represent industry / business-type KPI standards. You can apply the default (global) KPI/Driver set to a profile, then tailor it.
+</p>
+
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var p in Model.Items)
+        {
+            <tr>
+                <td><code>@p.Code</code></td>
+                <td>
+                    <div style="font-weight:600;">@p.Name</div>
+                    <div class="text-muted text-sm">@p.Description</div>
+                </td>
+                <td>@(p.IsActive ? "Yes" : "No")</td>
+                <td>
+                    <a href="/Admin/Profiles/Edit?id=@p.Id">Edit</a>
+                    &middot;
+                    <a href="/Admin/Profiles/ApplyDefaults?id=@p.Id">Apply defaults</a>
+                    &middot;
+                    <a href="/Admin/KpiDefinitions?profileId=@p.Id">KPIs</a>
+                    &middot;
+                    <a href="/Admin/DriverDefinitions?profileId=@p.Id">Drivers</a>
+                    &middot;
+                    <a href="/Admin/Influencers?profileId=@p.Id">Influencers</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
+

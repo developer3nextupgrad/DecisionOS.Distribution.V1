@@ -1,0 +1,40 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Influencers.EditModel
+@{
+    ViewData["Title"] = "Edit influencer";
+}
+
+<h1 class="page-title">Edit influencer</h1>
+<form method="post" class="card" style="max-width:720px;">
+    <input type="hidden" asp-for="Id" />
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="form-group">
+            <label>Pillar / Driver / Code</label>
+            <input class="form-control" value="@Model.Input.PillarCode / @Model.Input.DriverCode / @Model.Input.InfluencerCode" disabled />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.DisplayName"></label>
+            <input asp-for="Input.DisplayName" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Description"></label>
+            <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Direction"></label>
+            <select asp-for="Input.Direction" class="form-control"
+                    asp-items="Html.GetEnumSelectList<DecisionOS.Distribution.Domain.InfluencerImpactDirection>()"></select>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.Weight"></label>
+            <input asp-for="Input.Weight" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label><input asp-for="Input.IsActive" /> Active</label>
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Influencers?profileId=@Model.ProfileId">Cancel</a>
+    </div>
+</form>
+

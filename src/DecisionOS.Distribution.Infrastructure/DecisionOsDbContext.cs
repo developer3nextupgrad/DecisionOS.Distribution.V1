@@ -11,11 +11,13 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     {
     }
 
+    public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
     public DbSet<KpiSnapshot> KpiSnapshots => Set<KpiSnapshot>();
     public DbSet<DriverValue> DriverValues => Set<DriverValue>();
     public DbSet<DriverDefinition> DriverDefinitions => Set<DriverDefinition>();
+    public DbSet<InfluencerDefinition> InfluencerDefinitions => Set<InfluencerDefinition>();
     public DbSet<Alert> Alerts => Set<Alert>();
     public DbSet<WeeklyFocus> WeeklyFocuses => Set<WeeklyFocus>();
     public DbSet<ImportRun> ImportRuns => Set<ImportRun>();
@@ -31,7 +33,7 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         modelBuilder.Entity<KpiDefinition>(entity =>
         {
-            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.BusinessProfileId, x.Code }).IsUnique();
         });
 
         modelBuilder.Entity<KpiSnapshot>(entity =>
@@ -46,7 +48,17 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
 
         modelBuilder.Entity<DriverDefinition>(entity =>
         {
-            entity.HasIndex(x => new { x.PillarCode, x.DriverCode }).IsUnique();
+            entity.HasIndex(x => new { x.BusinessProfileId, x.PillarCode, x.DriverCode }).IsUnique();
+        });
+
+        modelBuilder.Entity<BusinessProfile>(entity =>
+        {
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<InfluencerDefinition>(entity =>
+        {
+            entity.HasIndex(x => new { x.BusinessProfileId, x.PillarCode, x.DriverCode, x.InfluencerCode }).IsUnique();
         });
 
         modelBuilder.Entity<Alert>(entity =>

@@ -6,7 +6,7 @@
 <div class="page-header"><h1 class="page-title">Tenants</h1> <a class="btn btn-primary" href="/Admin/Tenants/Create">Add tenant</a></div>
 <div class="table-wrapper">
     <table class="data-table">
-        <thead><tr><th>Client ID</th><th>Name</th><th>Archetype</th><th></th></tr></thead>
+        <thead><tr><th>Client ID</th><th>Name</th><th>Archetype</th><th>Profile</th><th></th></tr></thead>
         <tbody>
         @foreach (var t in Model.Items)
         {
@@ -14,6 +14,7 @@
                 <td><code>@t.ClientId</code></td>
                 <td>@t.Name</td>
                 <td>@(t.Archetype ?? "—")</td>
+                <td>@(t.BusinessProfile?.Name ?? "—")</td>
                 <td><a href="/Admin/Tenants/Edit?id=@t.Id">Edit</a> &middot; <a href="/Admin/Tenants/Delete?id=@t.Id">Delete</a></td>
             </tr>
         }

@@ -6,6 +6,8 @@ namespace DecisionOS.Distribution.Domain;
 public class DriverDefinition
 {
     public int Id { get; set; }
+    public Guid? BusinessProfileId { get; set; }
+    public BusinessProfile? BusinessProfile { get; set; }
     /// <summary>Matches <see cref="KpiDefinition.Code"/>.</summary>
     public string PillarCode { get; set; } = null!;
     /// <summary>Stable key used in imports (e.g. acme_collections).</summary>

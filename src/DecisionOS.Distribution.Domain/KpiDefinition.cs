@@ -3,6 +3,8 @@ namespace DecisionOS.Distribution.Domain;
 public class KpiDefinition
 {
     public int Id { get; set; }
+    public Guid? BusinessProfileId { get; set; }
+    public BusinessProfile? BusinessProfile { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string Unit { get; set; } = null!;

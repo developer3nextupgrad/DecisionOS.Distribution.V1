@@ -13,6 +13,9 @@ public class CreateModel : PageModel
     private readonly DecisionOsDbContext _db;
     public CreateModel(DecisionOsDbContext db) => _db = db;
 
+    [BindProperty(SupportsGet = true)]
+    public Guid? ProfileId { get; set; }
+
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -34,7 +37,11 @@ public class CreateModel : PageModel
 
     public async Task OnGetAsync()
     {
-        var codes = await _db.KpiDefinitions.OrderBy(k => k.Code).Select(k => k.Code).ToListAsync();
+        var codes = await _db.KpiDefinitions
+            .Where(k => k.BusinessProfileId == ProfileId)
+            .OrderBy(k => k.Code)
+            .Select(k => k.Code)
+            .ToListAsync();
         PillarOptions = new SelectList(codes);
         if (string.IsNullOrWhiteSpace(Input.PillarCode) && codes.Count > 0)
             Input.PillarCode = codes[0];
@@ -42,7 +49,11 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        var codes = await _db.KpiDefinitions.OrderBy(k => k.Code).Select(k => k.Code).ToListAsync();
+        var codes = await _db.KpiDefinitions
+            .Where(k => k.BusinessProfileId == ProfileId)
+            .OrderBy(k => k.Code)
+            .Select(k => k.Code)
+            .ToListAsync();
         PillarOptions = new SelectList(codes);
 
         if (!ModelState.IsValid)
@@ -50,13 +61,13 @@ public class CreateModel : PageModel
 
         var pillar = Input.PillarCode.Trim();
         var code = Input.DriverCode.Trim();
-        if (!await _db.KpiDefinitions.AnyAsync(k => k.Code == pillar))
+        if (!await _db.KpiDefinitions.AnyAsync(k => k.BusinessProfileId == ProfileId && k.Code == pillar))
         {
             ModelState.AddModelError(nameof(Input.PillarCode), "Unknown pillar code.");
             return Page();
         }
 
-        if (await _db.DriverDefinitions.AnyAsync(d => d.PillarCode == pillar && d.DriverCode == code))
+        if (await _db.DriverDefinitions.AnyAsync(d => d.BusinessProfileId == ProfileId && d.PillarCode == pillar && d.DriverCode == code))
         {
             ModelState.AddModelError(nameof(Input.DriverCode), "This driver code already exists for the pillar.");
             return Page();
@@ -64,6 +75,7 @@ public class CreateModel : PageModel
 
         _db.DriverDefinitions.Add(new DriverDefinition
         {
+            BusinessProfileId = ProfileId,
             PillarCode = pillar,
             DriverCode = code,
             DisplayName = Input.DisplayName.Trim(),

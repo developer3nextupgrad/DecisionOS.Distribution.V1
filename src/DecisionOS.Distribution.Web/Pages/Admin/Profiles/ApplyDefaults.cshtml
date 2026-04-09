@@ -1,0 +1,30 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Profiles.ApplyDefaultsModel
+@{
+    ViewData["Title"] = "Apply defaults";
+}
+
+@if (Model.Profile is null)
+{
+    <p>Profile not found.</p>
+    return;
+}
+
+<h1 class="page-title">Apply defaults to profile</h1>
+<div class="card" style="max-width:760px;">
+    <div class="card-body">
+        <p>
+            This clones the <strong>global</strong> KPI definitions and driver catalog into the profile
+            <code>@Model.Profile.Code</code> so you can tailor thresholds, actions, and catalogs per industry/type.
+        </p>
+        <p class="text-muted text-sm">
+            If the profile already has KPI/driver definitions, this action is a no-op for that section.
+        </p>
+        <form method="post">
+            <input type="hidden" asp-for="Id" />
+            <button type="submit" class="btn btn-primary">Apply defaults</button>
+            <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Profiles">Cancel</a>
+        </form>
+    </div>
+</div>
+

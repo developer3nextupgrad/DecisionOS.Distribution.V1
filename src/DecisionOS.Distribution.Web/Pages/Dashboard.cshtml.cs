@@ -43,7 +43,18 @@ public class DashboardModel : PageModel
         Tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.ClientId == ClientId);
         if (Tenant is null) return RedirectToPage("Index");
 
-        PillarDisplayNames = await _db.KpiDefinitions.AsNoTracking().ToDictionaryAsync(d => d.Code, d => d.Name);
+        var profileId = Tenant.BusinessProfileId;
+        var kpiDefs = await _db.KpiDefinitions
+            .AsNoTracking()
+            .Where(d => d.BusinessProfileId == null || d.BusinessProfileId == profileId)
+            .ToListAsync();
+
+        var resolved = kpiDefs
+            .GroupBy(d => d.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
+            .ToDictionary(d => d.Code, d => d.Name, StringComparer.OrdinalIgnoreCase);
+
+        PillarDisplayNames = resolved;
 
         Snapshots = await _db.KpiSnapshots
             .Include(s => s.KpiDefinition)

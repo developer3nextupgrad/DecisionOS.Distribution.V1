@@ -4,7 +4,10 @@
     ViewData["Title"] = "KPI definitions & templates";
 }
 <h1 class="page-title">KPI definitions &amp; action templates</h1>
-<p class="text-muted text-sm">Thresholds drive status (GREEN/YELLOW/RED). Recommended action &amp; diagnostic text feed Weekly Focus generation.</p>
+<p class="text-muted text-sm">
+    Showing: <strong>@(Model.ProfileId is null ? "Global / default" : "Profile-scoped")</strong>.
+    Use <a href="/Admin/Profiles">Business profiles</a> to navigate per profile.
+</p>
 <div class="table-wrapper">
     <table class="data-table">
         <thead><tr><th>Code</th><th>Name</th><th>Unit</th><th>Priority</th><th></th></tr></thead>
