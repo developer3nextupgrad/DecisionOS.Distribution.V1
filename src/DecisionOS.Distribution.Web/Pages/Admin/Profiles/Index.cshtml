@@ -15,15 +15,33 @@
 
 <div class="table-wrapper">
     <table class="data-table">
-        <thead><tr><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
+        <thead><tr><th>Vertical</th><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
         <tbody>
         @foreach (var p in Model.Items)
         {
             <tr>
+                <td>
+                    @{
+                        var verticalName = (p.VerticalLibraryId is { } vid && Model.VerticalNameById.TryGetValue(vid, out var vn))
+                            ? vn
+                            : "—";
+                    }
+                    @verticalName
+                </td>
                 <td><code>@p.Code</code></td>
                 <td>
                     <div style="font-weight:600;">@p.Name</div>
-                    <div class="text-muted text-sm">@p.Description</div>
+                    <div class="text-muted text-sm">
+                        @p.Description
+                        @if (!string.IsNullOrWhiteSpace(p.ActiveKpiProfileCode) || !string.IsNullOrWhiteSpace(p.ThresholdProfileCode))
+                        {
+                            <div>Active KPI profile: <code>@(p.ActiveKpiProfileCode ?? "—")</code> &middot; Threshold profile: <code>@(p.ThresholdProfileCode ?? "—")</code></div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(p.LocationStructure) || !string.IsNullOrWhiteSpace(p.ChannelStructure))
+                        {
+                            <div>Location: <code>@(p.LocationStructure ?? "—")</code> &middot; Channel: <code>@(p.ChannelStructure ?? "—")</code></div>
+                        }
+                    </div>
                 </td>
                 <td>@(p.IsActive ? "Yes" : "No")</td>
                 <td>

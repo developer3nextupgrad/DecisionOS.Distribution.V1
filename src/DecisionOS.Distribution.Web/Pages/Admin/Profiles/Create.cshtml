@@ -9,6 +9,12 @@
     <div class="card-body">
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <div class="form-group">
+            <label asp-for="Input.VerticalLibraryId">Vertical library</label>
+            <select asp-for="Input.VerticalLibraryId" class="form-control" asp-items="Model.VerticalOptions">
+                <option value="">-- Select a vertical --</option>
+            </select>
+        </div>
+        <div class="form-group">
             <label asp-for="Input.Code"></label>
             <input asp-for="Input.Code" class="form-control" />
             <span class="text-muted text-sm">Example: <code>BEER_DISTRIBUTOR</code></span>
@@ -21,6 +27,25 @@
         <div class="form-group">
             <label asp-for="Input.Description"></label>
             <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.ActiveKpiProfileCode">Active KPI profile</label>
+            <input asp-for="Input.ActiveKpiProfileCode" class="form-control" />
+            <div class="text-muted text-sm">Example: <code>PILOT_7</code> or <code>RETAIL_CORE_9</code></div>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.LocationStructure">Location structure</label>
+            <input asp-for="Input.LocationStructure" class="form-control" />
+            <div class="text-muted text-sm">Example: <code>single-location</code>, <code>multi-location</code></div>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.ChannelStructure">Channel structure</label>
+            <input asp-for="Input.ChannelStructure" class="form-control" />
+            <div class="text-muted text-sm">Example: <code>omnichannel</code>, <code>store-only</code>, <code>ecommerce</code></div>
+        </div>
+        <div class="form-group">
+            <label asp-for="Input.ThresholdProfileCode">Threshold profile</label>
+            <input asp-for="Input.ThresholdProfileCode" class="form-control" />
         </div>
         <div class="form-group">
             <label><input asp-for="Input.IsActive" /> Active</label>

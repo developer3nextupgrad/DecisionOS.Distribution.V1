@@ -15,7 +15,15 @@
                 <td>@t.Name</td>
                 <td>@(t.Archetype ?? "—")</td>
                 <td>@(t.BusinessProfile?.Name ?? "—")</td>
-                <td><a href="/Admin/Tenants/Edit?id=@t.Id">Edit</a> &middot; <a href="/Admin/Tenants/Delete?id=@t.Id">Delete</a></td>
+                <td>
+                    <a href="/Admin/Tenants/Edit?id=@t.Id">Edit</a>
+                    &middot;
+                    <a href="/Admin/Tenants/Overrides/Kpis?tenantId=@t.Id">KPI overrides</a>
+                    &middot;
+                    <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@t.Id">Driver overrides</a>
+                    &middot;
+                    <a href="/Admin/Tenants/Delete?id=@t.Id">Delete</a>
+                </td>
             </tr>
         }
         </tbody>

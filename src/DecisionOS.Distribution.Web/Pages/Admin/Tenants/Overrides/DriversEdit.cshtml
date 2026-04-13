@@ -1,0 +1,69 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.DriversEditModel
+@{
+    ViewData["Title"] = "Edit driver override";
+}
+
+@if (Model.Tenant is null)
+{
+    <p>Tenant not found.</p>
+    return;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Edit driver override</h1>
+        <p class="text-muted text-sm" style="margin:0;">
+            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
+            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+        </p>
+    </div>
+    <a class="btn btn-outline" href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.TenantId">Back</a>
+</div>
+
+<form method="post" class="card" style="max-width:760px;">
+    <input type="hidden" asp-for="TenantId" />
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+        <div class="form-group">
+            <label>Driver key</label>
+            <select asp-for="DriverKey" class="form-control" asp-items="Model.DriverOptions"
+                    onchange="window.location='?tenantId=@Model.TenantId&driverKey=' + encodeURIComponent(this.value);"></select>
+            <div class="text-muted text-sm">Select a pillar+driver_code pair to override.</div>
+        </div>
+
+        <input type="hidden" asp-for="Input.PillarCode" />
+        <input type="hidden" asp-for="Input.DriverCode" />
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label asp-for="Input.DisplayName"></label>
+                <input asp-for="Input.DisplayName" class="form-control" />
+                <div class="text-muted text-sm">Leave blank to inherit.</div>
+            </div>
+            <div class="form-group">
+                <label asp-for="Input.SortOrder"></label>
+                <input asp-for="Input.SortOrder" class="form-control" />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Input.Description"></label>
+            <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Input.IsActive">Active override</label>
+            <select asp-for="Input.IsActive" class="form-control">
+                <option value="">Inherit</option>
+                <option value="true">Force Active</option>
+                <option value="false">Force Inactive</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save override</button>
+        <button type="submit" name="action" value="delete" class="btn btn-outline" style="margin-left:8px;">Delete override</button>
+    </div>
+</form>
+

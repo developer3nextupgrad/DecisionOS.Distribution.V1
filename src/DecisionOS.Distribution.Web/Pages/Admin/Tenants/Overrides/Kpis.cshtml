@@ -1,0 +1,61 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.KpisModel
+@{
+    ViewData["Title"] = "Tenant KPI overrides";
+}
+
+@if (Model.Tenant is null)
+{
+    <p>Tenant not found.</p>
+    return;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">KPI overrides</h1>
+        <p class="text-muted text-sm" style="margin:0;">
+            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
+            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+        </p>
+    </div>
+    <a class="btn btn-primary" href="/Admin/Tenants/Overrides/KpisEdit?tenantId=@Model.TenantId">Edit overrides</a>
+</div>
+
+<p class="text-muted text-sm">
+    Overrides are intentionally limited and stored as data (no custom code). Effective values shown below include profile + global + override overlay.
+</p>
+
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>KPI</th>
+            <th>Target</th>
+            <th>Amber</th>
+            <th>Red</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Priority</th>
+            <th>Override?</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr>
+                <td><code>@r.KpiCode</code><br /><span class="text-muted text-sm">@r.KpiName</span></td>
+                <td>@r.Effective.Target</td>
+                <td>@r.Effective.AmberThreshold</td>
+                <td>@r.Effective.RedThreshold</td>
+                <td>@(r.Effective.MinValue?.ToString() ?? "—")</td>
+                <td>@(r.Effective.MaxValue?.ToString() ?? "—")</td>
+                <td>@r.Effective.AlertPriority</td>
+                <td>@(r.Override is null ? "No" : (r.Override.IsActive ? "Yes" : "Disabled"))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-sm"><a href="/Admin/Tenants">&larr; Tenants</a> &middot; <a href="/Admin">&larr; Admin home</a></p>
+

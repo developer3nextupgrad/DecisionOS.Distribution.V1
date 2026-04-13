@@ -1,0 +1,37 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.VerticalLibraries.IndexModel
+@{
+    ViewData["Title"] = "Vertical libraries";
+}
+
+<div class="page-header">
+    <h1 class="page-title">Vertical libraries</h1>
+    <a class="btn btn-primary" href="/Admin/VerticalLibraries/Create">Add vertical</a>
+</div>
+
+<p class="text-muted text-sm">
+    A Vertical Library is a broad business family (Distribution/Retail/Service). Business profiles belong to a vertical.
+</p>
+
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead><tr><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var v in Model.Items)
+        {
+            <tr>
+                <td><code>@v.Code</code></td>
+                <td>
+                    <div style="font-weight:600;">@v.Name</div>
+                    <div class="text-muted text-sm">@v.Description</div>
+                </td>
+                <td>@(v.IsActive ? "Yes" : "No")</td>
+                <td><a href="/Admin/VerticalLibraries/Edit?id=@v.Id">Edit</a></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
+

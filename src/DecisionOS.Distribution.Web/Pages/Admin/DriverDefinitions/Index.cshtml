@@ -8,6 +8,16 @@
     Showing: <strong>@(Model.ProfileId is null ? "Global / default" : "Profile-scoped")</strong>.
     Use <a href="/Admin/Profiles">Business profiles</a> to navigate per profile.
 </p>
+<form method="get" class="card" style="margin-bottom:16px;">
+    <div class="card-body">
+        <div class="form-group">
+            <label for="ProfileId">Business profile</label>
+            <select id="ProfileId" name="ProfileId" class="form-control" asp-items="Model.ProfileOptions" onchange="this.form.submit()">
+                <option value="">-- Global / default --</option>
+            </select>
+        </div>
+    </div>
+</form>
 <div class="table-wrapper">
     <table class="data-table">
         <thead><tr><th>Pillar</th><th>Driver code</th><th>Display name</th><th>Order</th><th>Active</th><th></th></tr></thead>

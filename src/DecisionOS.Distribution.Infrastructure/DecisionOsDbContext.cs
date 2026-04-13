@@ -11,6 +11,7 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     {
     }
 
+    public DbSet<VerticalLibrary> VerticalLibraries => Set<VerticalLibrary>();
     public DbSet<BusinessProfile> BusinessProfiles => Set<BusinessProfile>();
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<KpiDefinition> KpiDefinitions => Set<KpiDefinition>();
@@ -18,6 +19,8 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<DriverValue> DriverValues => Set<DriverValue>();
     public DbSet<DriverDefinition> DriverDefinitions => Set<DriverDefinition>();
     public DbSet<InfluencerDefinition> InfluencerDefinitions => Set<InfluencerDefinition>();
+    public DbSet<TenantKpiOverride> TenantKpiOverrides => Set<TenantKpiOverride>();
+    public DbSet<TenantDriverOverride> TenantDriverOverrides => Set<TenantDriverOverride>();
     public DbSet<Alert> Alerts => Set<Alert>();
     public DbSet<WeeklyFocus> WeeklyFocuses => Set<WeeklyFocus>();
     public DbSet<ImportRun> ImportRuns => Set<ImportRun>();
@@ -56,9 +59,24 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
             entity.HasIndex(x => x.Code).IsUnique();
         });
 
+        modelBuilder.Entity<VerticalLibrary>(entity =>
+        {
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
         modelBuilder.Entity<InfluencerDefinition>(entity =>
         {
             entity.HasIndex(x => new { x.BusinessProfileId, x.PillarCode, x.DriverCode, x.InfluencerCode }).IsUnique();
+        });
+
+        modelBuilder.Entity<TenantKpiOverride>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.KpiCode }).IsUnique();
+        });
+
+        modelBuilder.Entity<TenantDriverOverride>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.PillarCode, x.DriverCode }).IsUnique();
         });
 
         modelBuilder.Entity<Alert>(entity =>
