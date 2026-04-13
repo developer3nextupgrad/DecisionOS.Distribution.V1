@@ -43,20 +43,27 @@ optionsBuilder.UseNpgsql(connectionString);
 await using var db = new DecisionOsDbContext(optionsBuilder.Options);
 await db.Database.MigrateAsync();
 
+await SeedVerticalLibrariesIfNeeded(db);
+await SeedBusinessProfilesIfNeeded(db);
+
 var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
 if (tenant is null)
 {
+    var defaultProfileId = await db.BusinessProfiles
+        .Where(p => p.Code == "DISTRIBUTION_DEFAULT")
+        .Select(p => (Guid?)p.Id)
+        .FirstOrDefaultAsync();
+
     tenant = new Tenant
     {
         Id = Guid.NewGuid(),
         ClientId = clientId,
-        Name = clientId
+        Name = clientId,
+        BusinessProfileId = defaultProfileId
     };
     db.Tenants.Add(tenant);
     await db.SaveChangesAsync();
 }
-
-await SeedBusinessProfilesIfNeeded(db);
 await SeedKpiDefinitionsIfNeeded(db);
 await SyncKpiDefinitionPriorities(db);
 await SeedDriverDefinitionsIfNeeded(db);
@@ -89,6 +96,7 @@ await db.SaveChangesAsync();
 var kpiStatusService = new KpiStatusService();
 var alertService = new AlertService();
 var weeklyFocusService = new WeeklyFocusService();
+var definitionResolver = new DefinitionResolver(db);
 
 try
 {
@@ -100,14 +108,14 @@ try
     }
 
     var kpiValidation = new ImportValidationResult();
-    importRun.KpiRowsProcessed = await ImportKpisAsync(db, tenant, periodEnd, kpiCsvPath, kpiStatusService, kpiValidation);
+    importRun.KpiRowsProcessed = await ImportKpisAsync(db, tenant, periodEnd, kpiCsvPath, kpiStatusService, kpiValidation, definitionResolver);
     if (!kpiValidation.IsValid)
         throw new InvalidOperationException(kpiValidation.FormatMessages());
 
     if (!string.IsNullOrWhiteSpace(driversCsvPath))
     {
         var driverValidation = new ImportValidationResult();
-        importRun.DriverRowsProcessed = await ImportDriversAsync(db, tenant, periodEnd, driversCsvPath, driverValidation);
+        importRun.DriverRowsProcessed = await ImportDriversAsync(db, tenant, periodEnd, driversCsvPath, driverValidation, definitionResolver);
         if (!driverValidation.IsValid)
             throw new InvalidOperationException(driverValidation.FormatMessages());
     }
@@ -217,14 +225,39 @@ static async Task SeedBusinessProfilesIfNeeded(DecisionOsDbContext db)
 {
     if (await db.BusinessProfiles.AnyAsync()) return;
 
+    var distributionId = await db.VerticalLibraries
+        .Where(v => v.Code == "DISTRIBUTION")
+        .Select(v => v.Id)
+        .FirstOrDefaultAsync();
+    if (distributionId == Guid.Empty)
+        distributionId = Guid.NewGuid();
+    var defaultProfileId = Guid.NewGuid();
     db.BusinessProfiles.Add(new BusinessProfile
     {
-        Id = Guid.NewGuid(),
+        Id = defaultProfileId,
+        VerticalLibraryId = distributionId,
         Code = "DISTRIBUTION_DEFAULT",
         Name = "Distribution (Default)",
-        Description = "Default pilot KPI/driver standards for distribution-style businesses."
+        Description = "Default pilot KPI/driver standards for distribution-style businesses.",
+        ActiveKpiProfileCode = "PILOT_7",
+        LocationStructure = "single-location",
+        ChannelStructure = "internal-external",
+        ThresholdProfileCode = "PILOT_DEFAULT"
     });
 
+    await db.SaveChangesAsync();
+}
+
+static async Task SeedVerticalLibrariesIfNeeded(DecisionOsDbContext db)
+{
+    if (await db.VerticalLibraries.AnyAsync()) return;
+    db.VerticalLibraries.Add(new VerticalLibrary
+    {
+        Id = Guid.NewGuid(),
+        Code = "DISTRIBUTION",
+        Name = "Distribution",
+        Description = "Distribution vertical library (broad business family)."
+    });
     await db.SaveChangesAsync();
 }
 
@@ -402,49 +435,7 @@ static string? GetOptionalCsvField(IDictionary<string, object?> dict, string can
     return string.IsNullOrEmpty(raw) ? null : raw;
 }
 
-static async Task<Dictionary<string, KpiDefinition>> ResolveKpiDefinitionsForTenantAsync(DecisionOsDbContext db, Tenant tenant)
-{
-    var profileId = tenant.BusinessProfileId;
-    var defs = await db.KpiDefinitions
-        .Where(d => d.BusinessProfileId == null || d.BusinessProfileId == profileId)
-        .ToListAsync();
-
-    if (profileId is not null && defs.All(d => d.BusinessProfileId is null))
-    {
-        // No profile-specific overrides exist yet; fall back to global set.
-        defs = await db.KpiDefinitions.Where(d => d.BusinessProfileId == null).ToListAsync();
-    }
-
-    var resolved = defs
-        .GroupBy(d => d.Code, StringComparer.OrdinalIgnoreCase)
-        .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
-        .ToDictionary(d => d.Code, d => d, StringComparer.OrdinalIgnoreCase);
-
-    return resolved;
-}
-
-static async Task<List<DriverDefinition>> ResolveDriverDefinitionsForTenantAsync(DecisionOsDbContext db, Tenant tenant)
-{
-    var profileId = tenant.BusinessProfileId;
-    var defs = await db.DriverDefinitions
-        .Where(d => d.BusinessProfileId == null || d.BusinessProfileId == profileId)
-        .ToListAsync();
-
-    if (profileId is not null && defs.All(d => d.BusinessProfileId is null))
-    {
-        // No profile-specific overrides exist yet; fall back to global set.
-        defs = await db.DriverDefinitions.Where(d => d.BusinessProfileId == null).ToListAsync();
-    }
-
-    var resolved = defs
-        .GroupBy(d =>
-            ((d.PillarCode ?? string.Empty).Trim().ToUpperInvariant() + "||" +
-             (d.DriverCode ?? string.Empty).Trim().ToUpperInvariant()))
-        .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
-        .ToList();
-
-    return resolved;
-}
+// Definition resolution moved to Infrastructure.DefinitionResolver (unit-testable).
 
 static async Task<int> ImportKpisAsync(
     DecisionOsDbContext db,
@@ -452,14 +443,15 @@ static async Task<int> ImportKpisAsync(
     DateOnly periodEnd,
     string cdfPath,
     IKpiStatusService statusService,
-    ImportValidationResult validation)
+    ImportValidationResult validation,
+    DefinitionResolver resolver)
 {
     using var reader = new StreamReader(cdfPath);
     var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
     using var csv = new CsvReader(reader, config);
 
     var records = csv.GetRecords<dynamic>().ToList();
-    var definitions = await ResolveKpiDefinitionsForTenantAsync(db, tenant);
+    var definitions = await resolver.ResolveKpiDefinitionsAsync(tenant);
 
     var row = 2;
     var pending = new List<(int DefId, decimal Value, string? L1, string? L2)>();
@@ -550,7 +542,8 @@ static async Task<int> ImportDriversAsync(
     Tenant tenant,
     DateOnly periodEnd,
     string csvPath,
-    ImportValidationResult validation)
+    ImportValidationResult validation,
+    DefinitionResolver resolver)
 {
     using var reader = new StreamReader(csvPath);
     var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
@@ -561,7 +554,7 @@ static async Task<int> ImportDriversAsync(
     var existing = db.DriverValues.Where(d => d.TenantId == tenant.Id && d.PeriodEnd == periodEnd);
     db.DriverValues.RemoveRange(existing);
 
-    var activeDefs = await ResolveDriverDefinitionsForTenantAsync(db, tenant);
+    var activeDefs = await resolver.ResolveDriverDefinitionsAsync(tenant);
     var byPillar = activeDefs.Where(d => d.IsActive).ToLookup(d => d.PillarCode, StringComparer.OrdinalIgnoreCase);
 
     var pillarCodes = await db.KpiDefinitions

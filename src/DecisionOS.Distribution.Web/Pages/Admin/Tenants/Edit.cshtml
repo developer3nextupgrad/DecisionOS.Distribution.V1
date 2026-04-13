@@ -27,6 +27,14 @@
                 <option value="">-- Global / default --</option>
             </select>
         </div>
+        <div class="form-group">
+            <label>Overrides</label>
+            <div class="text-muted text-sm" style="margin-bottom:6px;">
+                Controlled tenant-specific adjustments (captured as data; avoid custom logic).
+            </div>
+            <a class="btn btn-outline" href="/Admin/Tenants/Overrides/Kpis?tenantId=@Model.Id">KPI overrides</a>
+            <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.Id">Driver overrides</a>
+        </div>
         <button formaction="" type="submit" class="btn btn-primary">Save</button>
         <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
     </div>

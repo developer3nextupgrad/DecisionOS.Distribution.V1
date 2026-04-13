@@ -427,6 +427,42 @@ The script sets `ConnectionStrings__DecisionOs` from the DB parameters and runs 
 
 ---
 
+## Profile Configuration Framework (Vertical → Profile → Tenant)
+
+Decision OS is built to support **different KPI standards and business logic by industry/business type**.
+It does this using a configuration hierarchy:
+
+- **Core framework (universal)**: common status modes, RYG severity semantics, and dashboard patterns.
+- **Vertical library**: broad business family (e.g., Distribution / Retail / Service).
+- **Business profile (operating model)**: an industry/type standard set inside the vertical (e.g., Distribution Specialty Wholesale).
+- **Tenant configuration**: a specific company assigned to a business profile.
+- **Controlled overrides**: limited tenant-specific adjustments captured as data (not custom code).
+
+### What the Business Profile controls
+
+Within a profile you can configure:
+- **KPI set + thresholds + RYG guidance**: `Admin → KPI definitions`
+- **Driver catalog**: `Admin → Driver catalog`
+- **Influencers** (upstream factors that affect drivers): `Admin → Influencers`
+- **Profile metadata**: active KPI profile code, threshold profile code, location/channel structure
+
+### Where to manage this in the UI
+
+- **Vertical libraries**: `/Admin/VerticalLibraries`
+- **Business profiles**: `/Admin/Profiles`
+  - Use **Apply defaults** to clone the global KPI/Driver standards into a profile, then tailor
+- **Assign a tenant to a profile**: `/Admin/Tenants` → Edit → Business profile
+
+### Controlled overrides (tenant-specific, limited)
+
+If a tenant needs a controlled adjustment (without creating a new profile), the system supports override tables:
+- **`TenantKpiOverrides`**: override KPI thresholds/targets/narratives by tenant + KPI code
+- **`TenantDriverOverrides`**: override driver catalog labels/activation by tenant + pillar + driver_code
+
+These are applied during import resolution and keep the system scalable without hard-coded tenant logic.
+
+---
+
 ## Design Document Reference
 
 This solution implements the architecture described in `Decision_OS_Distribution_V1_DotNet_Architecture_and_Design.md`:

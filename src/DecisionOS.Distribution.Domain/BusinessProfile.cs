@@ -7,9 +7,17 @@ namespace DecisionOS.Distribution.Domain;
 public class BusinessProfile
 {
     public Guid Id { get; set; }
+    public Guid? VerticalLibraryId { get; set; }
+    public VerticalLibrary? VerticalLibrary { get; set; }
     public string Code { get; set; } = null!;
     public string Name { get; set; } = null!;
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // Framework config fields (V1 manual selection, V2 can automate)
+    public string? ActiveKpiProfileCode { get; set; }
+    public string? LocationStructure { get; set; }
+    public string? ChannelStructure { get; set; }
+    public string? ThresholdProfileCode { get; set; }
 }
 

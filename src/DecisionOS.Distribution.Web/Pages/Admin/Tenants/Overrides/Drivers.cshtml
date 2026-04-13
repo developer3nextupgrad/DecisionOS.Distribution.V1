@@ -1,0 +1,55 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.DriversModel
+@{
+    ViewData["Title"] = "Tenant driver overrides";
+}
+
+@if (Model.Tenant is null)
+{
+    <p>Tenant not found.</p>
+    return;
+}
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Driver overrides</h1>
+        <p class="text-muted text-sm" style="margin:0;">
+            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
+            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+        </p>
+    </div>
+    <a class="btn btn-primary" href="/Admin/Tenants/Overrides/DriversEdit?tenantId=@Model.TenantId">Edit overrides</a>
+</div>
+
+<p class="text-muted text-sm">
+    Effective values below include profile + global + tenant override overlay.
+</p>
+
+<div class="table-wrapper">
+    <table class="data-table">
+        <thead>
+        <tr>
+            <th>Pillar</th>
+            <th>Driver code</th>
+            <th>Display name</th>
+            <th>Active</th>
+            <th>Override?</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model.Rows)
+        {
+            <tr>
+                <td><code>@r.PillarCode</code></td>
+                <td><code>@r.DriverCode</code></td>
+                <td>@r.DisplayName</td>
+                <td>@(r.EffectiveIsActive ? "Yes" : "No")</td>
+                <td>@(r.Override is null ? "No" : (r.Override.IsActive == false ? "Disabled" : "Yes"))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<p class="text-sm"><a href="/Admin/Tenants">&larr; Tenants</a> &middot; <a href="/Admin">&larr; Admin home</a></p>
+

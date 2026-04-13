@@ -47,6 +47,45 @@ public class DecisionOsDbContextTests
     }
 
     [Fact]
+    public void DbContext_KpiDefinitions_HasCompositeUniqueIndexOnProfileAndCode()
+    {
+        var options = new DbContextOptionsBuilder<DecisionOsDbContext>()
+            .UseInMemoryDatabase(databaseName: "DbContext_KpiDefinitions_HasCompositeUniqueIndexOnProfileAndCode")
+            .Options;
+
+        using var db = new DecisionOsDbContext(options);
+        var entityType = db.Model.FindEntityType(typeof(KpiDefinition))!;
+        var index = entityType.GetIndexes()
+            .FirstOrDefault(i =>
+                i.IsUnique &&
+                i.Properties.Count == 2 &&
+                i.Properties.Any(p => p.Name == nameof(KpiDefinition.BusinessProfileId)) &&
+                i.Properties.Any(p => p.Name == nameof(KpiDefinition.Code)));
+
+        Assert.NotNull(index);
+    }
+
+    [Fact]
+    public void DbContext_DriverDefinitions_HasCompositeUniqueIndexOnProfilePillarDriverCode()
+    {
+        var options = new DbContextOptionsBuilder<DecisionOsDbContext>()
+            .UseInMemoryDatabase(databaseName: "DbContext_DriverDefinitions_HasCompositeUniqueIndexOnProfilePillarDriverCode")
+            .Options;
+
+        using var db = new DecisionOsDbContext(options);
+        var entityType = db.Model.FindEntityType(typeof(DriverDefinition))!;
+        var index = entityType.GetIndexes()
+            .FirstOrDefault(i =>
+                i.IsUnique &&
+                i.Properties.Count == 3 &&
+                i.Properties.Any(p => p.Name == nameof(DriverDefinition.BusinessProfileId)) &&
+                i.Properties.Any(p => p.Name == nameof(DriverDefinition.PillarCode)) &&
+                i.Properties.Any(p => p.Name == nameof(DriverDefinition.DriverCode)));
+
+        Assert.NotNull(index);
+    }
+
+    [Fact]
     public async Task DbContext_CanSaveKpiDefinitionAndSnapshot()
     {
         var options = new DbContextOptionsBuilder<DecisionOsDbContext>()
