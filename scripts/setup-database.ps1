@@ -42,7 +42,7 @@ param(
     [int]$DbPort = 5432,
     [string]$DbName = "decisionos",
     [string]$DbUser = "postgres",
-    [string]$DbPassword = "postgres",
+    [string]$DbPassword = "root",
 
     [string]$ClientId = "DIST-001",
     [string]$PeriodEnd = "2026-02-28",

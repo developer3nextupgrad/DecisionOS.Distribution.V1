@@ -1,0 +1,199 @@
+﻿/* ===== Page Background ===== */
+.login-page {
+    background-color: #f5f7fb;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* ===== Background Blobs ===== */
+.bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    z-index: 0;
+}
+
+.blob-1 {
+    width: 40%;
+    height: 40%;
+    background: rgba(0, 110, 47, 0.15);
+    top: -10%;
+    left: -5%;
+}
+
+.blob-2 {
+    width: 35%;
+    height: 40%;
+    background: rgba(100, 116, 255, 0.15);
+    bottom: -10%;
+    right: -5%;
+}
+
+/* ===== Wrapper ===== */
+.login-wrapper {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+}
+
+/* ===== Logo ===== */
+.logo-box {
+    width: 52px;
+    height: 52px;
+    background: #0b6b2e;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 20px;
+}
+
+/* ===== Title ===== */
+.brand-title {
+    font-weight: 700;
+    color: #1e3a8a;
+}
+
+/* ===== Card ===== */
+.login-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 30px;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    border: none;
+}
+
+/* ===== Labels ===== */
+.custom-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+
+/* ===== Inputs ===== */
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 11px;
+    font-size: 14px;
+    color: #64748b;
+}
+
+.input-icon-right {
+    position: absolute;
+    right: 12px;
+    top: 11px;
+    font-size: 14px;
+    color: #64748b;
+    cursor: pointer;
+}
+
+.custom-input {
+    padding: 10px 40px;
+    height: 42px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+    .custom-input:focus {
+        border-color: #0b6b2e;
+        box-shadow: 0 0 0 2px rgba(11, 107, 46, 0.15);
+        background: #fff;
+    }
+
+/* ===== Forgot Password ===== */
+.forgot-link {
+    font-size: 12px;
+    color: #0b6b2e;
+    text-decoration: none;
+}
+
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+
+/* ===== Checkbox ===== */
+.form-check-label {
+    font-size: 13px;
+    color: #475569;
+}
+
+/* ===== Button ===== */
+.login-btn {
+    background: #0b6b2e;
+    color: #fff;
+    font-weight: 600;
+    height: 44px;
+    border-radius: 10px;
+    border: none;
+}
+
+    .login-btn:hover {
+        background: #095424;
+    }
+
+/* ===== Divider ===== */
+.divider {
+    text-align: center;
+    font-size: 11px;
+    color: #94a3b8;
+    margin: 20px 0;
+    position: relative;
+}
+
+    .divider::before,
+    .divider::after {
+        content: "";
+        height: 1px;
+        width: 30%;
+        background: #e2e8f0;
+        position: absolute;
+        top: 50%;
+    }
+
+    .divider::before {
+        left: 0;
+    }
+
+    .divider::after {
+        right: 0;
+    }
+
+/* ===== Social Buttons ===== */
+.social-btn {
+    background: #f1f5f9;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+}
+
+    .social-btn:hover {
+        background: #e2e8f0;
+    }
+
+/* ===== Help Button ===== */
+.help-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #eef2ff;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
