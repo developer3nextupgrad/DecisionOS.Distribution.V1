@@ -1,23 +1,156 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "Administration";
 }
-<div class="page-header">
-    <h1 class="page-title">Administration</h1>
-</div>
-<div class="card">
-    <div class="card-body">
-        <ul style="line-height:2; margin:0; padding-left:1.2rem;">
-            <li><a href="/Admin/VerticalLibraries">Vertical libraries</a></li>
-            <li><a href="/Admin/Profiles">Business profiles (industry templates)</a></li>
-            <li><a href="/Admin/Tenants">Tenants (distributors)</a></li>
-            <li><a href="/Admin/KpiDefinitions">KPI definitions &amp; templates</a></li>
-            <li><a href="/Admin/DriverDefinitions">Driver catalog</a></li>
-            <li><a href="/Admin/Influencers">Influencer catalog</a></li>
-            <li><a href="/Admin/Users">Users &amp; roles (OPSPEC)</a></li>
-        </ul>
-        <p class="text-muted text-sm" style="margin-top:16px;"><a href="/Operations/ImportRuns">Import history (ops)</a></p>
-        <p class="text-sm"><a href="/">&larr; Executive dashboard</a></p>
-    </div>
+
+<!-- Tailwind -->
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+<!-- Fonts + Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+
+<link rel="stylesheet" href="~/css/style.css" />
+
+<div class="admin-os-layout">
+
+    <!-- SIDEBAR -->
+    <aside class="admin-os-sidebar">
+
+        <div class="admin-os-sidebar-header">
+            <h2>Decision OS</h2>
+            <p>Admin</p>
+        </div>
+
+        <div class="admin-os-menu">
+
+            <a href="/Admin/VerticalLibraries" class="admin-os-menu-item active">
+                <span class="material-symbols-outlined">library_books</span>
+                <span>Vertical Libraries</span>
+            </a>
+
+            <a href="/Admin/Profiles" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">business_center</span>
+                <span>Business Profiles</span>
+            </a>
+
+            <a href="/Admin/Tenants" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">domain</span>
+                <span>Tenants</span>
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">leaderboard</span>
+                <span>KPI Definitions</span>
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">account_tree</span>
+                <span>Driver Catalog</span>
+            </a>
+
+            <a href="/Admin/Influencers" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">insights</span>
+                <span>Influencers</span>
+            </a>
+
+            <a href="/Admin/Users" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">group</span>
+                <span>Users & Roles</span>
+            </a>
+
+            <div class="admin-os-divider"></div>
+
+            <a href="/Operations/ImportRuns" class="admin-os-menu-item">
+                <span class="material-symbols-outlined">history</span>
+                <span>Import History</span>
+            </a>
+
+        </div>
+
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="admin-os-main">
+
+        <div class="admin-os-container">
+
+            <!-- Header -->
+            <div class="admin-os-header">
+                <h1>Administration</h1>
+                <p>Manage global configurations, system entities, and access control.</p>
+            </div>
+
+            <!-- GRID -->
+            <div class="admin-os-grid">
+
+                <a href="/Admin/VerticalLibraries" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">library_books</span>
+                    <h3>Vertical Libraries</h3>
+                    <p>Manage industry vertical templates and datasets.</p>
+                    <span class="admin-os-link">Configure →</span>
+                </a>
+
+                <a href="/Admin/Profiles" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">business_center</span>
+                    <h3>Business Profiles</h3>
+                    <p>Configure distributor business models.</p>
+                    <span class="admin-os-link">Configure →</span>
+                </a>
+
+                <a href="/Admin/Tenants" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">domain</span>
+                    <h3>Tenants</h3>
+                    <p>Manage distributor accounts.</p>
+                    <span class="admin-os-link">Manage →</span>
+                </a>
+
+                <a href="/Admin/KpiDefinitions" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">leaderboard</span>
+                    <h3>KPI Definitions</h3>
+                    <p>Define KPIs and scoring.</p>
+                    <span class="admin-os-link">Define →</span>
+                </a>
+
+                <a href="/Admin/DriverDefinitions" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">account_tree</span>
+                    <h3>Driver Catalog</h3>
+                    <p>Manage KPI drivers.</p>
+                    <span class="admin-os-link">Manage →</span>
+                </a>
+
+                <a href="/Admin/Influencers" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">insights</span>
+                    <h3>Influencers</h3>
+                    <p>Define influencing factors.</p>
+                    <span class="admin-os-link">Define →</span>
+                </a>
+
+                <a href="/Admin/Users" class="admin-os-card">
+                    <span class="material-symbols-outlined admin-os-icon">group</span>
+                    <h3>Users & Roles</h3>
+                    <p>Manage system access and permissions.</p>
+                    <span class="admin-os-link">Administer →</span>
+                </a>
+
+            </div>
+
+            <!-- OPERATIONS -->
+            <div class="admin-os-operations">
+                <h2>Operations</h2>
+
+                <a href="/Operations/ImportRuns" class="admin-os-ops-card">
+                    <span class="material-symbols-outlined">history</span>
+                    <div>
+                        <h3>Import History</h3>
+                        <p>View import logs and audit trail</p>
+                    </div>
+                </a>
+            </div>
+
+        </div>
+
+    </main>
+
 </div>

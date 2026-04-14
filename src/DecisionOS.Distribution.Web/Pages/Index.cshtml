@@ -1,76 +1,133 @@
-@page
+﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Executive Dashboard";
+    ViewData["Title"] = "Setup Context";
+    Layout = "_Layout";
 }
 
-<div class="page-header" style="margin-top: 8px;">
-    <div>
-        <h1 class="page-title" style="margin-bottom: 6px;">Executive Dashboard</h1>
-        <p class="text-muted text-sm" style="margin: 0;">Select a distributor and week to view KPIs, Top Alert, Weekly Focus, and Drivers.</p>
-    </div>
-</div>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 
-@if (Model.Tenants.Any())
-{
-    <div class="card">
-        <div class="card-header">
-            <h2>Selection</h2>
-            <span class="badge">Pilot V1</span>
-        </div>
-        <div class="card-body">
-            <form method="get" asp-page="Index" class="selector-bar" style="padding: 0; margin-bottom: 0;">
-                <div class="form-group">
-                    <label for="SelectedClientId">Distributor</label>
-                    <select asp-for="SelectedClientId"
-                            asp-items="Model.Tenants"
-                            onchange="this.form.submit()"
-                            class="form-control">
-                        <option value="">-- Select a distributor --</option>
-                    </select>
+<div class="min-h-screen bg-[#faf8ff] text-[#113069] flex flex-col">
+
+    <main class="flex-grow flex items-center justify-center p-6 relative overflow-hidden">
+
+        <!-- Background -->
+        <div class="absolute top-[-10%] right-[-5%] w-96 h-96 bg-green-200/20 blur-[120px] rounded-full"></div>
+        <div class="absolute bottom-[-10%] left-[-5%] w-96 h-96 bg-indigo-200/30 blur-[120px] rounded-full"></div>
+
+        <div class="w-full max-w-[480px] z-10">
+
+            <!-- Card -->
+            <div class="bg-white/70 backdrop-blur-[20px] rounded-[2rem] p-8 md:p-12
+                        shadow-[0_32px_64px_rgba(17,48,105,0.08)]
+                        ring-1 ring-white/50">
+
+                <!-- Title -->
+                <div class="text-center mb-10">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-[#113069] mb-2">
+                        Set Your Context
+                    </h1>
+                    <p class="text-[#445d99] font-medium">
+                        Select distributor and reporting period
+                    </p>
                 </div>
 
-                @if (Model.Weeks.Any())
-                {
-                    <div class="form-group">
-                        <label for="SelectedPeriodEnd">Week Ending</label>
-                        <select asp-for="SelectedPeriodEnd"
-                                asp-items="Model.Weeks"
+                <!-- ✅ FUNCTIONAL FORM -->
+                <form method="get" asp-page="Index" class="space-y-6">
+
+                    <!-- Distributor -->
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-[#445d99] pl-1">
+                            Distributor
+                        </label>
+
+                        <select asp-for="SelectedClientId"
+                                asp-items="Model.Tenants"
                                 onchange="this.form.submit()"
-                                class="form-control">
-                            <option value="">-- Select a week --</option>
+                                class="w-full bg-[#f2f3ff] border-none rounded-xl px-4 py-4
+                                       text-[#113069] font-medium
+                                       focus:ring-2 focus:ring-[#006e2f]/20 outline-none cursor-pointer">
+
+                            <option value="">-- Select a distributor --</option>
                         </select>
                     </div>
-                }
-                else if (!string.IsNullOrEmpty(Model.SelectedClientId))
-                {
-                    <div class="empty-state" style="padding: 14px 16px; margin: 0; text-align: left;">
-                        <strong>No weeks found for this distributor.</strong>
-                        <div class="text-muted text-sm">Import KPI snapshots for at least one week, then come back here.</div>
-                    </div>
-                }
-            </form>
-        </div>
-    </div>
 
-    <div class="card" style="margin-top: 16px;">
-        <div class="card-body">
-            <div class="text-muted text-sm">
-                Tip: Use the sample files in <code>samples/</code> and run the one-command script:
-                <code>powershell -ExecutionPolicy Bypass -File .\\scripts\\run.ps1 -OpenBrowser</code>
+                    <!-- Reporting Week -->
+                    @if (Model.Weeks.Any())
+                    {
+                        <div class="space-y-2">
+                            <label class="text-xs font-bold uppercase tracking-wider text-[#445d99] pl-1">
+                                Reporting Week
+                            </label>
+
+                            <select asp-for="SelectedPeriodEnd"
+                                    asp-items="Model.Weeks"
+                                    onchange="this.form.submit()"
+                                    class="w-full bg-[#f2f3ff] border-none rounded-xl px-4 py-4
+                                               text-[#113069] font-medium
+                                               focus:ring-2 focus:ring-[#006e2f]/20 outline-none cursor-pointer">
+
+                                <option value="">-- Select a week --</option>
+                            </select>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(Model.SelectedClientId))
+                    {
+                        <div class="text-sm text-red-500 pt-2">
+                            No weeks found for this distributor.
+                        </div>
+                    }
+
+                    <!-- Button (kept for UI consistency) -->
+                    <div class="pt-4">
+                        <button type="submit"
+                                class="w-full bg-gradient-to-br from-[#006e2f] to-[#006028]
+                                       text-white font-bold py-4 rounded-xl
+                                       shadow-lg shadow-[#006e2f]/20
+                                       hover:-translate-y-0.5 active:scale-95
+                                       transition-all flex items-center justify-center gap-2">
+
+                            View Dashboard →
+                        </button>
+                    </div>
+
+                </form>
+
+                <!-- Bottom -->
+                <div class="mt-8 pt-8 border-t border-[#445d99]/10 text-center">
+                    <p class="text-sm text-[#445d99]">
+                        Need access to another distributor?
+                        <a href="#" class="text-[#006e2f] font-bold hover:underline ml-1">
+                            Request Access
+                        </a>
+                    </p>
+                </div>
+
             </div>
+
+            <!-- Info Cards -->
+            <div class="mt-8 grid grid-cols-2 gap-4">
+
+                <div class="bg-gray-100 p-4 rounded-xl flex items-center gap-3">
+                    <div class="bg-green-100 p-2 rounded-lg">🔐</div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-gray-400">Secured</p>
+                        <p class="text-xs font-semibold">AES-256</p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-100 p-4 rounded-xl flex items-center gap-3">
+                    <div class="bg-yellow-100 p-2 rounded-lg">🗄️</div>
+                    <div>
+                        <p class="text-[10px] uppercase font-bold text-gray-400">Data</p>
+                        <p class="text-xs font-semibold">Distribution</p>
+                    </div>
+                </div>
+
+            </div>
+
         </div>
-    </div>
-}
-else
-{
-    <div class="empty-state">
-        <h2 style="margin-bottom: 8px;">No distributors configured</h2>
-        <p class="text-muted" style="max-width: 58ch; margin: 0 auto 14px;">
-            Import data using the CLI (or the included scripts) to create your first tenant and weekly snapshots.
-        </p>
-        <div class="text-muted text-sm">
-            Run: <code>powershell -ExecutionPolicy Bypass -File .\\scripts\\run.ps1 -OpenBrowser</code>
-        </div>
-    </div>
-}
+
+    </main>
+
+</div>

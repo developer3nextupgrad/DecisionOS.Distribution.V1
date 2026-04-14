@@ -1,153 +1,135 @@
-<!DOCTYPE html>
-<html lang="en">
+﻿<!DOCTYPE html>
+<html lang="en" class="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - Decision OS</title>
-    <link rel="stylesheet" href="~/css/site.css" />
-    <link rel="stylesheet" href="~/css/style.css" />
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#006e2f",
+                        primaryDim: "#006028",
+                        surface: "#faf8ff",
+                        surfaceHigh: "#e2e7ff",
+                        textMain: "#113069",
+                        textMuted: "#445d99"
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        /* Modern reset and layout variables */
         body {
-            margin: 0;
-            padding: 0;
-            background-color: #cbd5e1; /* Matches dashboard bg */
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Fixed Dark Top Nav */
-        .navbar {
-            background-color: #1e293b; /* Dark Navy */
-            color: white;
-            padding: 0.75rem 1.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-inner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            color: white;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 1.25rem;
-            letter-spacing: -0.5px;
-        }
-
-            .navbar-brand svg {
-                color: #38bdf8; /* Light Blue Accent */
-            }
-
-        .navbar-links a {
-            color: #94a3b8;
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: color 0.2s;
-        }
-
-            .navbar-links a:hover {
-                color: white;
-            }
-
-        /* Main Content Container */
-        .main-wrapper {
-            flex: 1;
-            width: 100%;
-            max-width: 1400px;
-            margin: 20px auto; /* Centered with breathing room */
-            padding: 0 20px;
-            box-sizing: border-box;
-        }
-
-        /* Styled Footer */
-        .footer {
-            background-color: #f8fafc;
-            border-top: 1px solid #e2e8f0;
-            padding: 1rem 0;
-            margin-top: auto;
-        }
-
-        .footer-inner {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .text-muted {
-            color: #64748b;
-            font-size: 0.85rem;
+        h1, h2, h3 {
+            font-family: 'Manrope', sans-serif;
         }
     </style>
 </head>
-<body>
-     <nav class="navbar">
-        <div class="navbar-inner">
-            <a href="/" class="navbar-brand">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="12" width="4" height="9" rx="1" />
-                    <rect x="10" y="7" width="4" height="14" rx="1" />
-                    <rect x="17" y="3" width="4" height="18" rx="1" />
-                </svg>
-                <span>Decision OS</span>
+
+<body class="bg-surface text-textMain min-h-screen flex flex-col">
+
+    <!-- 🔥 MODERN NAVBAR (UPDATED WITH ICONS) -->
+    <header class="sticky top-0 w-full z-50 bg-[#faf8ff]/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(17,48,105,0.06)]">
+
+        <div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+
+            <!-- Logo -->
+            <a href="/" class="flex items-center gap-3">
+                <div class="bg-[#0b6b2e] p-2 rounded-lg flex items-center justify-center text-white text-lg shadow-sm">
+                    📊
+                </div>
+                <span class="font-[Manrope] text-xl font-bold tracking-tight text-[#113069]">
+                    Decision OS
+                </span>
             </a>
-            <div class="navbar-links" id="navLinks" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-                <a href="/" class="nav-link">Dashboard</a>
+
+            <!-- Nav Links -->
+            <nav class="hidden md:flex items-center gap-8 text-sm font-medium font-[Manrope] text-[#445d99]">
+
+                <a href="/" class="hover:text-[#113069] transition">Dashboard</a>
+
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <span class="text-muted" style="font-size:0.8rem;">@User.Identity.Name</span>
                     @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin))
                     {
-                        <a href="/Admin" class="nav-link">Admin</a>
+                        <a href="/Admin" class="hover:text-[#113069]">Admin</a>
                     }
+
                     @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin)
-                        || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Operator)
-                        || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
+                                    || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Operator)
+                                    || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
                     {
-                        <a href="/Operations/ImportRuns" class="nav-link">Imports</a>
+                        <a href="/Operations/ImportRuns" class="hover:text-[#113069]">Imports</a>
                     }
-                    <form method="post" asp-page="/Account/Logout" style="display:inline;margin:0;">
-                        <button type="submit" style="background:none;border:none;color:#94a3b8;cursor:pointer;font:inherit;">Log out</button>
-                    </form>
+                }
+            </nav>
+
+            <!-- Right Side -->
+            <div class="flex items-center gap-6">
+
+                <!-- Notification Icon -->
+                <button class="text-on-surface-variant hover:bg-slate-100/50 p-2 rounded-full transition-all active:scale-95 duration-200">
+                    <span class="material-symbols-outlined">
+                        notifications
+                    </span>
+                </button>
+
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <!-- User Info -->
+                    <div class="flex items-center gap-3 pl-4 border-l border-[#d9e2ff]">
+
+                        <div class="text-right">
+                            <div class="text-xs font-bold text-[#113069] leading-none">
+                                @User.Identity.Name
+                            </div>
+
+                            <form method="post" asp-page="/Account/Logout">
+                                <button type="submit" class="text-[10px] uppercase tracking-widest font-bold text-[#0b6b2e] hover:text-[#095424]">
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- 🔥 REPLACED IMAGE WITH ICON -->
+                        <div class="h-10 w-10 rounded-full bg-[#e2e7ff] flex items-center justify-center border-2 border-white text-lg">
+                            
+                        </div>
+                    </div>
                 }
                 else
                 {
-                    <a href="/Account/Login" class="nav-link">Sign in</a>
+                    <a href="/Account/Login" class="text-[#445d99] hover:text-[#113069]">
+                        Sign in
+                    </a>
                 }
+
             </div>
         </div>
-    </nav> 
+    </header>
 
-    <main class="main-wrapper">
+    <!-- 🔥 MAIN -->
+    <main class="flex-1 w-full">
         @RenderBody()
     </main>
 
-    <footer class="footer">
-        <div class="footer-inner">
-            <span class="text-muted">Decision OS Distribution V1</span>
-            <span class="text-muted">&copy; @DateTime.UtcNow.Year</span>
-        </div>
+    <!-- 🔥 EXACT FOOTER -->
+    <footer class="w-full py-8 text-center text-[10px] font-medium tracking-[0.2em] uppercase text-[#445d99]/60">
+        © @DateTime.UtcNow.Year Decision OS Intelligent Canvas • All Rights Reserved
     </footer>
 
-    <script src="~/js/site.js"></script>
-    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
