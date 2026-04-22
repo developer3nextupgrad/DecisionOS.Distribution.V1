@@ -1,83 +1,187 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.KpisEditModel
 @{
-    ViewData["Title"] = "Edit KPI override";
+    ViewData["Title"] = "Edit KPI Override";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
 @if (Model.Tenant is null)
 {
-    <p>Tenant not found.</p>
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">Tenant not found.</p>
+    </div>
     return;
 }
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Edit KPI override</h1>
-        <p class="text-muted text-sm" style="margin:0;">
-            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
-            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
-        </p>
+<div class="flex">
+
+    <!-- 🔥 SIDEBAR -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64
+                  bg-surface-container-highest border-r border-surface-container-high
+                  flex-col px-4 py-6 z-40">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant">ADMIN</p>
+        </div>
+
+        @functions {
+            string Active(string key, string current) =>
+            current.Contains(key)
+            ? "bg-surface-container-lowest shadow-sm font-semibold"
+            : "text-on-surface-variant hover:bg-white";
+        }
+
+        <nav class="flex-1 space-y-1">
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                <span class="material-symbols-outlined">library_books</span>
+                Vertical Libraries
+            </a>
+
+            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                <span class="material-symbols-outlined">domain</span>
+                Tenants
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                <span class="material-symbols-outlined">leaderboard</span>
+                KPI Definitions
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                <span class="material-symbols-outlined">account_tree</span>
+                Driver Catalog
+            </a>
+
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                <span class="material-symbols-outlined">insights</span>
+                Influencers
+            </a>
+
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                <span class="material-symbols-outlined">group</span>
+                Users & Roles
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full lg:ml-64 px-4 sm:px-6 md:px-8 py-10">
+
+        <div class="max-w-[760px] mx-auto space-y-6">
+
+            <!-- HEADER -->
+            <div>
+                <h1 class="text-2xl font-extrabold font-headline">Edit KPI Override</h1>
+                <p class="text-sm text-on-surface-variant mt-1">
+                    Tenant: <strong>@Model.Tenant.Name</strong>
+                    (<code>@Model.Tenant.ClientId</code>)
+                    · Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+                </p>
+            </div>
+
+            <!-- FORM CARD -->
+            <div class="bg-surface-container-lowest rounded-2xl shadow p-6 sm:p-8">
+
+                <form method="post" class="space-y-10">
+
+                    <input type="hidden" asp-for="TenantId" />
+                    <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                    <!-- KPI + STATUS -->
+                    <div class="grid md:grid-cols-3 gap-6">
+
+                        <div class="md:col-span-2">
+                            <label class="text-sm font-semibold">KPI Code</label>
+                            <select asp-for="Input.KpiCode"
+                                    asp-items="Model.KpiOptions"
+                                    onchange="window.location='?tenantId=@Model.TenantId&kpiCode=' + encodeURIComponent(this.value)"
+                                    class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low focus:ring-2 focus:ring-primary/20">
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <input asp-for="Input.IsActive" type="checkbox" class="w-5 h-5 accent-primary" />
+                            <span class="text-sm">Active</span>
+                        </div>
+
+                    </div>
+
+                    <!-- THRESHOLDS -->
+                    <div class="grid md:grid-cols-2 gap-6">
+
+                        <input asp-for="Input.Target" placeholder="Target"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                        <input asp-for="Input.AlertPriority" placeholder="Priority"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                        <input asp-for="Input.AmberThreshold" placeholder="Amber"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                        <input asp-for="Input.RedThreshold" placeholder="Red"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                        <input asp-for="Input.MinValue" placeholder="Min"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                        <input asp-for="Input.MaxValue" placeholder="Max"
+                               class="px-4 py-3 rounded-xl bg-surface-container-low" />
+
+                    </div>
+
+                    <!-- ACTION LOGIC -->
+                    <div class="space-y-6">
+
+                        <textarea asp-for="Input.RecommendedAction"
+                                  rows="3"
+                                  placeholder="Recommended Action"
+                                  class="w-full px-4 py-3 rounded-xl bg-surface-container-low"></textarea>
+
+                        <textarea asp-for="Input.DiagnosticChecks"
+                                  rows="3"
+                                  placeholder="Diagnostic Checks"
+                                  class="w-full px-4 py-3 rounded-xl bg-surface-container-low"></textarea>
+
+                    </div>
+
+                    <!-- ACTION BUTTONS -->
+                    <div class="flex justify-end gap-4 pt-6 border-t">
+
+                        <button type="submit" name="action" value="delete"
+                                class="px-5 py-2 text-sm font-semibold text-error border border-error/20 rounded-xl hover:bg-error/5">
+                            Delete Override
+                        </button>
+
+                        <button type="submit"
+                                class="px-6 py-2 bg-primary text-white font-bold rounded-xl shadow">
+                            Save Override
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
     </div>
-    <a class="btn btn-outline" href="/Admin/Tenants/Overrides/Kpis?tenantId=@Model.TenantId">Back</a>
+
 </div>
-
-<form method="post" class="card" style="max-width:760px;">
-    <input type="hidden" asp-for="TenantId" />
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-        <div class="form-group">
-            <label asp-for="Input.KpiCode">KPI code</label>
-            <select asp-for="Input.KpiCode" class="form-control" asp-items="Model.KpiOptions" onchange="window.location='?tenantId=@Model.TenantId&kpiCode=' + encodeURIComponent(this.value)"></select>
-        </div>
-
-        <div class="form-group">
-            <label class="checkbox">
-                <input asp-for="Input.IsActive" />
-                Active override
-            </label>
-            <div class="text-muted text-sm">If unchecked, the override stays in the DB but will not be applied.</div>
-        </div>
-
-        <div class="grid-2">
-            <div class="form-group">
-                <label asp-for="Input.Target"></label>
-                <input asp-for="Input.Target" class="form-control" />
-                <div class="text-muted text-sm">Leave blank to inherit from profile/global.</div>
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.AlertPriority"></label>
-                <input asp-for="Input.AlertPriority" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.AmberThreshold"></label>
-                <input asp-for="Input.AmberThreshold" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.RedThreshold"></label>
-                <input asp-for="Input.RedThreshold" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.MinValue"></label>
-                <input asp-for="Input.MinValue" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.MaxValue"></label>
-                <input asp-for="Input.MaxValue" class="form-control" />
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label asp-for="Input.RecommendedAction"></label>
-            <textarea asp-for="Input.RecommendedAction" class="form-control" rows="3"></textarea>
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.DiagnosticChecks"></label>
-            <textarea asp-for="Input.DiagnosticChecks" class="form-control" rows="3"></textarea>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Save override</button>
-        <button type="submit" name="action" value="delete" class="btn btn-outline" style="margin-left:8px;">Delete override</button>
-    </div>
-</form>
-

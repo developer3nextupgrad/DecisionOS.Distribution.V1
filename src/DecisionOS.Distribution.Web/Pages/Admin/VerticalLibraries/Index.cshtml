@@ -1,37 +1,244 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.VerticalLibraries.IndexModel
 @{
-    ViewData["Title"] = "Vertical libraries";
+    ViewData["Title"] = "Vertical Libraries";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
-<div class="page-header">
-    <h1 class="page-title">Vertical libraries</h1>
-    <a class="btn btn-primary" href="/Admin/VerticalLibraries/Create">Add vertical</a>
+<div class="flex">
+
+    <!-- 🔥 SIDEBAR -->
+    <aside class="hidden lg:flex w-64 shrink-0 min-h-screen bg-surface-container-highest border-r border-surface-container-high flex-col px-4 py-6">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant tracking-wide">ADMIN</p>
+        </div>
+
+        <nav class="flex-1 space-y-1">
+
+            @functions {
+                string Active(string key, string current) =>
+                current.Contains(key)
+                ? "bg-surface-container-lowest shadow-sm font-semibold"
+                : "text-on-surface-variant hover:bg-white";
+            }
+
+            <nav class="flex-1 space-y-1">
+
+                <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                    <span class="material-symbols-outlined">library_books</span>
+                    Vertical Libraries
+                </a>
+
+                <a href="/Admin/BusinessProfiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("BusinessProfiles", currentPage)">
+                    <span class="material-symbols-outlined">business_center</span>
+                    Business Profiles
+                </a>
+
+                <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                    <span class="material-symbols-outlined">domain</span>
+                    Tenants
+                </a>
+
+                <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                    <span class="material-symbols-outlined">leaderboard</span>
+                    KPI Definitions
+                </a>
+
+                <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                    <span class="material-symbols-outlined">account_tree</span>
+                    Driver Catalog
+                </a>
+
+                <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                    <span class="material-symbols-outlined">insights</span>
+                    Influencers
+                </a>
+
+                <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                    <span class="material-symbols-outlined">group</span>
+                    Users & Roles
+                </a>
+
+                <div class="my-4 border-t border-surface-container-high"></div>
+
+                <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                    <span class="material-symbols-outlined">history</span>
+                    Import History
+                </a>
+
+                <div class="mt-auto px-2 pt-6">
+
+                    <a href="/Admin/VerticalLibraries/Create"
+                       class="w-full flex items-center justify-center gap-2 px-4 py-3
+              bg-primary text-white font-bold rounded-xl
+              hover:bg-primary-dim transition active:scale-95 shadow">
+
+                        <span class="material-symbols-outlined text-sm">add</span>
+                        New Vertical
+                    </a>
+
+                </div>
+
+            </nav>
+
+        </nav>
+
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 p-4 sm:p-6 md:p-8 max-w-[1440px] mx-auto">
+
+        <!-- HEADER -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">Vertical Libraries</h1>
+                <p class="text-sm text-on-surface-variant mt-1">
+                    Manage business vertical categories used by profiles
+                </p>
+            </div>
+
+            <a href="/Admin/VerticalLibraries/Create"
+               class="px-5 py-3 bg-gradient-to-br from-primary to-primary-dim text-white font-bold rounded-xl shadow hover:shadow-md transition flex items-center gap-2">
+                <span class="material-symbols-outlined">add_circle</span>
+                Add Vertical
+            </a>
+        </div>
+
+        <!-- 🔥 STATS -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6">
+
+            <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                <p class="text-xs font-bold text-primary uppercase">Total Categories</p>
+                <p class="text-2xl font-bold mt-1">@Model.Items.Count</p>
+            </div>
+
+            <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                <p class="text-xs font-bold text-on-surface-variant uppercase">Active Status</p>
+                <p class="text-2xl font-bold mt-1">
+                    @Model.Items.Count(x => x.IsActive)
+                </p>
+            </div>
+
+            <div class="col-span-1 sm:col-span-2 p-5 bg-primary/10 rounded-xl relative overflow-hidden">
+                <p class="text-xs font-bold uppercase text-primary">System Health</p>
+                <p class="text-lg font-bold mt-1 text-primary">
+                    All Libraries Synced
+                </p>
+                <span class="material-symbols-outlined absolute right-2 bottom-2 text-6xl opacity-10">
+                    sync
+                </span>
+            </div>
+
+        </section>
+
+
+        <!-- 🔥 FILTER BAR -->
+        <div class="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+
+            <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+
+                <!-- SEARCH -->
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                        search
+                    </span>
+                    <input type="text"
+                           placeholder="Search verticals..."
+                           class="pl-10 pr-4 py-2 rounded-full bg-surface-container-low text-sm w-full sm:w-64 focus:ring-2 focus:ring-primary outline-none" />
+                </div>
+
+                <!-- FILTER BUTTONS -->
+                <div class="flex bg-surface-container-low rounded-full p-1 text-sm">
+                    <button class="px-3 py-1 rounded-full bg-white font-semibold">All</button>
+                    <button class="px-3 py-1 text-on-surface-variant">Active</button>
+                    <button class="px-3 py-1 text-on-surface-variant">Inactive</button>
+                </div>
+
+            </div>
+
+            <!-- MORE FILTER -->
+            <button class="flex items-center gap-2 text-sm text-on-surface-variant hover:text-primary">
+                <span class="material-symbols-outlined">filter_list</span>
+                More Filters
+            </button>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="bg-surface-container-lowest rounded-xl shadow border overflow-hidden">
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[700px] text-sm">
+
+                    <thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant">
+                        <tr>
+                            <th class="px-4 py-4 text-left">Code</th>
+                            <th class="px-4 py-4 text-left">Name & Description</th>
+                            <th class="px-4 py-4 text-left">Status</th>
+                            <th class="px-4 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var v in Model.Items)
+                        {
+                            var statusClass = v.IsActive
+                            ? "bg-primary/10 text-primary"
+                            : "bg-surface-container-high text-on-surface-variant";
+
+                            <tr class="border-b hover:bg-surface-container-low transition">
+
+                                <!-- CODE -->
+                                <td class="px-4 py-4">
+                                    <span class="font-mono text-xs px-2 py-1 bg-surface-container-high rounded">
+                                        @v.Code
+                                    </span>
+                                </td>
+
+                                <!-- NAME -->
+                                <td class="px-4 py-4">
+                                    <div>
+                                        <p class="font-bold">@v.Name</p>
+                                        <p class="text-xs text-on-surface-variant">@v.Description</p>
+                                    </div>
+                                </td>
+
+                                <!-- STATUS -->
+                                <td class="px-4 py-4">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold @statusClass">
+                                        @(v.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+
+                                <!-- ACTION -->
+                                <td class="px-4 py-4 text-right">
+                                    <a href="/Admin/VerticalLibraries/Edit?id=@v.Id"
+                                       class="text-primary font-semibold text-sm hover:underline">
+                                        Edit
+                                    </a>
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+
+        <!-- FOOTER LINK -->
+        <div class="mt-6">
+            <a href="/Admin" class="text-sm text-on-surface-variant hover:text-primary flex items-center gap-2">
+                <span class="material-symbols-outlined text-base">arrow_back</span>
+                Admin home
+            </a>
+        </div>
+
+    </div>
+
 </div>
-
-<p class="text-muted text-sm">
-    A Vertical Library is a broad business family (Distribution/Retail/Service). Business profiles belong to a vertical.
-</p>
-
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var v in Model.Items)
-        {
-            <tr>
-                <td><code>@v.Code</code></td>
-                <td>
-                    <div style="font-weight:600;">@v.Name</div>
-                    <div class="text-muted text-sm">@v.Description</div>
-                </td>
-                <td>@(v.IsActive ? "Yes" : "No")</td>
-                <td><a href="/Admin/VerticalLibraries/Edit?id=@v.Id">Edit</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
-

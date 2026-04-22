@@ -2,155 +2,145 @@
 @model IndexModel
 @{
     ViewData["Title"] = "Administration";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
-<!-- Tailwind -->
-<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<div class="flex">
 
-<!-- Fonts + Icons -->
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    <!-- 🔥 SIDEBAR -->
+    <aside class="hidden lg:flex w-64 shrink-0 min-h-screen bg-surface-container-highest border-r border-surface-container-high flex-col px-4 py-6">
 
-<link rel="stylesheet" href="~/css/style.css" />
-
-<div class="admin-os-layout">
-
-    <!-- SIDEBAR -->
-    <aside class="admin-os-sidebar">
-
-        <div class="admin-os-sidebar-header">
-            <h2>Decision OS</h2>
-            <p>Admin</p>
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant tracking-wide">ADMIN</p>
         </div>
 
-        <div class="admin-os-menu">
+        <nav class="flex-1 space-y-1">
 
-            <a href="/Admin/VerticalLibraries" class="admin-os-menu-item active">
+            @functions {
+                string Active(string key, string current) =>
+                current.Contains(key)
+                ? "bg-surface-container-lowest shadow-sm font-semibold"
+                : "text-on-surface-variant hover:bg-white";
+            }
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
                 <span class="material-symbols-outlined">library_books</span>
-                <span>Vertical Libraries</span>
+                Vertical Libraries
             </a>
 
-            <a href="/Admin/Profiles" class="admin-os-menu-item">
+            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
                 <span class="material-symbols-outlined">business_center</span>
-                <span>Business Profiles</span>
+                Business Profiles
             </a>
 
-            <a href="/Admin/Tenants" class="admin-os-menu-item">
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
                 <span class="material-symbols-outlined">domain</span>
-                <span>Tenants</span>
+                Tenants
             </a>
 
-            <a href="/Admin/KpiDefinitions" class="admin-os-menu-item">
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
                 <span class="material-symbols-outlined">leaderboard</span>
-                <span>KPI Definitions</span>
+                KPI Definitions
             </a>
 
-            <a href="/Admin/DriverDefinitions" class="admin-os-menu-item">
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
                 <span class="material-symbols-outlined">account_tree</span>
-                <span>Driver Catalog</span>
+                Driver Catalog
             </a>
 
-            <a href="/Admin/Influencers" class="admin-os-menu-item">
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
                 <span class="material-symbols-outlined">insights</span>
-                <span>Influencers</span>
+                Influencers
             </a>
 
-            <a href="/Admin/Users" class="admin-os-menu-item">
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
                 <span class="material-symbols-outlined">group</span>
-                <span>Users & Roles</span>
+                Users & Roles
             </a>
 
-            <div class="admin-os-divider"></div>
+            <div class="my-4 border-t border-surface-container-high"></div>
 
-            <a href="/Operations/ImportRuns" class="admin-os-menu-item">
+            <a href="/Operations/ImportRuns" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportRuns", currentPage)">
                 <span class="material-symbols-outlined">history</span>
-                <span>Import History</span>
+                Import History
             </a>
 
-        </div>
+        </nav>
 
     </aside>
 
-    <!-- MAIN CONTENT -->
-    <main class="admin-os-main">
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-6 max-w-[1440px] mx-auto">
 
-        <div class="admin-os-container">
+        <!-- HEADER -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold font-headline">
+                Administration
+            </h1>
+            <p class="text-xs sm:text-sm text-on-surface-variant mt-1">
+                Manage global configurations, system entities, and access control.
+            </p>
+        </div>
 
-            <!-- Header -->
-            <div class="admin-os-header">
-                <h1>Administration</h1>
-                <p>Manage global configurations, system entities, and access control.</p>
-            </div>
+        <!-- GRID -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
 
-            <!-- GRID -->
-            <div class="admin-os-grid">
+            <!-- CARD -->
+            @foreach (var item in new[] {
+                        new {Href="/Admin/VerticalLibraries", Icon="library_books", Title="Vertical Libraries", Desc="Manage industry vertical templates and datasets.", Link="Configure →"},
+                        new {Href="/Admin/Profiles", Icon="business_center", Title="Business Profiles", Desc="Configure distributor business models.", Link="Configure →"},
+                        new {Href="/Admin/Tenants", Icon="domain", Title="Tenants", Desc="Manage distributor accounts.", Link="Manage →"},
+                        new {Href="/Admin/KpiDefinitions", Icon="leaderboard", Title="KPI Definitions", Desc="Define KPIs and scoring.", Link="Define →"},
+                        new {Href="/Admin/DriverDefinitions", Icon="account_tree", Title="Driver Catalog", Desc="Manage KPI drivers.", Link="Manage →"},
+                        new {Href="/Admin/Influencers", Icon="insights", Title="Influencers", Desc="Define influencing factors.", Link="Define →"},
+                        new {Href="/Admin/Users", Icon="group", Title="Users & Roles", Desc="Manage system access and permissions.", Link="Administer →"}
+                        })
+            {
+                <a href="@item.Href"
+                   class="bg-surface-container-lowest rounded-xl p-5 sm:p-6 border border-surface-container-high
+                              hover:shadow-md transition flex flex-col gap-3">
 
-                <a href="/Admin/VerticalLibraries" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">library_books</span>
-                    <h3>Vertical Libraries</h3>
-                    <p>Manage industry vertical templates and datasets.</p>
-                    <span class="admin-os-link">Configure →</span>
+                    <span class="material-symbols-outlined text-primary">@item.Icon</span>
+
+                    <h3 class="font-bold text-sm sm:text-base">@item.Title</h3>
+
+                    <p class="text-xs sm:text-sm text-on-surface-variant">
+                        @item.Desc
+                    </p>
+
+                    <span class="text-primary text-xs sm:text-sm font-semibold mt-auto">
+                        @item.Link
+                    </span>
                 </a>
-
-                <a href="/Admin/Profiles" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">business_center</span>
-                    <h3>Business Profiles</h3>
-                    <p>Configure distributor business models.</p>
-                    <span class="admin-os-link">Configure →</span>
-                </a>
-
-                <a href="/Admin/Tenants" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">domain</span>
-                    <h3>Tenants</h3>
-                    <p>Manage distributor accounts.</p>
-                    <span class="admin-os-link">Manage →</span>
-                </a>
-
-                <a href="/Admin/KpiDefinitions" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">leaderboard</span>
-                    <h3>KPI Definitions</h3>
-                    <p>Define KPIs and scoring.</p>
-                    <span class="admin-os-link">Define →</span>
-                </a>
-
-                <a href="/Admin/DriverDefinitions" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">account_tree</span>
-                    <h3>Driver Catalog</h3>
-                    <p>Manage KPI drivers.</p>
-                    <span class="admin-os-link">Manage →</span>
-                </a>
-
-                <a href="/Admin/Influencers" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">insights</span>
-                    <h3>Influencers</h3>
-                    <p>Define influencing factors.</p>
-                    <span class="admin-os-link">Define →</span>
-                </a>
-
-                <a href="/Admin/Users" class="admin-os-card">
-                    <span class="material-symbols-outlined admin-os-icon">group</span>
-                    <h3>Users & Roles</h3>
-                    <p>Manage system access and permissions.</p>
-                    <span class="admin-os-link">Administer →</span>
-                </a>
-
-            </div>
-
-            <!-- OPERATIONS -->
-            <div class="admin-os-operations">
-                <h2>Operations</h2>
-
-                <a href="/Operations/ImportRuns" class="admin-os-ops-card">
-                    <span class="material-symbols-outlined">history</span>
-                    <div>
-                        <h3>Import History</h3>
-                        <p>View import logs and audit trail</p>
-                    </div>
-                </a>
-            </div>
+            }
 
         </div>
 
-    </main>
+        <!-- OPERATIONS -->
+        <div class="mt-8 sm:mt-10">
+
+            <h2 class="text-lg font-bold mb-4">Operations</h2>
+
+            <a href="/Operations/ImportRuns"
+               class="flex items-center gap-4 p-4 sm:p-5 bg-surface-container-lowest border rounded-xl hover:shadow-md transition">
+
+                <span class="material-symbols-outlined text-primary">history</span>
+
+                <div>
+                    <h3 class="font-semibold text-sm sm:text-base">Import History</h3>
+                    <p class="text-xs sm:text-sm text-on-surface-variant">
+                        View import logs and audit trail
+                    </p>
+
+                </div>
+
+            </a>
+
+        </div>
+
+    </div>
 
 </div>

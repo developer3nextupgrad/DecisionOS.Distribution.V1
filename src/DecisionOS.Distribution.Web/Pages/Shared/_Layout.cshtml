@@ -6,27 +6,41 @@
     <title>@ViewData["Title"] - Decision OS</title>
 
     <!-- Tailwind -->
-    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-
+    <!-- THEME (FROM YOUR DESIGN FILE) -->
     <script>
         tailwind.config = {
+            darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        primary: "#006e2f",
-                        primaryDim: "#006028",
-                        surface: "#faf8ff",
-                        surfaceHigh: "#e2e7ff",
-                        textMain: "#113069",
-                        textMuted: "#445d99"
+                        "background": "#faf8ff",
+                        "surface": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f2f3ff",
+                        "surface-container-high": "#e2e7ff",
+                        "surface-container-highest": "#d9e2ff",
+                        "on-surface": "#113069",
+                        "on-surface-variant": "#445d99",
+                        "primary": "#006e2f",
+                        "primary-dim": "#006028",
+                        "error": "#9e422c",
+                        "outline": "#6079b7"
+                    },
+                    fontFamily: {
+                        headline: ["Manrope"],
+                        body: ["Inter"],
+                        mono: ["JetBrains Mono"]
                     }
                 }
             }
         }
     </script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
         body {
@@ -36,83 +50,76 @@
         h1, h2, h3 {
             font-family: 'Manrope', sans-serif;
         }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400;
+        }
     </style>
 </head>
 
-<body class="bg-surface text-textMain min-h-screen flex flex-col">
+<body class="bg-background text-on-surface flex flex-col min-h-screen">
 
-    <!-- 🔥 MODERN NAVBAR (UPDATED WITH ICONS) -->
-    <header class="sticky top-0 w-full z-50 bg-[#faf8ff]/80 backdrop-blur-xl shadow-[0_12px_32px_rgba(17,48,105,0.06)]">
+    <!-- 🔥 HEADER (MERGED UI + YOUR LOGIC) -->
+    <header class="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-surface-container-high">
 
-        <div class="flex justify-between items-center w-full px-8 py-4 max-w-screen-2xl mx-auto">
+        <div class="flex justify-between items-center px-8 h-16 max-w-[1440px] mx-auto">
 
             <!-- Logo -->
             <a href="/" class="flex items-center gap-3">
-                <div class="bg-[#0b6b2e] p-2 rounded-lg flex items-center justify-center text-white text-lg shadow-sm">
-                    📊
-                </div>
-                <span class="font-[Manrope] text-xl font-bold tracking-tight text-[#113069]">
-                    Decision OS
-                </span>
+                <div class="bg-primary text-white p-2 rounded-lg shadow-sm">📊</div>
+                <span class="text-xl font-bold font-headline">Decision OS</span>
             </a>
 
-            <!-- Nav Links -->
-            <nav class="hidden md:flex items-center gap-8 text-sm font-medium font-[Manrope] text-[#445d99]">
+            <!-- Nav -->
+            <nav class="hidden md:flex gap-6 items-center text-sm font-medium text-on-surface-variant">
 
-                <a href="/" class="hover:text-[#113069] transition">Dashboard</a>
+                <a href="/" class="hover:text-primary transition">Dashboard</a>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin))
                     {
-                        <a href="/Admin" class="hover:text-[#113069]">Admin</a>
+                        <a href="/Admin" class="hover:text-primary">Admin</a>
                     }
 
                     @if (User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Admin)
                                     || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Operator)
                                     || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
                     {
-                        <a href="/Operations/ImportRuns" class="hover:text-[#113069]">Imports</a>
+                        <a href="/Operations/ImportRuns" class="hover:text-primary">Imports</a>
                     }
                 }
             </nav>
 
-            <!-- Right Side -->
-            <div class="flex items-center gap-6">
+            <!-- RIGHT -->
+            <div class="flex items-center gap-4">
 
-                <!-- Notification Icon -->
-                <button class="text-on-surface-variant hover:bg-slate-100/50 p-2 rounded-full transition-all active:scale-95 duration-200">
-                    <span class="material-symbols-outlined">
-                        notifications
-                    </span>
-                </button>
+                <span class="material-symbols-outlined text-on-surface-variant cursor-pointer">
+                    notifications
+                </span>
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <!-- User Info -->
-                    <div class="flex items-center gap-3 pl-4 border-l border-[#d9e2ff]">
+                    <div class="flex items-center gap-3 pl-4 border-l border-surface-container-high">
 
                         <div class="text-right">
-                            <div class="text-xs font-bold text-[#113069] leading-none">
-                                @User.Identity.Name
-                            </div>
+                            <div class="text-xs font-bold">@User.Identity.Name</div>
 
                             <form method="post" asp-page="/Account/Logout">
-                                <button type="submit" class="text-[10px] uppercase tracking-widest font-bold text-[#0b6b2e] hover:text-[#095424]">
+                                <button type="submit" class="text-[10px] uppercase text-primary font-bold">
                                     Logout
                                 </button>
                             </form>
                         </div>
 
-                        <!-- 🔥 REPLACED IMAGE WITH ICON -->
-                        <div class="h-10 w-10 rounded-full bg-[#e2e7ff] flex items-center justify-center border-2 border-white text-lg">
-                            
+                        <div class="h-10 w-10 rounded-full bg-surface-container-high flex items-center justify-center">
+                            👤
                         </div>
                     </div>
                 }
                 else
                 {
-                    <a href="/Account/Login" class="text-[#445d99] hover:text-[#113069]">
+                    <a href="/Account/Login" class="hover:text-primary">
                         Sign in
                     </a>
                 }
@@ -126,9 +133,9 @@
         @RenderBody()
     </main>
 
-    <!-- 🔥 EXACT FOOTER -->
-    <footer class="w-full py-8 text-center text-[10px] font-medium tracking-[0.2em] uppercase text-[#445d99]/60">
-        © @DateTime.UtcNow.Year Decision OS Intelligent Canvas • All Rights Reserved
+    <!-- 🔥 FOOTER -->
+    <footer class="w-full py-6 text-center text-xs text-on-surface-variant uppercase tracking-widest">
+        © @DateTime.UtcNow.Year Decision OS • All Rights Reserved
     </footer>
 
 </body>

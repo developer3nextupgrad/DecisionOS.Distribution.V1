@@ -1,49 +1,185 @@
 @page
 @model IndexModel
 @{
-    ViewData["Title"] = "Import history";
+    ViewData["Title"] = "Import History";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-<h1 class="page-title">Import history</h1>
-<p class="text-muted text-sm">Audit trail for CLI imports (idempotency fingerprint per run).</p>
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead>
-        <tr>
-            <th>Started (UTC)</th>
-            <th>Tenant</th>
-            <th>Week</th>
-            <th>Status</th>
-            <th>KPI rows</th>
-            <th>Driver rows</th>
-            <th>Fingerprint</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var r in Model.Items)
-        {
-            <tr>
-                <td>@r.StartedAt.ToString("u")</td>
-                <td><code>@r.ClientId</code><br /><span class="text-muted text-sm">@r.TenantName</span></td>
-                <td>@r.PeriodEnd.ToString("yyyy-MM-dd")</td>
-                <td>
-                    <strong>@r.Status</strong>
-                    @if (!string.IsNullOrEmpty(r.Error))
-                    {
-                        <div class="text-sm text-muted" style="max-width:240px;">@r.Error</div>
-                    }
-                    @if (!string.IsNullOrEmpty(r.ValidationSummary))
-                    {
-                        <pre class="text-sm" style="white-space:pre-wrap;max-width:320px;">@r.ValidationSummary</pre>
-                    }
-                </td>
-                <td>@r.KpiRows</td>
-                <td>@r.DriverRows</td>
-                <td class="text-sm" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;" title="@r.Fingerprint">
-                    @(r.Fingerprint is { Length: > 0 } fp ? fp[..Math.Min(fp.Length, 16)] + "…" : "—")
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
+<div class="flex">
+
+    <!-- 🔥 SIDEBAR -->
+    <aside class="hidden lg:flex w-64 min-h-screen bg-surface-container-highest border-r border-surface-container-high flex-col px-4 py-6">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant tracking-wide">ADMIN</p>
+        </div>
+
+        <nav class="flex-1 space-y-1">
+
+            <!-- Vertical Libraries -->
+            <a href="/Admin/VerticalLibraries"
+               class="flex items-center gap-3 px-4 py-3 rounded-xl
+               @(currentPage.Contains("VerticalLibraries")
+                                   ? "bg-surface-container-lowest shadow-sm font-semibold"
+                                   : "text-on-surface-variant hover:bg-white")">
+
+                <span class="material-symbols-outlined">article</span>
+                Vertical Libraries
+            </a>
+
+            <!-- Business Profiles -->
+            <a href="/Admin/BusinessProfiles"
+               class="flex items-center gap-3 px-4 py-3 rounded-xl
+               @(currentPage.Contains("BusinessProfiles")
+                                   ? "bg-surface-container-lowest shadow-sm font-semibold"
+                                   : "text-on-surface-variant hover:bg-white")">
+
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <!-- Tenants -->
+            <a href="/Admin/Tenants"
+               class="flex items-center gap-3 px-4 py-3 rounded-xl
+               @(currentPage.Contains("Tenants")
+                                   ? "bg-surface-container-lowest shadow-sm font-semibold"
+                                   : "text-on-surface-variant hover:bg-white")">
+
+                <span class="material-symbols-outlined">apartment</span>
+                Tenants
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <!-- Import History -->
+            <a href="/ImportHistory"
+               class="flex items-center gap-3 px-4 py-3 rounded-xl
+               @(currentPage.Contains("ImportHistory")
+                                   ? "bg-surface-container-lowest shadow-sm font-semibold"
+                                   : "text-on-surface-variant hover:bg-white")">
+
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full p-4 sm:p-6 md:p-8 max-w-[1440px] mx-auto">
+
+        <!-- HEADER -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">
+                Import History
+            </h1>
+            <p class="text-sm text-on-surface-variant mt-1">
+                Audit trail for CLI imports with idempotency tracking
+            </p>
+        </div>
+
+        <!-- TABLE -->
+        <section class="bg-surface-container-lowest rounded-xl shadow border border-surface-container-high overflow-hidden">
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[700px]">
+
+                    <thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant">
+                        <tr>
+                            <th class="px-4 sm:px-6 py-4 text-left">Started</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">Tenant</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">Week</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">KPI</th>
+                            <th class="px-4 sm:px-6 py-4 text-right">Driver</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">Fingerprint</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var r in Model.Items)
+                        {
+                            var statusClass = r.Status switch
+                            {
+                                "Success" => "bg-primary/10 text-primary",
+                                "Failed" => "bg-error/10 text-error",
+                                "Processing" => "bg-primary/10 text-primary",
+                                _ => "bg-gray-100 text-gray-600"
+                            };
+
+                            <tr class="border-b hover:bg-surface-container-low transition">
+
+                                <td class="px-4 sm:px-6 py-4 text-xs font-mono text-on-surface-variant">
+                                    @r.StartedAt.ToString("u")
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4">
+                                    <div class="flex flex-col">
+                                        <span class="font-semibold">@r.TenantName</span>
+                                        <span class="text-[10px] text-on-surface-variant font-mono">
+                                            @r.ClientId
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4 text-on-surface-variant">
+                                    @r.PeriodEnd.ToString("yyyy-MM-dd")
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4">
+                                    <span class="px-2 py-1 rounded-full text-xs font-bold @statusClass">
+                                        @r.Status
+                                    </span>
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4">
+                                    @(r.KpiRows == 0 ? "—" : r.KpiRows)
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4 text-right">
+                                    @(r.DriverRows == 0 ? "—" : r.DriverRows)
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4 text-xs font-mono">
+                                    @(r.Fingerprint?.Substring(0, 10))...
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </section>
+
+        <!-- INSIGHTS -->
+        <section class="mt-8 sm:mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            <div class="p-6 bg-surface-container-lowest border rounded-xl">
+                <h3 class="text-xs uppercase text-on-surface-variant mb-2">Total Imports</h3>
+                <p class="text-3xl font-bold">@Model.Items.Count</p>
+            </div>
+
+            <div class="p-6 bg-surface-container-lowest border rounded-xl">
+                <h3 class="text-xs uppercase text-on-surface-variant mb-2">Error Rate</h3>
+                <p class="text-3xl font-bold text-error">
+                    @(Model.Items.Count == 0 ? "0%" :
+                                        $"{Model.Items.Count(x => x.Status == "Failed") * 100 / Model.Items.Count}%")
+                </p>
+            </div>
+
+            <div class="p-6 bg-surface-container-lowest border rounded-xl">
+                <h3 class="text-xs uppercase text-on-surface-variant mb-2">System Status</h3>
+                <p class="text-lg font-bold text-primary">Active</p>
+            </div>
+
+        </section>
+
+    </div>
+
 </div>
-<p class="text-sm"><a href="/">Dashboard</a> &middot; <a href="/Admin">Admin</a></p>

@@ -1,31 +1,152 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.VerticalLibraries.EditModel
 @{
-    ViewData["Title"] = "Edit vertical library";
+    ViewData["Title"] = "Edit Vertical Library";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
-<h1 class="page-title">Edit vertical library</h1>
-<form method="post" class="card" style="max-width:640px;">
-    <input type="hidden" asp-for="Id" />
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="form-group">
-            <label>Code</label>
-            <input class="form-control" value="@Model.Input.Code" disabled />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Name"></label>
-            <input asp-for="Input.Name" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Description"></label>
-            <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-            <label><input asp-for="Input.IsActive" /> Active</label>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a href="/Admin/VerticalLibraries" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
-    </div>
-</form>
+<div class="flex">
 
+    <!-- 🔥 SIDEBAR (FIXED) -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64
+                  bg-surface-container-highest border-r border-surface-container-high
+                  flex-col px-4 py-6 z-40">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant">ADMIN</p>
+        </div>
+
+        @functions {
+            string Active(string key, string current) =>
+            current.Contains(key)
+            ? "bg-surface-container-lowest shadow-sm font-semibold"
+            : "text-on-surface-variant hover:bg-white";
+        }
+
+        <nav class="flex-1 space-y-1">
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                <span class="material-symbols-outlined">library_books</span>
+                Vertical Libraries
+            </a>
+
+            <a href="/Admin/BusinessProfiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("BusinessProfiles", currentPage)">
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                <span class="material-symbols-outlined">domain</span>
+                Tenants
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                <span class="material-symbols-outlined">leaderboard</span>
+                KPI Definitions
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                <span class="material-symbols-outlined">account_tree</span>
+                Driver Catalog
+            </a>
+
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                <span class="material-symbols-outlined">insights</span>
+                Influencers
+            </a>
+
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                <span class="material-symbols-outlined">group</span>
+                Users & Roles
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+
+        <!-- BUTTON -->
+        <div class="mt-auto px-2 pt-6">
+            <a href="/Admin/VerticalLibraries/Create"
+               class="w-full flex items-center justify-center gap-2 px-4 py-3
+                      bg-primary text-white font-bold rounded-xl shadow">
+                <span class="material-symbols-outlined text-sm">add</span>
+                New Vertical
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- 🔥 MAIN CONTENT -->
+    <div class="flex-1 w-full lg:ml-64 px-4 sm:px-6 md:px-8 py-8 flex justify-center">
+
+        <!-- CARD -->
+        <div class="w-full max-w-[640px] bg-surface-container-lowest rounded-[2rem] shadow p-6 sm:p-10">
+
+            <h2 class="text-xl sm:text-2xl font-extrabold mb-2">Edit Vertical Library</h2>
+            <p class="text-sm text-on-surface-variant mb-6">
+                Update vertical details and status
+            </p>
+
+            <form method="post" class="space-y-6">
+
+                <input type="hidden" asp-for="Id" />
+
+                <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                <!-- CODE -->
+                <div>
+                    <label class="text-xs font-bold uppercase">Code</label>
+                    <input value="@Model.Input.Code" disabled
+                           class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low text-sm font-mono" />
+                </div>
+
+                <!-- NAME -->
+                <div>
+                    <label asp-for="Input.Name" class="text-xs font-bold uppercase"></label>
+                    <input asp-for="Input.Name"
+                           class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low focus:ring-2 focus:ring-primary/20" />
+                </div>
+
+                <!-- DESCRIPTION -->
+                <div>
+                    <label asp-for="Input.Description" class="text-xs font-bold uppercase"></label>
+                    <textarea asp-for="Input.Description"
+                              class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low focus:ring-2 focus:ring-primary/20"></textarea>
+                </div>
+
+                <!-- ACTIVE -->
+                <div class="flex justify-between items-center bg-surface-container-low p-4 rounded-xl">
+                    <span class="text-sm font-semibold">Active</span>
+                    <input asp-for="Input.IsActive" type="checkbox" class="accent-primary w-5 h-5" />
+                </div>
+
+                <!-- ACTION -->
+                <div class="flex justify-end gap-3 pt-4 border-t">
+
+                    <a href="/Admin/VerticalLibraries"
+                       class="px-4 py-2 rounded-xl text-sm hover:bg-surface-container-high">
+                        Cancel
+                    </a>
+
+                    <button type="submit"
+                            class="px-6 py-2 bg-primary text-white rounded-xl font-bold">
+                        Save
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

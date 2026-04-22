@@ -1,30 +1,163 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Profiles.ApplyDefaultsModel
 @{
-    ViewData["Title"] = "Apply defaults";
+    ViewData["Title"] = "Apply Defaults";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
 @if (Model.Profile is null)
 {
-    <p>Profile not found.</p>
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">Profile not found.</p>
+    </div>
     return;
 }
 
-<h1 class="page-title">Apply defaults to profile</h1>
-<div class="card" style="max-width:760px;">
-    <div class="card-body">
-        <p>
-            This clones the <strong>global</strong> KPI definitions and driver catalog into the profile
-            <code>@Model.Profile.Code</code> so you can tailor thresholds, actions, and catalogs per industry/type.
-        </p>
-        <p class="text-muted text-sm">
-            If the profile already has KPI/driver definitions, this action is a no-op for that section.
-        </p>
-        <form method="post">
-            <input type="hidden" asp-for="Id" />
-            <button type="submit" class="btn btn-primary">Apply defaults</button>
-            <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Profiles">Cancel</a>
-        </form>
-    </div>
-</div>
+<div class="flex">
 
+    <!-- 🔥 SIDEBAR (GLOBAL FIXED) -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64
+                  bg-surface-container-highest border-r border-surface-container-high
+                  flex-col px-4 py-6 z-40">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant">ADMIN</p>
+        </div>
+
+        @functions {
+            string Active(string key, string current) =>
+            current.Contains(key)
+            ? "bg-surface-container-lowest shadow-sm font-semibold"
+            : "text-on-surface-variant hover:bg-white";
+        }
+
+        <nav class="flex-1 space-y-1">
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                <span class="material-symbols-outlined">library_books</span>
+                Vertical Libraries
+            </a>
+
+            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                <span class="material-symbols-outlined">domain</span>
+                Tenants
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                <span class="material-symbols-outlined">leaderboard</span>
+                KPI Definitions
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                <span class="material-symbols-outlined">account_tree</span>
+                Driver Catalog
+            </a>
+
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                <span class="material-symbols-outlined">insights</span>
+                Influencers
+            </a>
+
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                <span class="material-symbols-outlined">group</span>
+                Users & Roles
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full lg:ml-64 flex justify-center items-center px-4 sm:px-6 md:px-8 py-10">
+
+        <div class="w-full max-w-[640px]">
+
+            <div class="bg-surface-container-lowest rounded-2xl shadow overflow-hidden">
+
+                <!-- HEADER -->
+                <div class="px-8 pt-10 pb-6 border-b border-surface-container-high">
+                    <h1 class="text-2xl font-extrabold font-headline mb-2">
+                        Apply Defaults
+                    </h1>
+                    <p class="text-sm text-on-surface-variant">
+                        Initialize profile with global KPI and driver templates
+                    </p>
+                </div>
+
+                <!-- CONTENT -->
+                <div class="p-8 space-y-6">
+
+                    <!-- INFO -->
+                    <div class="bg-surface-container-high p-6 rounded-xl flex gap-4">
+
+                        <span class="material-symbols-outlined text-primary mt-1">info</span>
+
+                        <div>
+                            <p class="text-sm font-medium">
+                                This will copy global KPI definitions and driver catalog into:
+                            </p>
+
+                            <div class="mt-2 inline-flex items-center px-3 py-1 bg-surface-container-low rounded-md">
+                                <code class="text-xs font-bold">@Model.Profile.Code</code>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- WARNING -->
+                    <div class="bg-surface-container-low p-6 rounded-xl space-y-2">
+                        <p class="text-sm font-semibold">Configuration Safeguards</p>
+
+                        <ul class="text-sm text-on-surface-variant space-y-1">
+                            <li>• Existing definitions will NOT be overwritten</li>
+                            <li>• Only missing sections will be populated</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- ACTIONS -->
+                <div class="px-8 py-6 bg-surface-container-low flex justify-end gap-4">
+
+                    <a href="/Admin/Profiles"
+                       class="px-5 py-2 rounded-xl text-sm text-on-surface-variant hover:bg-surface-container-high">
+                        Cancel
+                    </a>
+
+                    <form method="post">
+                        <input type="hidden" asp-for="Id" />
+
+                        <button type="submit"
+                                class="px-6 py-2 rounded-xl bg-primary text-white font-bold shadow hover:opacity-90">
+                            Apply Defaults
+                        </button>
+                    </form>
+
+                </div>
+
+            </div>
+
+            <!-- FOOT NOTE -->
+            <p class="mt-6 text-center text-xs text-on-surface-variant">
+                Changes will be logged for audit compliance.
+            </p>
+
+        </div>
+
+    </div>
+
+</div>

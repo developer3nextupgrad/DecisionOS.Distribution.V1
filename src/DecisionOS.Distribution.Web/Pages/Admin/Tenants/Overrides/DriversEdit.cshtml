@@ -1,69 +1,205 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.DriversEditModel
 @{
-    ViewData["Title"] = "Edit driver override";
+    ViewData["Title"] = "Edit Driver Override";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
 @if (Model.Tenant is null)
 {
-    <p>Tenant not found.</p>
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">Tenant not found.</p>
+    </div>
     return;
 }
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Edit driver override</h1>
-        <p class="text-muted text-sm" style="margin:0;">
-            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
-            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
-        </p>
+<div class="flex">
+
+    <!-- 🔥 SIDEBAR (SAME GLOBAL) -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64
+                  bg-surface-container-highest border-r border-surface-container-high
+                  flex-col px-4 py-6 z-40">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant">ADMIN</p>
+        </div>
+
+        @functions {
+            string Active(string key, string current) =>
+            current.Contains(key)
+            ? "bg-surface-container-lowest shadow-sm font-semibold"
+            : "text-on-surface-variant hover:bg-white";
+        }
+
+        <nav class="flex-1 space-y-1">
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                <span class="material-symbols-outlined">library_books</span>
+                Vertical Libraries
+            </a>
+
+            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                <span class="material-symbols-outlined">domain</span>
+                Tenants
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                <span class="material-symbols-outlined">leaderboard</span>
+                KPI Definitions
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                <span class="material-symbols-outlined">account_tree</span>
+                Driver Catalog
+            </a>
+
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                <span class="material-symbols-outlined">insights</span>
+                Influencers
+            </a>
+
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                <span class="material-symbols-outlined">group</span>
+                Users & Roles
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full lg:ml-64 px-4 sm:px-6 md:px-8 py-10">
+
+        <div class="max-w-[760px] mx-auto space-y-8">
+
+            <!-- HEADER -->
+            <div>
+                <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.TenantId"
+                   class="flex items-center gap-2 text-sm text-on-surface-variant mb-2 hover:text-primary">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span>
+                    Back to Overrides
+                </a>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">
+                    Edit Driver Override
+                </h1>
+
+                <p class="text-sm text-on-surface-variant mt-2">
+                    Tenant: <strong>@Model.Tenant.Name</strong>
+                    (<code>@Model.Tenant.ClientId</code>)
+                    · Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+                </p>
+            </div>
+
+            <!-- FORM -->
+            <div class="bg-surface-container-lowest rounded-2xl shadow p-6 sm:p-8">
+
+                <form method="post" class="space-y-10">
+
+                    <input type="hidden" asp-for="TenantId" />
+                    <input type="hidden" asp-for="Input.PillarCode" />
+                    <input type="hidden" asp-for="Input.DriverCode" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                    <!-- DRIVER SELECT -->
+                    <div class="space-y-2">
+                        <label class="text-sm font-semibold">Driver</label>
+
+                        <select asp-for="DriverKey"
+                                asp-items="Model.DriverOptions"
+                                onchange="window.location='?tenantId=@Model.TenantId&driverKey=' + encodeURIComponent(this.value)"
+                                class="w-full px-4 py-3 rounded-xl bg-surface-container-low focus:ring-2 focus:ring-primary/20">
+                        </select>
+
+                        <p class="text-xs text-on-surface-variant">
+                            Select a pillar + driver combination to override
+                        </p>
+                    </div>
+
+                    <!-- BASIC -->
+                    <div class="grid md:grid-cols-2 gap-6">
+
+                        <div>
+                            <label asp-for="Input.DisplayName" class="text-sm font-semibold"></label>
+                            <input asp-for="Input.DisplayName"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low" />
+                        </div>
+
+                        <div>
+                            <label asp-for="Input.SortOrder" class="text-sm font-semibold"></label>
+                            <input asp-for="Input.SortOrder"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low" />
+                        </div>
+
+                    </div>
+
+                    <!-- DESCRIPTION -->
+                    <div>
+                        <label asp-for="Input.Description" class="text-sm font-semibold"></label>
+                        <textarea asp-for="Input.Description"
+                                  rows="3"
+                                  class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low"></textarea>
+                    </div>
+
+                    <!-- STATUS -->
+                    <div class="space-y-3">
+                        <label asp-for="Input.IsActive" class="text-sm font-semibold">Override Status</label>
+
+                        <select asp-for="Input.IsActive"
+                                class="w-full px-4 py-3 rounded-xl bg-surface-container-low">
+                            <option value="">Inherit</option>
+                            <option value="true">Force Active</option>
+                            <option value="false">Force Inactive</option>
+                        </select>
+                    </div>
+
+                    <!-- ACTIONS -->
+                    <div class="flex justify-between items-center pt-6 border-t">
+
+                        <button type="submit" name="action" value="delete"
+                                class="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-error border border-error/20 rounded-xl hover:bg-error/5">
+                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                            Delete Override
+                        </button>
+
+                        <div class="flex gap-3">
+
+                            <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.TenantId"
+                               class="px-4 py-2 text-sm text-on-surface-variant hover:bg-surface-container-high rounded-xl">
+                                Cancel
+                            </a>
+
+                            <button type="submit"
+                                    class="flex items-center gap-2 px-6 py-2 bg-primary text-white font-bold rounded-xl shadow">
+                                <span class="material-symbols-outlined text-[18px]">save</span>
+                                Save Override
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
     </div>
-    <a class="btn btn-outline" href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.TenantId">Back</a>
+
 </div>
-
-<form method="post" class="card" style="max-width:760px;">
-    <input type="hidden" asp-for="TenantId" />
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-        <div class="form-group">
-            <label>Driver key</label>
-            <select asp-for="DriverKey" class="form-control" asp-items="Model.DriverOptions"
-                    onchange="window.location='?tenantId=@Model.TenantId&driverKey=' + encodeURIComponent(this.value);"></select>
-            <div class="text-muted text-sm">Select a pillar+driver_code pair to override.</div>
-        </div>
-
-        <input type="hidden" asp-for="Input.PillarCode" />
-        <input type="hidden" asp-for="Input.DriverCode" />
-
-        <div class="grid-2">
-            <div class="form-group">
-                <label asp-for="Input.DisplayName"></label>
-                <input asp-for="Input.DisplayName" class="form-control" />
-                <div class="text-muted text-sm">Leave blank to inherit.</div>
-            </div>
-            <div class="form-group">
-                <label asp-for="Input.SortOrder"></label>
-                <input asp-for="Input.SortOrder" class="form-control" />
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label asp-for="Input.Description"></label>
-            <textarea asp-for="Input.Description" class="form-control" rows="3"></textarea>
-        </div>
-
-        <div class="form-group">
-            <label asp-for="Input.IsActive">Active override</label>
-            <select asp-for="Input.IsActive" class="form-control">
-                <option value="">Inherit</option>
-                <option value="true">Force Active</option>
-                <option value="false">Force Inactive</option>
-            </select>
-        </div>
-
-        <button type="submit" class="btn btn-primary">Save override</button>
-        <button type="submit" name="action" value="delete" class="btn btn-outline" style="margin-left:8px;">Delete override</button>
-    </div>
-</form>
-

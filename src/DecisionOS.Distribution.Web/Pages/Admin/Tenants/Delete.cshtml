@@ -1,31 +1,187 @@
-@page
+﻿@page
 @model DeleteModel
 @{
-    ViewData["Title"] = "Delete tenant";
+    ViewData["Title"] = "Delete Tenant";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-@if (Model.Tenant is null)
-{
-    <p>Tenant not found.</p>
-}
-else
-{
-<h1 class="page-title">Delete tenant</h1>
-<div class="card" style="max-width:560px;">
-    <div class="card-body">
-        <p>Delete <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)?</p>
-        @if (!Model.CanDelete)
-        {
-            <p class="text-danger">This tenant has KPI data and cannot be deleted.</p>
-            <a href="/Admin/Tenants">Back</a>
+
+<div class="flex">
+
+    <!-- 🔥 SAME GLOBAL SIDEBAR -->
+    <aside class="hidden lg:flex fixed top-0 left-0 h-screen w-64
+                  bg-surface-container-highest border-r border-surface-container-high
+                  flex-col px-4 py-6 z-40">
+
+        <div class="mb-8 px-2">
+            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
+            <p class="text-xs text-on-surface-variant">ADMIN</p>
+        </div>
+
+        @functions {
+            string Active(string key, string current) =>
+            current.Contains(key)
+            ? "bg-surface-container-lowest shadow-sm font-semibold"
+            : "text-on-surface-variant hover:bg-white";
         }
-        else
-        {
-            <form method="post">
-                <input type="hidden" asp-for="Id" />
-                <button type="submit" class="btn" style="background:#dc2626;color:white;border:none;">Delete</button>
-                <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
-            </form>
-        }
+
+        <nav class="flex-1 space-y-1">
+
+            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
+                <span class="material-symbols-outlined">library_books</span>
+                Vertical Libraries
+            </a>
+
+            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
+                <span class="material-symbols-outlined">business_center</span>
+                Business Profiles
+            </a>
+
+            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
+                <span class="material-symbols-outlined">domain</span>
+                Tenants
+            </a>
+
+            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
+                <span class="material-symbols-outlined">leaderboard</span>
+                KPI Definitions
+            </a>
+
+            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
+                <span class="material-symbols-outlined">account_tree</span>
+                Driver Catalog
+            </a>
+
+            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
+                <span class="material-symbols-outlined">insights</span>
+                Influencers
+            </a>
+
+            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
+                <span class="material-symbols-outlined">group</span>
+                Users & Roles
+            </a>
+
+            <div class="my-4 border-t border-surface-container-high"></div>
+
+            <a href="/ImportHistory" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportHistory", currentPage)">
+                <span class="material-symbols-outlined">history</span>
+                Import History
+            </a>
+
+        </nav>
+    </aside>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full lg:ml-64 flex items-center justify-center px-4 sm:px-6 py-12">
+
+        <div class="w-full max-w-[480px]">
+
+            @if (Model.Tenant is null)
+            {
+                <p class="text-error font-semibold text-center">Tenant not found.</p>
+            }
+            else if (!Model.CanDelete)
+            {
+                <!-- 🚫 BLOCKED STATE -->
+
+                <div class="bg-surface-container-lowest rounded-2xl shadow p-8 space-y-6">
+
+                    <div class="flex justify-between items-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-error/10 text-error">
+                            Restricted Action
+                        </span>
+                        <span class="material-symbols-outlined text-outline-variant">info</span>
+                    </div>
+
+                    <div>
+                        <h2 class="text-2xl font-extrabold font-headline">Delete Tenant</h2>
+                        <p class="text-sm text-on-surface-variant mt-2">
+                            System verification required before deleting
+                            <strong>@Model.Tenant.Name</strong>
+                            (<code>@Model.Tenant.ClientId</code>)
+                        </p>
+                    </div>
+
+                    <div class="bg-error/10 p-5 rounded-xl flex gap-4">
+                        <span class="material-symbols-outlined text-error">error</span>
+                        <div>
+                            <p class="font-bold text-error text-sm">Deletion Blocked</p>
+                            <p class="text-sm text-on-surface-variant">
+                                This tenant has KPI data and cannot be deleted.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <a href="/Admin/Tenants"
+                           class="block w-full text-center py-3 bg-surface-container-high rounded-xl font-semibold">
+                            Back to Directory
+                        </a>
+
+                        <p class="text-xs text-center text-on-surface-variant">
+                            Contact support for force delete
+                        </p>
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <!-- ⚠️ CONFIRM DELETE -->
+
+                <div class="bg-surface-container-lowest rounded-2xl shadow p-8 space-y-8">
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+                            <span class="material-symbols-outlined text-secondary">warning</span>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold font-headline">Confirm Deletion</h2>
+                            <p class="text-xs text-on-surface-variant font-semibold">
+                                Permanent Action
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <p class="text-base">
+                            You are about to delete
+                            <strong>@Model.Tenant.Name</strong>
+                            (<code>@Model.Tenant.ClientId</code>)
+                        </p>
+
+                        <div class="bg-surface-container-low p-4 rounded-xl flex gap-3">
+                            <span class="material-symbols-outlined text-sm">report</span>
+                            <p class="text-sm text-on-surface-variant italic">
+                                This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="post" class="flex gap-4">
+
+                        <input type="hidden" asp-for="Id" />
+
+                        <a href="/Admin/Tenants"
+                           class="flex-1 py-3 text-center bg-surface-container-low rounded-xl font-semibold">
+                            Cancel
+                        </a>
+
+                        <button type="submit"
+                                class="flex-[1.5] py-3 bg-gradient-to-br from-error to-error-dim text-white font-bold rounded-xl shadow flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                            Delete Tenant
+                        </button>
+
+                    </form>
+
+                </div>
+            }
+
+        </div>
+
     </div>
+
 </div>
-}
