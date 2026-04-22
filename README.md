@@ -28,6 +28,10 @@ DecisionOS.Distribution.V1.sln
 └── samples/                                      # Sample CSV files for import
 ```
 
+### Deep dive: how imports become weekly insights
+
+See `docs/Solution-Linkage-and-Import-Analysis.md` for an end-to-end explanation of how the projects connect and how Excel/CSV imports are validated, resolved (Profile → Global → Tenant overrides), and converted into KPI status, Top Alert, drivers, and Weekly Focus.
+
 ### Layer Responsibilities
 
 | Layer | Project | Purpose |

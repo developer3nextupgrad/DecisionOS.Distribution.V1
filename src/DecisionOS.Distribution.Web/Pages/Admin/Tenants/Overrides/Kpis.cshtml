@@ -161,7 +161,7 @@
 
                         <tbody class="divide-y">
 
-                            @foreach (var r in Model.Rows)
+                            @foreach (var r in (Model.Rows ?? Array.Empty<DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.KpisModel.Row>()))
                             {
                                 var overrideText = r.Override is null
                                 ? "No"
