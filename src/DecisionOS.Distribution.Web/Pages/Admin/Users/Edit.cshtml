@@ -2,21 +2,138 @@
 @model EditModel
 @{
     ViewData["Title"] = "Edit user roles";
+    Layout = "_Layout";
 }
-<h1 class="page-title">Roles for @Model.Email</h1>
-<form method="post" class="card" style="max-width:560px;">
-    <input type="hidden" asp-for="Id" />
-    <div class="card-body">
-        <div asp-validation-summary="All" class="text-danger"></div>
-        @foreach (var r in AppRoles.All)
-        {
-            var on = Model.SelectedRoles.Contains(r);
-            <label style="display:block;">
-                <input type="checkbox" name="SelectedRoles" value="@r" checked="@on" />
-                @r
-            </label>
-        }
-        <button type="submit" class="btn btn-primary" style="margin-top:12px;">Save</button>
-        <a href="/Admin/Users" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+
+<div class="px-6 md:px-10 py-10 flex justify-center">
+
+    <div class="w-full max-w-[560px] bg-surface-container-lowest rounded-2xl shadow border border-outline/10 overflow-hidden">
+
+        <!-- HEADER -->
+        <div class="p-8 pb-6">
+            <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">
+                Edit Roles
+            </h1>
+            <p class="text-on-surface-variant text-sm mt-1">
+                Manage access permissions for this user.
+            </p>
+        </div>
+
+        <!-- USER INFO -->
+        <div class="mx-8 mb-8 p-5 bg-surface-container-low rounded-xl flex items-center gap-4">
+
+            <div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center font-bold">
+                @Model.Email?.Substring(0, 1).ToUpper()
+            </div>
+
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">
+                    Email
+                </p>
+                <p class="text-lg font-semibold text-on-surface">
+                    @Model.Email
+                </p>
+            </div>
+
+        </div>
+
+        <!-- FORM -->
+        <form method="post" class="px-8 pb-8 space-y-6">
+
+            <input type="hidden" asp-for="Id" />
+
+            <div asp-validation-summary="All" class="text-error text-sm"></div>
+
+            <!-- ROLE SELECTION -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-4">
+                    Select User Role
+                </label>
+
+                <div class="space-y-3">
+
+                    @foreach (var r in AppRoles.All)
+                    {
+                        var isSelected = Model.SelectedRoles.Contains(r);
+
+                        <label class="cursor-pointer block">
+                            <input type="checkbox"
+                                   name="SelectedRoles"
+                                   value="@r"
+                                   checked="@isSelected"
+                                   class="hidden peer" />
+
+                            <div class="p-4 rounded-2xl border
+                                            border-outline/20
+                                            bg-surface-container-low
+                                            peer-checked:bg-primary/10
+                                            peer-checked:border-primary
+                                            transition-all
+                                            flex items-start gap-4">
+
+                                <!-- INDICATOR -->
+                                <div class="w-5 h-5 mt-1 rounded-full border-2 border-outline
+                                                peer-checked:border-primary
+                                                peer-checked:bg-primary
+                                                flex items-center justify-center">
+
+                                    <span class="material-symbols-outlined text-white text-[12px] opacity-0 peer-checked:opacity-100">
+                                        check
+                                    </span>
+
+                                </div>
+
+                                <!-- CONTENT -->
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-on-surface text-sm">
+                                        @r
+                                    </h3>
+
+                                    <p class="text-xs text-on-surface-variant mt-1">
+                                        @GetRoleDescription(r)
+                                    </p>
+                                </div>
+
+                            </div>
+
+                        </label>
+                    }
+
+                </div>
+            </div>
+
+            <!-- ACTIONS -->
+            <div class="pt-6 flex justify-end gap-4 border-t border-outline/10">
+
+                <a href="/Admin/Users"
+                   class="px-6 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface">
+                    Cancel
+                </a>
+
+                <button type="submit"
+                        class="px-8 py-2.5 bg-primary text-on-primary rounded-xl font-bold shadow hover:scale-[1.02] transition flex items-center gap-2">
+                    <span class="material-symbols-outlined text-sm">save</span>
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
+
     </div>
-</form>
+
+</div>
+
+@functions {
+    private string GetRoleDescription(string role)
+    {
+        return role switch
+        {
+            "Admin" => "Full system access including configuration and management.",
+            "Operator" => "Manage imports and operational workflows.",
+            "Viewer" => "Read-only access to dashboards and reports.",
+            "Developer" => "Technical access with operational capabilities.",
+            _ => "System role"
+        };
+    }
+}

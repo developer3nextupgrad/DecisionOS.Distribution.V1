@@ -1,36 +1,179 @@
-@page
+﻿@page
 @model CreateModel
 @{
     ViewData["Title"] = "Add user";
+    Layout = "_Layout";
 }
-<h1 class="page-title">Add user</h1>
-<form method="post" class="card" style="max-width:560px;">
-    <div class="card-body">
-        <div asp-validation-summary="All" class="text-danger"></div>
-        <div class="form-group">
-            <label asp-for="Input.Email"></label>
-            <input asp-for="Input.Email" class="form-control" autocomplete="off" />
+
+<div class="px-6 md:px-10 py-10 flex justify-center">
+
+    <div class="w-full max-w-[560px] bg-surface-container-lowest rounded-2xl shadow border border-outline/10 overflow-hidden">
+
+        <!-- HEADER -->
+        <div class="p-8 pb-6">
+            <h1 class="text-2xl font-extrabold text-on-surface tracking-tight">
+                Add New User
+            </h1>
+            <p class="text-on-surface-variant text-sm mt-1">
+                Provision a new account within the system
+            </p>
         </div>
-        <div class="form-group">
-            <label asp-for="Input.Password"></label>
-            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.DisplayName"></label>
-            <input asp-for="Input.DisplayName" class="form-control" />
-        </div>
-        <fieldset class="form-group">
-            <legend class="text-sm" style="font-weight:600;">Roles</legend>
-            @foreach (var r in AppRoles.All)
-            {
-                var on = Model.SelectedRoles.Contains(r);
-                <label style="display:block;">
-                    <input type="checkbox" name="SelectedRoles" value="@r" checked="@on" />
-                    @r
-                </label>
-            }
-        </fieldset>
-        <button type="submit" class="btn btn-primary">Create</button>
-        <a href="/Admin/Users" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+
+        <form method="post" class="px-8 pb-8 space-y-8">
+
+            <div asp-validation-summary="All" class="text-error text-sm"></div>
+
+            <!-- 🔹 ACCOUNT INFO -->
+            <section class="space-y-6">
+
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-sm">person_add</span>
+                    <h2 class="text-sm font-bold uppercase tracking-wider">
+                        Account Info
+                    </h2>
+                </div>
+
+                <div class="space-y-4">
+
+                    <!-- DISPLAY NAME -->
+                    <div class="space-y-2">
+                        <label asp-for="Input.DisplayName"
+                               class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+
+                        <input asp-for="Input.DisplayName"
+                               class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20" />
+
+                        <span asp-validation-for="Input.DisplayName" class="text-error text-xs"></span>
+                    </div>
+
+                    <!-- EMAIL -->
+                    <div class="space-y-2">
+                        <label asp-for="Input.Email"
+                               class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+
+                        <input asp-for="Input.Email"
+                               autocomplete="off"
+                               class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20" />
+
+                        <span asp-validation-for="Input.Email" class="text-error text-xs"></span>
+                    </div>
+
+                    <!-- PASSWORD -->
+                    <div class="space-y-2">
+                        <label asp-for="Input.Password"
+                               class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+
+                        <input asp-for="Input.Password"
+                               autocomplete="new-password"
+                               class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20" />
+
+                        <span asp-validation-for="Input.Password" class="text-error text-xs"></span>
+                    </div>
+
+                </div>
+
+            </section>
+
+            <!-- 🔹 ROLE ASSIGNMENT -->
+            <section class="space-y-6">
+
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary text-sm">badge</span>
+                    <h2 class="text-sm font-bold uppercase tracking-wider">
+                        Role Assignment
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+
+                    @foreach (var r in AppRoles.All)
+                    {
+                        var isSelected = Model.SelectedRoles.Contains(r);
+
+                        <label class="cursor-pointer group">
+                            <input type="checkbox"
+                                   name="SelectedRoles"
+                                   value="@r"
+                                   checked="@isSelected"
+                                   class="hidden peer" />
+
+                            <div class="p-4 rounded-xl bg-surface-container-low
+                                            peer-checked:bg-primary/10
+                                            peer-checked:ring-2
+                                            peer-checked:ring-primary
+                                            transition-all
+                                            h-full flex flex-col gap-2
+                                            hover:bg-surface-container-high">
+
+                                <div class="flex justify-between items-start">
+                                    <span class="material-symbols-outlined text-primary">
+                                        @GetRoleIcon(r)
+                                    </span>
+
+                                    <div class="w-2 h-2 rounded-full bg-primary opacity-0 peer-checked:opacity-100"></div>
+                                </div>
+
+                                <span class="text-sm font-bold text-on-surface">
+                                    @r
+                                </span>
+
+                                <span class="text-[11px] text-on-surface-variant leading-tight">
+                                    @GetRoleDescription(r)
+                                </span>
+
+                            </div>
+
+                        </label>
+                    }
+
+                </div>
+
+            </section>
+
+            <!-- ACTIONS -->
+            <div class="pt-4 flex items-center gap-4">
+
+                <button type="submit"
+                        class="flex-1 bg-gradient-to-br from-primary to-primary-dim text-on-primary font-bold py-3 rounded-xl transition active:scale-95 shadow">
+                    Create User
+                </button>
+
+                <a href="/Admin/Users"
+                   class="px-6 py-3 font-bold text-on-surface-variant hover:text-on-surface transition">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
     </div>
-</form>
+
+</div>
+
+@functions {
+
+    private string GetRoleDescription(string role)
+    {
+        return role switch
+        {
+            "Admin" => "Full system control and user management.",
+            "Operator" => "Manage flows and operational pipelines.",
+            "Developer" => "Access to API and integrations.",
+            "Viewer" => "Read-only access to dashboards.",
+            _ => "System role"
+        };
+    }
+
+    private string GetRoleIcon(string role)
+    {
+        return role switch
+        {
+            "Admin" => "admin_panel_settings",
+            "Operator" => "settings_suggest",
+            "Developer" => "code",
+            "Viewer" => "visibility",
+            _ => "badge"
+        };
+    }
+}

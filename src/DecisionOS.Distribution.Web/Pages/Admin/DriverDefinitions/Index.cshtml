@@ -1,39 +1,167 @@
-@page
+﻿@page
 @model IndexModel
 @{
-    ViewData["Title"] = "Driver catalog";
+    ViewData["Title"] = "Driver Catalog";
+    Layout = "_Layout";
 }
-<div class="page-header"><h1 class="page-title">Driver catalog</h1> <a class="btn btn-primary" href="/Admin/DriverDefinitions/Create?profileId=@Model.ProfileId">Add driver</a></div>
-<p class="text-muted text-sm">
-    Showing: <strong>@(Model.ProfileId is null ? "Global / default" : "Profile-scoped")</strong>.
-    Use <a href="/Admin/Profiles">Business profiles</a> to navigate per profile.
-</p>
-<form method="get" class="card" style="margin-bottom:16px;">
-    <div class="card-body">
-        <div class="form-group">
-            <label for="ProfileId">Business profile</label>
-            <select id="ProfileId" name="ProfileId" class="form-control" asp-items="Model.ProfileOptions" onchange="this.form.submit()">
-                <option value="">-- Global / default --</option>
-            </select>
+
+<div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10">
+
+    <div class="max-w-[1200px] mx-auto space-y-10">
+
+        <!-- HEADER -->
+        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+
+            <div>
+                <h2 class="text-3xl font-headline font-bold tracking-tight">
+                    Driver Catalog
+                </h2>
+                <p class="text-on-surface-variant text-sm font-medium mt-1">
+                    Define drivers that influence KPI performance
+                </p>
+            </div>
+
+            <a href="/Admin/DriverDefinitions/Create?profileId=@Model.ProfileId"
+               class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-dim text-white px-6 py-3 rounded-xl font-bold shadow hover:scale-[0.98] transition">
+                <span class="material-symbols-outlined">add</span>
+                Add Driver
+            </a>
+
         </div>
+
+        <!-- FILTER -->
+        <form method="get"
+              class="bg-surface-container-lowest p-6 rounded-xl shadow-sm border border-outline/10 flex flex-col md:flex-row md:items-center gap-6">
+
+            <div class="space-y-1.5 w-full md:w-72">
+                <label class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                    Business Profile
+                </label>
+
+                <select id="ProfileId"
+                        name="ProfileId"
+                        asp-items="Model.ProfileOptions"
+                        onchange="this.form.submit()"
+                        class="w-full bg-surface-container-low border-none rounded-xl px-4 py-2.5 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20">
+                    <option value="">-- Global / default --</option>
+                </select>
+            </div>
+
+            <div class="flex-1 border-l border-surface-container-high pl-0 md:pl-6">
+                <p class="text-sm text-on-surface-variant">
+                    Showing:
+                    <strong>
+                        @(Model.ProfileId is null ? "Global / default" : "Profile-scoped")
+                    </strong>.
+                    Switch between global and profile-specific drivers.
+                </p>
+            </div>
+
+        </form>
+
+        <!-- TABLE -->
+        <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
+
+            <!-- TOP BAR -->
+            <div class="p-5 flex justify-between items-center border-b border-surface-container-low">
+
+                <span class="px-4 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-full">
+                    All Drivers (@Model.Items.Count)
+                </span>
+
+                <span class="text-xs text-on-surface-variant">
+                    Synced just now
+                </span>
+
+            </div>
+
+            <!-- DATA TABLE -->
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[900px] text-sm">
+
+                    <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Pillar</th>
+                            <th class="px-6 py-4 text-left">Driver Code</th>
+                            <th class="px-6 py-4 text-left">Display Name</th>
+                            <th class="px-6 py-4 text-right">Order</th>
+                            <th class="px-6 py-4 text-center">Status</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y">
+
+                        @foreach (var d in Model.Items)
+                        {
+                            <tr class="hover:bg-surface-container-low transition">
+
+                                <td class="px-6 py-4">
+                                    <span class="font-mono text-xs px-2 py-1 bg-surface-container rounded font-bold">
+                                        @d.PillarCode
+                                    </span>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <code class="bg-surface-container-low px-2 py-1 rounded text-xs font-mono font-bold">
+                                        @d.DriverCode
+                                    </code>
+                                </td>
+
+                                <td class="px-6 py-4 font-headline font-semibold">
+                                    @d.DisplayName
+                                </td>
+
+                                <td class="px-6 py-4 text-right text-on-surface-variant">
+                                    @d.SortOrder
+                                </td>
+
+                                <td class="px-6 py-4 text-center">
+                                    @if (d.IsActive)
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold">
+                                            <span class="w-1.5 h-1.5 bg-primary rounded-full"></span>
+                                            Active
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="inline-flex items-center gap-1.5 bg-surface-container text-on-surface-variant px-3 py-1 rounded-full text-xs font-bold">
+                                            <span class="w-1.5 h-1.5 bg-outline rounded-full"></span>
+                                            Inactive
+                                        </span>
+                                    }
+                                </td>
+
+                                <td class="px-6 py-4 text-right">
+                                    <a href="/Admin/DriverDefinitions/Edit?id=@d.Id"
+                                       class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10">
+                                        Edit
+                                    </a>
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            </div>
+
+            <!-- FOOT -->
+            <div class="p-6 border-t text-xs text-on-surface-variant">
+                Total: @Model.Items.Count drivers
+            </div>
+
+        </div>
+
+        <!-- BACK -->
+        <div>
+            <a href="/Admin" class="text-sm text-primary hover:underline">
+                ← Admin home
+            </a>
+        </div>
+
     </div>
-</form>
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Pillar</th><th>Driver code</th><th>Display name</th><th>Order</th><th>Active</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var d in Model.Items)
-        {
-            <tr>
-                <td><code>@d.PillarCode</code></td>
-                <td><code>@d.DriverCode</code></td>
-                <td>@d.DisplayName</td>
-                <td>@d.SortOrder</td>
-                <td>@(d.IsActive ? "Yes" : "No")</td>
-                <td><a href="/Admin/DriverDefinitions/Edit?id=@d.Id">Edit</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
 </div>
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

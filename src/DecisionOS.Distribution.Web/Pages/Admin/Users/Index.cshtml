@@ -1,23 +1,128 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "Users";
+    Layout = "_Layout";
 }
-<div class="page-header"><h1 class="page-title">Users &amp; roles</h1> <a class="btn btn-primary" href="/Admin/Users/Create">Add user</a></div>
-<p class="text-muted text-sm">OPSPEC roles: <strong>Admin</strong> (full admin UI), <strong>Operator</strong> (imports/ops), <strong>Viewer</strong> (dashboard/API read), <strong>Developer</strong> (ops + technical).</p>
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Email</th><th>Roles</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var u in Model.Items)
-        {
-            <tr>
-                <td>@u.Email</td>
-                <td>@u.Roles</td>
-                <td><a href="/Admin/Users/Edit?id=@u.Id">Edit roles</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
+<div class="px-6 md:px-10 py-10 space-y-8">
+
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-on-surface">
+                Users & Roles
+            </h2>
+            <p class="text-on-surface-variant text-sm font-medium">
+                Manage system access and permissions
+            </p>
+        </div>
+
+        <a href="/Admin/Users/Create"
+           class="bg-gradient-to-br from-primary to-primary-dim text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow hover:opacity-90 active:scale-95 transition">
+            <span class="material-symbols-outlined text-lg">person_add</span>
+            Add User
+        </a>
+
+    </div>
+
+    <!-- INFO CARD -->
+    <div class="bg-surface-container-lowest border border-outline/10 rounded-2xl p-6">
+
+        <p class="text-sm text-on-surface-variant leading-relaxed">
+            OPSPEC roles:
+            <strong class="text-on-surface">Admin</strong> (full admin UI),
+            <strong class="text-on-surface">Operator</strong> (imports/ops),
+            <strong class="text-on-surface">Viewer</strong> (dashboard/API read),
+            <strong class="text-on-surface">Developer</strong> (ops + technical).
+        </p>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline/10">
+
+        <div class="overflow-x-auto">
+
+            <table class="w-full border-collapse">
+
+                <!-- HEADER -->
+                <thead>
+                    <tr class="bg-surface-container-low border-b border-outline/10">
+                        <th class="py-4 px-6 text-left text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                            Email
+                        </th>
+                        <th class="py-4 px-6 text-left text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                            Roles
+                        </th>
+                        <th class="py-4 px-6 text-right text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+
+                <!-- BODY -->
+                <tbody class="divide-y divide-surface-container">
+
+                    @foreach (var u in Model.Items)
+                    {
+                        <tr class="hover:bg-surface-container-low/40 transition">
+
+                            <!-- EMAIL -->
+                            <td class="py-5 px-6">
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-sm text-on-surface">
+                                        @u.Email
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- ROLES -->
+                            <td class="py-5 px-6">
+                                <div class="flex flex-wrap gap-2">
+
+                                    @foreach (var role in (u.Roles ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
+                                    {
+                                        <span class="bg-primary/10 text-on-primary-container text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                            @role.Trim()
+                                        </span>
+                                    }
+
+                                </div>
+                            </td>
+
+                            <!-- ACTION -->
+                            <td class="py-5 px-6 text-right">
+                                <a href="/Admin/Users/Edit?id=@u.Id"
+                                   class="text-primary font-bold text-xs hover:underline underline-offset-4">
+                                    Edit Roles
+                                </a>
+                            </td>
+
+                        </tr>
+                    }
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="bg-surface-container-low px-6 py-4 flex justify-between items-center border-t border-outline/10">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                Total: @Model.Items.Count users
+            </span>
+        </div>
+
+    </div>
+
+    <!-- BACK -->
+    <div>
+        <a href="/Admin" class="text-sm text-on-surface-variant hover:text-primary">
+            ← Admin home
+        </a>
+    </div>
+
 </div>
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

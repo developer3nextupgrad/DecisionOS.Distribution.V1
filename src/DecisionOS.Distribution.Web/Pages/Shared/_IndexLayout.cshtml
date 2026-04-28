@@ -1,8 +1,4 @@
-﻿@{
-    var currentPage = Context.Request.Path.Value ?? "";
-}
-
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" class="light">
 <head>
     <meta charset="utf-8" />
@@ -12,7 +8,7 @@
     <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-    <!-- THEME -->
+    <!-- THEME (FROM YOUR DESIGN FILE) -->
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -43,7 +39,7 @@
     </script>
 
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
 
     <style>
@@ -63,16 +59,18 @@
 
 <body class="bg-background text-on-surface flex flex-col min-h-screen">
 
-    <!-- HEADER -->
-    <header class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-surface-container-high">
+    <!-- 🔥 HEADER (MERGED UI + YOUR LOGIC) -->
+    <header class="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-surface-container-high">
 
         <div class="flex justify-between items-center px-8 h-16 max-w-[1440px] mx-auto">
 
+            <!-- Logo -->
             <a href="/" class="flex items-center gap-3">
                 <div class="bg-primary text-white p-2 rounded-lg shadow-sm">📊</div>
                 <span class="text-xl font-bold font-headline">Decision OS</span>
             </a>
 
+            <!-- Nav -->
             <nav class="hidden md:flex gap-6 items-center text-sm font-medium text-on-surface-variant">
 
                 <a href="/" class="hover:text-primary transition">Dashboard</a>
@@ -93,6 +91,7 @@
                 }
             </nav>
 
+            <!-- RIGHT -->
             <div class="flex items-center gap-4">
 
                 <span class="material-symbols-outlined text-on-surface-variant cursor-pointer">
@@ -129,80 +128,15 @@
         </div>
     </header>
 
-    <!-- SIDEBAR -->
-    <aside class="hidden lg:flex fixed left-0 top-16 w-64 h-[calc(100vh-4rem)]
-                  bg-surface-container-highest border-r border-surface-container-high
-                  flex-col px-4 py-6 overflow-y-auto z-40">
-
-        <div class="mb-8 px-2">
-            <h2 class="text-lg font-bold font-headline">Decision OS</h2>
-            <p class="text-xs text-on-surface-variant tracking-wide">ADMIN</p>
-        </div>
-
-        @functions {
-            string Active(string key, string current) =>
-            current.Contains(key)
-            ? "bg-surface-container-lowest shadow-sm font-semibold"
-            : "text-on-surface-variant hover:bg-white";
-        }
-
-        <nav class="flex-1 space-y-1">
-
-            <a href="/Admin/VerticalLibraries" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("VerticalLibraries", currentPage)">
-                <span class="material-symbols-outlined">library_books</span>
-                Vertical Libraries
-            </a>
-
-            <a href="/Admin/Profiles" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Profiles", currentPage)">
-                <span class="material-symbols-outlined">business_center</span>
-                Business Profiles
-            </a>
-
-            <a href="/Admin/Tenants" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Tenants", currentPage)">
-                <span class="material-symbols-outlined">domain</span>
-                Tenants
-            </a>
-
-            <a href="/Admin/KpiDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("KpiDefinitions", currentPage)">
-                <span class="material-symbols-outlined">leaderboard</span>
-                KPI Definitions
-            </a>
-
-            <a href="/Admin/DriverDefinitions" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("DriverDefinitions", currentPage)">
-                <span class="material-symbols-outlined">account_tree</span>
-                Driver Catalog
-            </a>
-
-            <a href="/Admin/Influencers" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Influencers", currentPage)">
-                <span class="material-symbols-outlined">insights</span>
-                Influencers
-            </a>
-
-            <a href="/Admin/Users" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Users", currentPage)">
-                <span class="material-symbols-outlined">group</span>
-                Users & Roles
-            </a>
-
-            <div class="my-4 border-t border-surface-container-high"></div>
-
-            <a href="/Operations/ImportRuns" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportRuns", currentPage)">
-                <span class="material-symbols-outlined">history</span>
-                Import History
-            </a>
-
-        </nav>
-
-    </aside>
-
-    <!-- MAIN CONTENT -->
-    <main class="flex-1 pt-16 lg:ml-64 p-6 overflow-y-auto">
+    <!-- 🔥 MAIN -->
+    <main class="flex-1 w-full">
         @RenderBody()
     </main>
 
-    <!-- FOOTER -->
+    <!-- 🔥 FOOTER -->
     <footer class="w-full py-6 text-center text-xs text-on-surface-variant uppercase tracking-widest">
         © @DateTime.UtcNow.Year Decision OS • All Rights Reserved
     </footer>
 
 </body>
-</html>
+</html>  
