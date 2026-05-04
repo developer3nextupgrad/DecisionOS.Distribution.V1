@@ -1,41 +1,163 @@
-@page
+﻿@page
 @model EditModel
 @{
-    ViewData["Title"] = "Edit tenant";
+    ViewData["Title"] = "Edit Tenant";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-<h1 class="page-title">Edit tenant</h1>
-<form method="post" class="card" style="max-width:560px;">
-    <input type="hidden" asp-for="Id" />
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="form-group">
-            <label>Client ID</label>
-            <input class="form-control" value="@Model.Input.ClientId" disabled />
-            <input type="hidden" asp-for="Input.ClientId" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Name"></label>
-            <input asp-for="Input.Name" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Archetype"></label>
-            <input asp-for="Input.Archetype" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.BusinessProfileId">Business profile</label>
-            <select asp-for="Input.BusinessProfileId" class="form-control" asp-items="Model.ProfileOptions">
-                <option value="">-- Global / default --</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Overrides</label>
-            <div class="text-muted text-sm" style="margin-bottom:6px;">
-                Controlled tenant-specific adjustments (captured as data; avoid custom logic).
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10 flex justify-center">
+
+        <div class="w-full max-w-[560px] space-y-8">
+
+            <!-- HEADER -->
+            <div class="flex items-center justify-between">
+
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-primary-container rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-on-primary-container">corporate_fare</span>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-extrabold font-headline">Edit Tenant</h1>
+                        <p class="text-xs text-on-surface-variant">
+                            Update organization parameters
+                        </p>
+                    </div>
+                </div>
+
+                <a href="/Admin/Tenants" class="p-2 hover:bg-surface-container-high rounded-full">
+                    <span class="material-symbols-outlined">close</span>
+                </a>
+
             </div>
-            <a class="btn btn-outline" href="/Admin/Tenants/Overrides/Kpis?tenantId=@Model.Id">KPI overrides</a>
-            <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.Id">Driver overrides</a>
+
+            <!-- FORM CARD -->
+            <div class="bg-surface-container-lowest rounded-2xl shadow p-8">
+
+                <form method="post" class="space-y-10">
+
+                    <input type="hidden" asp-for="Id" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                    <!-- 🔹 BASIC INFO -->
+                    <section class="space-y-6">
+
+                        <div class="flex items-center gap-2">
+                            <span class="w-1 h-4 bg-primary rounded-full"></span>
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Basic Information
+                            </h2>
+                        </div>
+
+                        <!-- CLIENT ID -->
+                        <div>
+                            <label class="text-[10px] font-bold uppercase text-on-surface-variant">Client ID</label>
+                            <div class="relative">
+                                <input value="@Model.Input.ClientId"
+                                       disabled
+                                       class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low text-sm font-mono text-on-surface-variant" />
+                                <input type="hidden" asp-for="Input.ClientId" />
+                            </div>
+                        </div>
+
+                        <!-- NAME -->
+                        <div>
+                            <label asp-for="Input.Name" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.Name"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low" />
+                        </div>
+
+                        <!-- ARCHETYPE -->
+                        <div>
+                            <label asp-for="Input.Archetype" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.Archetype"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low" />
+                        </div>
+
+                    </section>
+
+                    <!-- 🔹 CONFIG -->
+                    <section class="space-y-6">
+
+                        <div class="flex items-center gap-2">
+                            <span class="w-1 h-4 bg-primary rounded-full"></span>
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Configuration
+                            </h2>
+                        </div>
+
+                        <div>
+                            <label asp-for="Input.BusinessProfileId" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <select asp-for="Input.BusinessProfileId"
+                                    asp-items="Model.ProfileOptions"
+                                    class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low">
+                                <option value="">-- Global / default --</option>
+                            </select>
+                        </div>
+
+                    </section>
+
+                    <!-- 🔹 OVERRIDES -->
+                    <section class="space-y-4">
+
+                        <div class="flex items-center gap-2">
+                            <span class="w-1 h-4 bg-primary rounded-full"></span>
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Overrides
+                            </h2>
+                        </div>
+
+                        <div class="bg-surface-container-low rounded-2xl p-5 space-y-4">
+
+                            <div>
+                                <h3 class="text-sm font-bold">Active Overrides</h3>
+                                <p class="text-xs text-on-surface-variant">
+                                    Customize tenant-specific logic
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-3">
+
+                                <a href="/Admin/Tenants/Overrides/Kpis?tenantId=@Model.Id"
+                                   class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border text-xs font-semibold hover:bg-surface-container-high">
+                                    <span class="material-symbols-outlined text-sm">analytics</span>
+                                    KPI Overrides
+                                </a>
+
+                                <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@Model.Id"
+                                   class="flex items-center justify-center gap-2 px-4 py-2 rounded-xl border text-xs font-semibold hover:bg-surface-container-high">
+                                    <span class="material-symbols-outlined text-sm">settings_input_component</span>
+                                    Driver Overrides
+                                </a>
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+                    <!-- 🔹 ACTIONS -->
+                    <div class="flex justify-end gap-4 pt-6 border-t">
+
+                        <a href="/Admin/Tenants"
+                           class="px-6 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface">
+                            Cancel
+                        </a>
+
+                        <button type="submit"
+                                class="px-8 py-2 bg-primary text-white font-bold rounded-xl shadow">
+                            Save Changes
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
         </div>
-        <button formaction="" type="submit" class="btn btn-primary">Save</button>
-        <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+
     </div>
-</form>

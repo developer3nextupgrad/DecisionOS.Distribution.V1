@@ -1,38 +1,142 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "KPI definitions & templates";
+    Layout = "_Layout";
 }
-<h1 class="page-title">KPI definitions &amp; action templates</h1>
-<p class="text-muted text-sm">
-    Showing: <strong>@(Model.ProfileId is null ? "Global / default" : "Profile-scoped")</strong>.
-    Use <a href="/Admin/Profiles">Business profiles</a> to navigate per profile.
-</p>
-<form method="get" class="card" style="margin-bottom:16px;">
-    <div class="card-body">
-        <div class="form-group">
-            <label for="ProfileId">Business profile</label>
-            <select id="ProfileId" name="ProfileId" class="form-control" asp-items="Model.ProfileOptions" onchange="this.form.submit()">
-                <option value="">-- Global / default --</option>
-            </select>
+
+<div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10">
+
+    <div class="max-w-[1200px] mx-auto space-y-10">
+
+        <!-- HEADER -->
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+
+            <div>
+                <h1 class="text-3xl font-headline font-bold tracking-tight">
+                    KPI definitions & action templates
+                </h1>
+
+                <p class="text-on-surface-variant text-sm mt-1">
+                    Showing:
+                    <strong>
+                        @(Model.ProfileId is null ? "Global / default" : "Profile-scoped")
+                    </strong>.
+                    Use
+                    <a href="/Admin/Profiles" class="text-primary font-semibold hover:underline">
+                        Business profiles
+                    </a>
+                    to navigate per profile.
+                </p>
+            </div>
+
+            <a href="/Admin/KpiDefinitions/Create"
+               class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-dim text-white px-6 py-3 rounded-xl font-bold shadow hover:scale-[0.98] transition">
+                <span class="material-symbols-outlined">add</span>
+                Add KPI
+            </a>
+
         </div>
+
+        <!-- FILTER -->
+        <form method="get"
+              class="bg-surface-container-lowest rounded-xl p-6 shadow-sm border border-outline/10 max-w-sm">
+
+            <label for="ProfileId"
+                   class="block text-[10px] font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                Business profile
+            </label>
+
+            <div class="relative">
+                <select id="ProfileId"
+                        name="ProfileId"
+                        asp-items="Model.ProfileOptions"
+                        onchange="this.form.submit()"
+                        class="w-full appearance-none bg-surface-container-low border-none rounded-xl py-2.5 pl-4 pr-10 text-sm font-semibold text-on-surface focus:ring-2 focus:ring-primary/20">
+
+                    <option value="">-- Global / default --</option>
+                </select>
+
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                    expand_more
+                </span>
+            </div>
+
+            <p class="mt-2 text-xs text-on-surface-variant italic">
+                Switch between global and profile-specific KPIs
+            </p>
+
+        </form>
+
+        <!-- TABLE -->
+        <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
+
+            <div class="overflow-x-auto">
+                <table class="w-full min-w-[900px] text-sm">
+
+                    <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Code</th>
+                            <th class="px-6 py-4 text-left">Name</th>
+                            <th class="px-6 py-4 text-left">Unit</th>
+                            <th class="px-6 py-4 text-left">Priority</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="divide-y">
+
+                        @foreach (var k in Model.Items)
+                        {
+                            <tr class="hover:bg-surface-container-low transition">
+
+                                <!-- CODE -->
+                                <td class="px-6 py-4">
+                                    <span class="font-mono text-xs px-2 py-1 bg-surface-container rounded font-bold">
+                                        @k.Code
+                                    </span>
+                                </td>
+
+                                <!-- NAME -->
+                                <td class="px-6 py-4 font-headline font-semibold">
+                                    @k.Name
+                                </td>
+
+                                <!-- UNIT -->
+                                <td class="px-6 py-4 text-on-surface-variant">
+                                    @k.Unit
+                                </td>
+
+                                <!-- PRIORITY -->
+                                <td class="px-6 py-4">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                                        @k.AlertPriority
+                                    </span>
+                                </td>
+
+                                <!-- ACTION -->
+                                <td class="px-6 py-4 text-right">
+                                    <a href="/Admin/KpiDefinitions/Edit?id=@k.Id"
+                                       class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10">
+                                        Edit
+                                    </a>
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+
+        <!-- FOOTER -->
+        <div class="text-sm text-on-surface-variant">
+            <a href="/Admin" class="hover:text-primary">← Admin home</a>
+        </div>
+
     </div>
-</form>
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Code</th><th>Name</th><th>Unit</th><th>Priority</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var k in Model.Items)
-        {
-            <tr>
-                <td><code>@k.Code</code></td>
-                <td>@k.Name</td>
-                <td>@k.Unit</td>
-                <td>@k.AlertPriority</td>
-                <td><a href="/Admin/KpiDefinitions/Edit?id=@k.Id">Edit</a></td>
-            </tr>
-        }
-        </tbody>
-    </table>
+
 </div>
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>

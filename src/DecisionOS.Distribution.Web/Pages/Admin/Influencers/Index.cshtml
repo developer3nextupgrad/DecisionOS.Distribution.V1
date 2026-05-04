@@ -1,58 +1,123 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Influencers.IndexModel
 @{
     ViewData["Title"] = "Influencers";
+    Layout = "_Layout";
 }
 
-<div class="page-header">
-    <h1 class="page-title">Influencer catalog</h1>
-    <a class="btn btn-primary" href="/Admin/Influencers/Create?profileId=@Model.ProfileId">Add influencer</a>
-</div>
+<div class="px-6 md:px-10 py-10 space-y-8">
 
-<form method="get" class="card" style="margin-bottom:16px;">
-    <div class="card-body">
-        <div class="form-group">
-            <label for="ProfileId">Business profile</label>
-            <select id="ProfileId" name="ProfileId" class="form-control" asp-items="Model.ProfileOptions" onchange="this.form.submit()">
-                <option value="">-- Select a profile --</option>
-            </select>
-            <div class="text-muted text-sm">Influencers are profile-scoped (not global).</div>
+    <!-- HEADER -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+
+        <div>
+            <h2 class="text-3xl font-extrabold tracking-tight text-on-surface">
+                Influencer Catalog
+            </h2>
+            <p class="text-on-surface-variant text-sm font-medium">
+                Define micro-drivers that influence KPI performance
+            </p>
         </div>
-    </div>
-</form>
 
-@if (Model.ProfileId is null)
-{
-    <div class="empty-state">
-        <h2>Select a profile</h2>
-        <p class="text-muted">Pick a business profile to view and manage its influencer catalog.</p>
-    </div>
-}
-else
-{
-    <div class="table-wrapper">
-        <table class="data-table">
-            <thead><tr><th>Pillar</th><th>Driver</th><th>Influencer code</th><th>Name</th><th>Direction</th><th>Weight</th><th>Active</th><th></th></tr></thead>
-            <tbody>
-            @foreach (var i in Model.Items)
-            {
-                <tr>
-                    <td><code>@i.PillarCode</code></td>
-                    <td><code>@i.DriverCode</code></td>
-                    <td><code>@i.InfluencerCode</code></td>
-                    <td>
-                        <div style="font-weight:600;">@i.DisplayName</div>
-                        <div class="text-muted text-sm">@i.Description</div>
-                    </td>
-                    <td>@i.Direction</td>
-                    <td>@i.Weight</td>
-                    <td>@(i.IsActive ? "Yes" : "No")</td>
-                    <td><a href="/Admin/Influencers/Edit?id=@i.Id">Edit</a></td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-    <p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
-}
+        <!-- 🔥 FIXED BUTTON -->
+        @if (Model.ProfileId is null)
+        {
+            <button type="button"
+                    class="bg-gray-300 text-gray-500 px-6 py-3 rounded-xl font-bold flex items-center gap-2 cursor-not-allowed">
+                <span class="material-symbols-outlined text-lg">add</span>
+                Select Profile First
+            </button>
+        }
+        else
+        {
+            <a href="/Admin/Influencers/Create?profileId=@Model.ProfileId"
+               class="bg-gradient-to-br from-primary to-primary-dim text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow hover:opacity-90 active:scale-95 transition">
+                <span class="material-symbols-outlined text-lg">add</span>
+                Add Influencer
+            </a>
+        }
 
+    </div>
+
+    <!-- PROFILE SELECTOR -->
+    <div class="bg-surface-container-lowest rounded-2xl p-6 border border-outline/10">
+
+        <form method="get" class="flex flex-col md:flex-row gap-6 items-start md:items-center">
+
+            <div class="flex flex-col gap-1.5 min-w-[280px]">
+                <label class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                    Business Profile
+                </label>
+
+                <select id="ProfileId"
+                        name="ProfileId"
+                        asp-items="Model.ProfileOptions"
+                        onchange="this.form.submit()"
+                        class="w-full bg-surface-container-low rounded-xl px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 border-none">
+                    <option value="">-- Select a profile --</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-3 text-on-surface-variant bg-surface-container-low px-4 py-3 rounded-xl text-xs">
+                <span class="material-symbols-outlined text-primary">info</span>
+                Influencers are profile-scoped (not global).
+            </div>
+
+        </form>
+
+    </div>
+
+    <!-- EMPTY STATE -->
+    @if (Model.ProfileId is null)
+    {
+        <div class="bg-surface-container-lowest rounded-2xl p-10 text-center border border-outline/10">
+            <h2 class="text-xl font-bold">Select a profile</h2>
+            <p class="text-on-surface-variant text-sm mt-2">
+                Pick a business profile to view and manage its influencer catalog.
+            </p>
+        </div>
+    }
+    else
+    {
+        <!-- TABLE (unchanged) -->
+        <div class="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline/10">
+            <div class="overflow-x-auto">
+                <table class="w-full border-collapse">
+
+                    <thead>
+                        <tr class="bg-surface-container-low border-b border-outline/10">
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Pillar</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Driver</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Code</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Name</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Direction</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Weight</th>
+                            <th class="py-4 px-6 text-left text-[10px] font-bold uppercase">Status</th>
+                            <th class="py-4 px-6 text-right text-[10px] font-bold uppercase">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var i in Model.Items)
+                        {
+                            <tr>
+                                <td class="px-6 py-4">@i.PillarCode</td>
+                                <td class="px-6 py-4">@i.DriverCode</td>
+                                <td class="px-6 py-4">@i.InfluencerCode</td>
+                                <td class="px-6 py-4">@i.DisplayName</td>
+                                <td class="px-6 py-4">@i.Direction</td>
+                                <td class="px-6 py-4">@i.Weight</td>
+                                <td class="px-6 py-4">@(i.IsActive ? "Yes" : "No")</td>
+                                <td class="px-6 py-4 text-right">
+                                    <a href="/Admin/Influencers/Edit?id=@i.Id">Edit</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+        </div>
+    }
+
+</div>

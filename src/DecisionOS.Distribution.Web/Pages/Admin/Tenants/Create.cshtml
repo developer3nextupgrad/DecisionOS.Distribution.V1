@@ -1,33 +1,112 @@
-@page
+﻿@page
 @model CreateModel
 @{
-    ViewData["Title"] = "Add tenant";
+    ViewData["Title"] = "Add Tenant";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-<h1 class="page-title">Add tenant</h1>
-<form method="post" class="card" style="max-width:560px;">
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="form-group">
-            <label asp-for="Input.ClientId"></label>
-            <input asp-for="Input.ClientId" class="form-control" />
-            <span asp-validation-for="Input.ClientId" class="text-danger"></span>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-12 flex justify-center">
+
+        <div class="w-full max-w-[560px]">
+
+            <!-- HEADER -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-extrabold font-headline">Create New Tenant</h1>
+                <p class="text-sm text-on-surface-variant">
+                    Onboard a new organization into the system
+                </p>
+            </div>
+
+            <!-- FORM CARD -->
+            <div class="bg-surface-container-lowest rounded-2xl shadow p-8">
+
+                <form method="post" class="space-y-10">
+
+                    <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                    <!-- 🔹 BASIC INFO -->
+                    <section class="space-y-6">
+
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">info</span>
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Basic Info
+                            </h2>
+                        </div>
+
+                        <!-- CLIENT ID -->
+                        <div>
+                            <label asp-for="Input.ClientId" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.ClientId"
+                                   placeholder="DEC-XXX-0000"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low font-mono text-sm" />
+                            <span asp-validation-for="Input.ClientId" class="text-error text-xs"></span>
+                        </div>
+
+                        <!-- NAME -->
+                        <div>
+                            <label asp-for="Input.Name" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.Name"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low text-sm" />
+                        </div>
+
+                        <!-- ARCHETYPE -->
+                        <div>
+                            <label asp-for="Input.Archetype" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.Archetype"
+                                   class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low text-sm" />
+                        </div>
+
+                    </section>
+
+                    <!-- 🔹 CONFIG -->
+                    <section class="space-y-6 pt-4 border-t">
+
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-sm">settings</span>
+                            <h2 class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">
+                                Configuration
+                            </h2>
+                        </div>
+
+                        <!-- PROFILE -->
+                        <div>
+                            <label asp-for="Input.BusinessProfileId" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <select asp-for="Input.BusinessProfileId"
+                                    asp-items="Model.ProfileOptions"
+                                    class="w-full mt-1 px-4 py-3 rounded-xl bg-surface-container-low">
+                                <option value="">-- Global / default --</option>
+                            </select>
+
+                            <p class="text-xs text-on-surface-variant mt-2">
+                                Select an industry/business-type standard set for this tenant
+                            </p>
+                        </div>
+
+                    </section>
+
+                    <!-- 🔹 ACTIONS -->
+                    <div class="flex justify-end gap-4 pt-6">
+
+                        <a href="/Admin/Tenants"
+                           class="px-6 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface">
+                            Cancel
+                        </a>
+
+                        <button type="submit"
+                                class="px-10 py-2 bg-gradient-to-br from-primary to-primary-dim text-white font-bold rounded-xl shadow">
+                            Create
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
         </div>
-        <div class="form-group">
-            <label asp-for="Input.Name"></label>
-            <input asp-for="Input.Name" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Archetype"></label>
-            <input asp-for="Input.Archetype" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.BusinessProfileId">Business profile</label>
-            <select asp-for="Input.BusinessProfileId" class="form-control" asp-items="Model.ProfileOptions">
-                <option value="">-- Global / default --</option>
-            </select>
-            <div class="text-muted text-sm">Select an industry/business-type standard set for this tenant.</div>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
+
     </div>
-</form>

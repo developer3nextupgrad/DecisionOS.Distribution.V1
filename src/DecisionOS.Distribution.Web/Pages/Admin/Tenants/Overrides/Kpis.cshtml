@@ -1,61 +1,152 @@
 @page
 @model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.KpisModel
 @{
-    ViewData["Title"] = "Tenant KPI overrides";
+    ViewData["Title"] = "KPI Overrides";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
 @if (Model.Tenant is null)
 {
-    <p>Tenant not found.</p>
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">Tenant not found.</p>
+    </div>
     return;
 }
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">KPI overrides</h1>
-        <p class="text-muted text-sm" style="margin:0;">
-            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
-            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
-        </p>
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10 space-y-8">
+
+        <div class="max-w-[1200px] mx-auto space-y-8">
+
+            <!-- HEADER -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">
+                        KPI Overrides
+                    </h1>
+
+                    <p class="text-sm text-on-surface-variant mt-2">
+                        Tenant: <strong>@Model.Tenant.Name</strong>
+                        (<code>@Model.Tenant.ClientId</code>)
+                        · Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+                    </p>
+                </div>
+
+                <a href="/Admin/Tenants/Overrides/KpisEdit?tenantId=@Model.TenantId"
+                   class="flex items-center gap-2 px-5 py-3 bg-primary text-white font-bold rounded-xl shadow">
+                    <span class="material-symbols-outlined">edit</span>
+                    Edit Overrides
+                </a>
+
+            </div>
+
+            <!-- STATS -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+
+                <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                    <p class="text-xs text-on-surface-variant">Total KPIs</p>
+                    <p class="text-2xl font-extrabold">@(Model.Rows?.Count ?? 0)</p>
+                </div>
+
+                <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                    <p class="text-xs text-on-surface-variant">Overrides</p>
+                    <p class="text-2xl font-extrabold">
+                        @(Model.Rows?.Count(r => r.Override != null) ?? 0)
+                    </p>
+                </div>
+
+                <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                    <p class="text-xs text-on-surface-variant">Disabled</p>
+                    <p class="text-2xl font-extrabold">
+                        @(Model.Rows?.Count(r => r.Override?.IsActive == false) ?? 0)
+                    </p>
+                </div>
+
+                <div class="p-5 bg-surface-container-lowest rounded-xl shadow">
+                    <p class="text-xs text-on-surface-variant">Active</p>
+                    <p class="text-2xl font-extrabold">
+                        @(Model.Rows?.Count(r => r.Override?.IsActive == true) ?? 0)
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- TABLE -->
+            <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[1000px] text-sm">
+
+                        <thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant">
+                            <tr>
+                                <th class="px-6 py-4 text-left">KPI</th>
+                                <th class="px-6 py-4 text-right">Target</th>
+                                <th class="px-6 py-4 text-right">Amber</th>
+                                <th class="px-6 py-4 text-right">Red</th>
+                                <th class="px-6 py-4 text-right">Min</th>
+                                <th class="px-6 py-4 text-right">Max</th>
+                                <th class="px-6 py-4 text-center">Priority</th>
+                                <th class="px-6 py-4 text-center">Override</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y">
+
+                            @foreach (var r in (Model.Rows ?? Array.Empty<DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.KpisModel.Row>()))
+                            {
+                                var overrideText = r.Override is null
+                                ? "No"
+                                : (r.Override.IsActive ? "Yes" : "Disabled");
+
+                                <tr class="hover:bg-surface-container-low transition">
+
+                                    <td class="px-6 py-4">
+                                        <div class="flex flex-col">
+                                            <code class="text-primary font-mono text-xs">@r.KpiCode</code>
+                                            <span class="text-xs text-on-surface-variant">@r.KpiName</span>
+                                        </div>
+                                    </td>
+
+                                    <td class="px-6 py-4 text-right font-mono">@r.Effective.Target</td>
+                                    <td class="px-6 py-4 text-right font-mono">@r.Effective.AmberThreshold</td>
+                                    <td class="px-6 py-4 text-right font-mono">@r.Effective.RedThreshold</td>
+                                    <td class="px-6 py-4 text-right font-mono">@((r.Effective.MinValue?.ToString()) ?? "—")</td>
+                                    <td class="px-6 py-4 text-right font-mono">@((r.Effective.MaxValue?.ToString()) ?? "—")</td>
+
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-2 py-1 text-xs rounded bg-surface-container-high">
+                                            @r.Effective.AlertPriority
+                                        </span>
+                                    </td>
+
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="px-3 py-1 text-xs rounded-full
+                                                @(overrideText == "Yes" ? "bg-primary/10 text-primary" :
+                                                                                            overrideText == "Disabled" ? "bg-error/10 text-error" :
+                                                                                            "bg-surface-container-high text-on-surface-variant")">
+                                        @overrideText
+                                    </span>
+                                </td>
+
+                                </tr>
+                                                        }
+
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- FOOT LINKS -->
+            <div class="flex gap-4 text-sm text-on-surface-variant">
+                <a href="/Admin/Tenants" class="hover:text-primary">← Tenants</a>
+                <a href="/Admin" class="hover:text-primary">← Admin</a>
+            </div>
+
+        </div>
+
     </div>
-    <a class="btn btn-primary" href="/Admin/Tenants/Overrides/KpisEdit?tenantId=@Model.TenantId">Edit overrides</a>
-</div>
-
-<p class="text-muted text-sm">
-    Overrides are intentionally limited and stored as data (no custom code). Effective values shown below include profile + global + override overlay.
-</p>
-
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead>
-        <tr>
-            <th>KPI</th>
-            <th>Target</th>
-            <th>Amber</th>
-            <th>Red</th>
-            <th>Min</th>
-            <th>Max</th>
-            <th>Priority</th>
-            <th>Override?</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var r in Model.Rows)
-        {
-            <tr>
-                <td><code>@r.KpiCode</code><br /><span class="text-muted text-sm">@r.KpiName</span></td>
-                <td>@r.Effective.Target</td>
-                <td>@r.Effective.AmberThreshold</td>
-                <td>@r.Effective.RedThreshold</td>
-                <td>@(r.Effective.MinValue?.ToString() ?? "—")</td>
-                <td>@(r.Effective.MaxValue?.ToString() ?? "—")</td>
-                <td>@r.Effective.AlertPriority</td>
-                <td>@(r.Override is null ? "No" : (r.Override.IsActive ? "Yes" : "Disabled"))</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-
-<p class="text-sm"><a href="/Admin/Tenants">&larr; Tenants</a> &middot; <a href="/Admin">&larr; Admin home</a></p>
-

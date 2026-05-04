@@ -1,23 +1,83 @@
-@page
+﻿@page
 @model IndexModel
 @{
     ViewData["Title"] = "Administration";
+    Layout = "_IndexLayout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-<div class="page-header">
-    <h1 class="page-title">Administration</h1>
-</div>
-<div class="card">
-    <div class="card-body">
-        <ul style="line-height:2; margin:0; padding-left:1.2rem;">
-            <li><a href="/Admin/VerticalLibraries">Vertical libraries</a></li>
-            <li><a href="/Admin/Profiles">Business profiles (industry templates)</a></li>
-            <li><a href="/Admin/Tenants">Tenants (distributors)</a></li>
-            <li><a href="/Admin/KpiDefinitions">KPI definitions &amp; templates</a></li>
-            <li><a href="/Admin/DriverDefinitions">Driver catalog</a></li>
-            <li><a href="/Admin/Influencers">Influencer catalog</a></li>
-            <li><a href="/Admin/Users">Users &amp; roles (OPSPEC)</a></li>
-        </ul>
-        <p class="text-muted text-sm" style="margin-top:16px;"><a href="/Operations/ImportRuns">Import history (ops)</a></p>
-        <p class="text-sm"><a href="/">&larr; Executive dashboard</a></p>
+
+<div class="flex">
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-6 max-w-[1440px] mx-auto">
+
+        <!-- HEADER -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-extrabold font-headline">
+                Administration
+            </h1>
+            <p class="text-xs sm:text-sm text-on-surface-variant mt-1">
+                Manage global configurations, system entities, and access control.
+            </p>
+        </div>
+
+        <!-- GRID -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+            <!-- CARD -->
+            @foreach (var item in new[] {
+                        new {Href="/Admin/VerticalLibraries", Icon="library_books", Title="Vertical Libraries", Desc="Manage industry vertical templates and datasets.", Link="Configure →"},
+                        new {Href="/Admin/Profiles", Icon="business_center", Title="Business Profiles", Desc="Configure distributor business models.", Link="Configure →"},
+                        new {Href="/Admin/Tenants", Icon="domain", Title="Tenants", Desc="Manage distributor accounts.", Link="Manage →"},
+                        new {Href="/Admin/KpiDefinitions", Icon="leaderboard", Title="KPI Definitions", Desc="Define KPIs and scoring.", Link="Define →"},
+                        new {Href="/Admin/DriverDefinitions", Icon="account_tree", Title="Driver Catalog", Desc="Manage KPI drivers.", Link="Manage →"},
+                        new {Href="/Admin/Influencers", Icon="insights", Title="Influencers", Desc="Define influencing factors.", Link="Define →"},
+                        new {Href="/Admin/Users", Icon="group", Title="Users & Roles", Desc="Manage system access and permissions.", Link="Administer →"}
+                        })
+            {
+                <a href="@item.Href"
+                   class="bg-surface-container-lowest rounded-xl p-5 sm:p-6 border border-surface-container-high
+                              hover:shadow-md transition flex flex-col gap-3">
+
+                    <span class="material-symbols-outlined text-primary">@item.Icon</span>
+
+                    <h3 class="font-bold text-sm sm:text-base">@item.Title</h3>
+
+                    <p class="text-xs sm:text-sm text-on-surface-variant">
+                        @item.Desc
+                    </p>
+
+                    <span class="text-primary text-xs sm:text-sm font-semibold mt-auto">
+                        @item.Link
+                    </span>
+                </a>
+            }
+
+        </div>
+
+        <!-- OPERATIONS -->
+        <div class="mt-8 sm:mt-10">
+
+            <h2 class="text-lg font-bold mb-4">Operations</h2>
+
+            <a href="/Operations/ImportRuns"
+               class="flex items-center gap-4 p-4 sm:p-5 bg-surface-container-lowest border rounded-xl hover:shadow-md transition">
+
+                <span class="material-symbols-outlined text-primary">history</span>
+
+                <div>
+                    <h3 class="font-semibold text-sm sm:text-base">Import History</h3>
+                    <p class="text-xs sm:text-sm text-on-surface-variant">
+                        View import logs and audit trail
+                    </p>
+
+                </div>
+
+            </a>
+
+        </div>
+
     </div>
+
 </div>

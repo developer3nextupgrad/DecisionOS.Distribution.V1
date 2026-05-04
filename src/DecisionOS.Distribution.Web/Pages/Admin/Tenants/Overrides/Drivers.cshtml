@@ -1,55 +1,124 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Tenants.Overrides.DriversModel
 @{
-    ViewData["Title"] = "Tenant driver overrides";
+    ViewData["Title"] = "Driver Overrides";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
 @if (Model.Tenant is null)
 {
-    <p>Tenant not found.</p>
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">Tenant not found.</p>
+    </div>
     return;
 }
 
-<div class="page-header">
-    <div>
-        <h1 class="page-title">Driver overrides</h1>
-        <p class="text-muted text-sm" style="margin:0;">
-            Tenant: <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)
-            &middot; Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
-        </p>
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10">
+
+        <div class="max-w-[1200px] mx-auto space-y-8">
+
+            <!-- HEADER -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">
+                        Driver Overrides
+                    </h1>
+
+                    <p class="text-sm text-on-surface-variant mt-2">
+                        Tenant: <strong>@Model.Tenant.Name</strong>
+                        (<code>@Model.Tenant.ClientId</code>)
+                        · Profile: <strong>@(Model.Tenant.BusinessProfile?.Name ?? "Global/default")</strong>
+                    </p>
+                </div>
+
+                <a href="/Admin/Tenants/Overrides/DriversEdit?tenantId=@Model.TenantId"
+                   class="flex items-center gap-2 px-5 py-3 bg-gradient-to-br from-primary to-primary-dim text-white font-bold rounded-xl shadow">
+                    <span class="material-symbols-outlined">edit</span>
+                    Edit Overrides
+                </a>
+
+            </div>
+
+            <!-- INFO -->
+            <p class="text-sm text-on-surface-variant">
+                Effective values include global + profile + tenant override layers.
+            </p>
+
+            <!-- TABLE -->
+            <div class="bg-surface-container-lowest rounded-2xl shadow overflow-hidden">
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[900px] text-sm">
+
+                        <thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant">
+                            <tr>
+                                <th class="px-6 py-4 text-left">Pillar</th>
+                                <th class="px-6 py-4 text-left">Driver Code</th>
+                                <th class="px-6 py-4 text-left">Display Name</th>
+                                <th class="px-6 py-4 text-left">Active</th>
+                                <th class="px-6 py-4 text-left">Override</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var r in Model.Rows)
+                            {
+                                var activeClass = r.EffectiveIsActive
+                                ? "bg-primary/10 text-primary"
+                                : "bg-surface-container-high text-on-surface-variant";
+
+                                var overrideText = r.Override is null
+                                ? "None"
+                                : (r.Override.IsActive == false ? "Disabled" : "Active");
+
+                                <tr class="border-b hover:bg-surface-container-low transition">
+
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full bg-surface-container text-xs font-bold">
+                                            @r.PillarCode
+                                        </span>
+                                    </td>
+
+                                    <td class="px-6 py-4 font-mono text-xs">
+                                        @r.DriverCode
+                                    </td>
+
+                                    <td class="px-6 py-4 font-semibold">
+                                        @r.DisplayName
+                                    </td>
+
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold @activeClass">
+                                            @(r.EffectiveIsActive ? "Yes" : "No")
+                                        </span>
+                                    </td>
+
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold">
+                                            @overrideText
+                                        </span>
+                                    </td>
+
+                                </tr>
+                            }
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- FOOT LINKS -->
+            <div class="flex gap-4 text-sm text-on-surface-variant">
+                <a href="/Admin/Tenants" class="hover:text-primary">← Tenants</a>
+                <a href="/Admin" class="hover:text-primary">← Admin</a>
+            </div>
+
+        </div>
+
     </div>
-    <a class="btn btn-primary" href="/Admin/Tenants/Overrides/DriversEdit?tenantId=@Model.TenantId">Edit overrides</a>
-</div>
-
-<p class="text-muted text-sm">
-    Effective values below include profile + global + tenant override overlay.
-</p>
-
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead>
-        <tr>
-            <th>Pillar</th>
-            <th>Driver code</th>
-            <th>Display name</th>
-            <th>Active</th>
-            <th>Override?</th>
-        </tr>
-        </thead>
-        <tbody>
-        @foreach (var r in Model.Rows)
-        {
-            <tr>
-                <td><code>@r.PillarCode</code></td>
-                <td><code>@r.DriverCode</code></td>
-                <td>@r.DisplayName</td>
-                <td>@(r.EffectiveIsActive ? "Yes" : "No")</td>
-                <td>@(r.Override is null ? "No" : (r.Override.IsActive == false ? "Disabled" : "Yes"))</td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-
-<p class="text-sm"><a href="/Admin/Tenants">&larr; Tenants</a> &middot; <a href="/Admin">&larr; Admin home</a></p>
-

@@ -1,65 +1,174 @@
 @page
 @model DecisionOS.Distribution.Web.Pages.Admin.Profiles.IndexModel
 @{
-    ViewData["Title"] = "Business profiles";
+    ViewData["Title"] = "Business Profiles";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
 
-<div class="page-header">
-    <h1 class="page-title">Business profiles</h1>
-    <a class="btn btn-primary" href="/Admin/Profiles/Create">Add profile</a>
-</div>
 
-<p class="text-muted text-sm">
-    Profiles represent industry / business-type KPI standards. You can apply the default (global) KPI/Driver set to a profile, then tailor it.
-</p>
 
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Vertical</th><th>Code</th><th>Name</th><th>Active</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var p in Model.Items)
-        {
-            <tr>
-                <td>
-                    @{
-                        var verticalName = (p.VerticalLibraryId is { } vid && Model.VerticalNameById.TryGetValue(vid, out var vn))
+    <!-- 🔥 MAIN CONTENT -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-8 max-w-[1440px] mx-auto">
+
+        <!-- HEADER -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-extrabold font-headline">Business Profiles</h1>
+                <p class="text-sm text-on-surface-variant mt-1">
+                    Industry-specific KPI and driver configurations
+                </p>
+            </div>
+
+            <a href="/Admin/Profiles/Create"
+               class="px-5 py-3 bg-gradient-to-br from-primary to-primary-dim text-white font-bold rounded-xl shadow flex items-center gap-2">
+                <span class="material-symbols-outlined">add</span>
+                Add Profile
+            </a>
+        </div>
+
+        <!-- FILTER -->
+        <div class="flex flex-col sm:flex-row justify-between gap-4 mb-6">
+
+            <div class="flex gap-4 items-center">
+
+                <div class="relative w-full sm:w-80">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                        search
+                    </span>
+                    <input type="text"
+                           placeholder="Search profiles..."
+                           class="w-full bg-surface-container-low rounded-xl pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 outline-none" />
+                </div>
+
+                <button class="flex items-center gap-2 px-4 py-2 bg-surface-container-low rounded-xl text-sm">
+                    <span class="material-symbols-outlined">filter_list</span>
+                    Filter
+                </button>
+
+            </div>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm min-w-[900px]">
+
+                    <thead class="bg-surface-container-high text-xs uppercase text-on-surface-variant">
+                        <tr>
+                            <th class="px-6 py-4 text-left">Vertical</th>
+                            <th class="px-6 py-4 text-left">Code</th>
+                            <th class="px-6 py-4 text-left">Profile</th>
+                            <th class="px-6 py-4 text-left">Status</th>
+                            <th class="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var p in Model.Items)
+                        {
+                            var verticalName = (p.VerticalLibraryId is { } vid && Model.VerticalNameById.TryGetValue(vid, out var vn))
                             ? vn
                             : "—";
-                    }
-                    @verticalName
-                </td>
-                <td><code>@p.Code</code></td>
-                <td>
-                    <div style="font-weight:600;">@p.Name</div>
-                    <div class="text-muted text-sm">
-                        @p.Description
-                        @if (!string.IsNullOrWhiteSpace(p.ActiveKpiProfileCode) || !string.IsNullOrWhiteSpace(p.ThresholdProfileCode))
-                        {
-                            <div>Active KPI profile: <code>@(p.ActiveKpiProfileCode ?? "—")</code> &middot; Threshold profile: <code>@(p.ThresholdProfileCode ?? "—")</code></div>
-                        }
-                        @if (!string.IsNullOrWhiteSpace(p.LocationStructure) || !string.IsNullOrWhiteSpace(p.ChannelStructure))
-                        {
-                            <div>Location: <code>@(p.LocationStructure ?? "—")</code> &middot; Channel: <code>@(p.ChannelStructure ?? "—")</code></div>
-                        }
-                    </div>
-                </td>
-                <td>@(p.IsActive ? "Yes" : "No")</td>
-                <td>
-                    <a href="/Admin/Profiles/Edit?id=@p.Id">Edit</a>
-                    &middot;
-                    <a href="/Admin/Profiles/ApplyDefaults?id=@p.Id">Apply defaults</a>
-                    &middot;
-                    <a href="/Admin/KpiDefinitions?profileId=@p.Id">KPIs</a>
-                    &middot;
-                    <a href="/Admin/DriverDefinitions?profileId=@p.Id">Drivers</a>
-                    &middot;
-                    <a href="/Admin/Influencers?profileId=@p.Id">Influencers</a>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
 
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
+                            var statusClass = p.IsActive
+                            ? "bg-primary/10 text-primary"
+                            : "bg-surface-container-high text-on-surface-variant";
 
+                            <tr class="border-b hover:bg-surface-container-low transition">
+
+                                <td class="px-6 py-4 text-xs font-semibold text-on-surface-variant">
+                                    @verticalName
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <span class="font-mono text-xs bg-surface-container-high px-2 py-1 rounded">
+                                        @p.Code
+                                    </span>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <div>
+                                        <p class="font-bold">@p.Name</p>
+                                        <p class="text-xs text-on-surface-variant">@p.Description</p>
+
+                                        @if (!string.IsNullOrWhiteSpace(p.ActiveKpiProfileCode) || !string.IsNullOrWhiteSpace(p.ThresholdProfileCode))
+                                        {
+                                            <p class="text-[11px] mt-1">
+                                                KPI: <code>@(p.ActiveKpiProfileCode ?? "—")</code> · Threshold: <code>@(p.ThresholdProfileCode ?? "—")</code>
+                                            </p>
+                                        }
+
+                                        @if (!string.IsNullOrWhiteSpace(p.LocationStructure) || !string.IsNullOrWhiteSpace(p.ChannelStructure))
+                                        {
+                                            <p class="text-[11px]">
+                                                Location: <code>@(p.LocationStructure ?? "—")</code> · Channel: <code>@(p.ChannelStructure ?? "—")</code>
+                                            </p>
+                                        }
+                                    </div>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <span class="px-3 py-1 rounded-full text-xs font-bold @statusClass">
+                                        @(p.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+
+                                <td class="px-6 py-4 text-right">
+
+                                    <div class="flex flex-wrap justify-end gap-2">
+
+                                        <a href="/Admin/Profiles/Edit?id=@p.Id"
+                                           class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                      bg-primary/10 text-primary hover:bg-primary/20 transition">
+                                            Edit
+                                        </a>
+
+                                        <a href="/Admin/Profiles/ApplyDefaults?id=@p.Id"
+                                           class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                      bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition">
+                                            Defaults
+                                        </a>
+
+                                        <a href="/Admin/KpiDefinitions?profileId=@p.Id"
+                                           class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                      bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition">
+                                            KPIs
+                                        </a>
+
+                                        <a href="/Admin/DriverDefinitions?profileId=@p.Id"
+                                           class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                      bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition">
+                                            Drivers
+                                        </a>
+
+                                        <a href="/Admin/Influencers?profileId=@p.Id"
+                                           class="px-3 py-1.5 rounded-lg text-xs font-semibold
+                      bg-surface-container-high text-on-surface hover:bg-surface-container-highest transition">
+                                            Influencers
+                                        </a>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+        </div>
+
+        <!-- BACK -->
+        <div class="mt-6">
+            <a href="/Admin" class="text-sm text-on-surface-variant hover:text-primary">
+                ← Admin home
+            </a>
+        </div>
+
+    </div>

@@ -1,48 +1,187 @@
-@page
+﻿@page
 @model DecisionOS.Distribution.Web.Pages.Admin.Influencers.CreateModel
 @{
     ViewData["Title"] = "Add influencer";
+    Layout = "_Layout";
 }
 
-<h1 class="page-title">Add influencer</h1>
-<form method="post" class="card" style="max-width:720px;">
-    <input type="hidden" asp-for="ProfileId" />
-    <div class="card-body">
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="form-group">
-            <label asp-for="Input.PillarCode"></label>
-            <select asp-for="Input.PillarCode" class="form-control" asp-items="Model.PillarOptions"></select>
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.DriverCode"></label>
-            <select asp-for="Input.DriverCode" class="form-control" asp-items="Model.DriverOptions"></select>
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.InfluencerCode"></label>
-            <input asp-for="Input.InfluencerCode" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.DisplayName"></label>
-            <input asp-for="Input.DisplayName" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Description"></label>
-            <textarea asp-for="Input.Description" class="form-control" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Direction"></label>
-            <select asp-for="Input.Direction" class="form-control"
-                    asp-items="Html.GetEnumSelectList<DecisionOS.Distribution.Domain.InfluencerImpactDirection>()"></select>
-        </div>
-        <div class="form-group">
-            <label asp-for="Input.Weight"></label>
-            <input asp-for="Input.Weight" class="form-control" />
-        </div>
-        <div class="form-group">
-            <label><input asp-for="Input.IsActive" /> Active</label>
-        </div>
-        <button type="submit" class="btn btn-primary">Save</button>
-        <a class="btn btn-outline" style="margin-left:8px;" href="/Admin/Influencers?profileId=@Model.ProfileId">Cancel</a>
-    </div>
-</form>
+<div class="px-6 md:px-10 py-10 flex justify-center">
 
+    <div class="w-full max-w-[720px] space-y-8">
+
+        <!-- HEADER -->
+        <div>
+            <h1 class="text-3xl font-extrabold text-on-surface tracking-tight">
+                Add Influencer
+            </h1>
+            <p class="text-on-surface-variant text-sm font-medium">
+                Define a micro-driver and its impact on performance
+            </p>
+        </div>
+
+        <!-- FORM CARD -->
+        <div class="bg-surface-container-lowest rounded-2xl shadow border border-outline/10 overflow-hidden">
+
+            <form method="post" class="p-8 space-y-8">
+
+                <input type="hidden" asp-for="ProfileId" />
+
+                <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+                <!-- 🔹 HIERARCHY -->
+                <section class="space-y-4">
+
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">layers</span>
+                        <h3 class="text-sm font-bold uppercase tracking-wider">
+                            Hierarchy
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 bg-surface-container-low p-5 rounded-xl">
+
+                        <!-- PILLAR -->
+                        <div class="space-y-2">
+                            <label asp-for="Input.PillarCode" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <select asp-for="Input.PillarCode"
+                                    asp-items="Model.PillarOptions"
+                                    class="w-full bg-surface-container-lowest rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20">
+                            </select>
+                        </div>
+
+                        <!-- DRIVER -->
+                        <div class="space-y-2">
+                            <label asp-for="Input.DriverCode" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <select asp-for="Input.DriverCode"
+                                    asp-items="Model.DriverOptions"
+                                    class="w-full bg-surface-container-lowest rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20">
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2 text-xs text-on-surface-variant flex items-center gap-2">
+                            <span class="material-symbols-outlined text-[14px]">info</span>
+                            Influencers belong to a specific driver within a pillar
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- 🔹 IDENTITY -->
+                <section class="space-y-4">
+
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">fingerprint</span>
+                        <h3 class="text-sm font-bold uppercase tracking-wider">
+                            Identity
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <div class="space-y-2">
+                            <label asp-for="Input.InfluencerCode" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.InfluencerCode"
+                                   class="w-full bg-surface-container-low rounded-xl px-4 py-3 font-mono focus:ring-2 focus:ring-primary/20" />
+                        </div>
+
+                        <div class="space-y-2">
+                            <label asp-for="Input.DisplayName" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.DisplayName"
+                                   class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20" />
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- 🔹 DETAILS -->
+                <section class="space-y-4">
+
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">description</span>
+                        <h3 class="text-sm font-bold uppercase tracking-wider">
+                            Details
+                        </h3>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label asp-for="Input.Description" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                        <textarea asp-for="Input.Description"
+                                  rows="3"
+                                  class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20"></textarea>
+                    </div>
+
+                </section>
+
+                <!-- 🔹 IMPACT -->
+                <section class="space-y-4">
+
+                    <div class="flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary text-sm">troubleshoot</span>
+                        <h3 class="text-sm font-bold uppercase tracking-wider">
+                            Impact Configuration
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-surface-container-low p-6 rounded-xl">
+
+                        <!-- DIRECTION -->
+                        <div class="space-y-2">
+                            <label asp-for="Input.Direction" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <select asp-for="Input.Direction"
+                                    asp-items="Html.GetEnumSelectList<DecisionOS.Distribution.Domain.InfluencerImpactDirection>()"
+                                    class="w-full bg-white rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary/20">
+                            </select>
+                        </div>
+
+                        <!-- WEIGHT -->
+                        <div class="space-y-2">
+                            <label asp-for="Input.Weight" class="text-[10px] font-bold uppercase text-on-surface-variant"></label>
+                            <input asp-for="Input.Weight"
+                                   class="w-full bg-surface-container-low rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/20" />
+                        </div>
+
+                    </div>
+
+                </section>
+
+                <!-- 🔹 STATUS -->
+                <section class="flex items-center justify-between p-4 bg-primary/10 rounded-xl">
+
+                    <div>
+                        <h4 class="text-sm font-bold">Active Status</h4>
+                        <p class="text-xs text-on-surface-variant">
+                            Enable this influencer for calculation
+                        </p>
+                    </div>
+
+                    <label class="flex items-center gap-2">
+                        <input asp-for="Input.IsActive" />
+                        Active
+                    </label>
+
+                </section>
+
+                <!-- ACTIONS -->
+                <div class="pt-6 flex justify-end gap-4 border-t border-outline/10">
+
+                    <a href="/Admin/Influencers?profileId=@Model.ProfileId"
+                       class="px-6 py-2 text-sm font-semibold text-on-surface-variant hover:text-on-surface">
+                        Cancel
+                    </a>
+
+                    <button type="submit"
+                            class="bg-gradient-to-br from-primary to-primary-dim text-white px-8 py-2.5 rounded-xl font-bold shadow hover:scale-[1.02] transition">
+                        Create Influencer
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>

@@ -2,31 +2,134 @@
 @model IndexModel
 @{
     ViewData["Title"] = "Tenants";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-<div class="page-header"><h1 class="page-title">Tenants</h1> <a class="btn btn-primary" href="/Admin/Tenants/Create">Add tenant</a></div>
-<div class="table-wrapper">
-    <table class="data-table">
-        <thead><tr><th>Client ID</th><th>Name</th><th>Archetype</th><th>Profile</th><th></th></tr></thead>
-        <tbody>
-        @foreach (var t in Model.Items)
-        {
-            <tr>
-                <td><code>@t.ClientId</code></td>
-                <td>@t.Name</td>
-                <td>@(t.Archetype ?? "—")</td>
-                <td>@(t.BusinessProfile?.Name ?? "—")</td>
-                <td>
-                    <a href="/Admin/Tenants/Edit?id=@t.Id">Edit</a>
-                    &middot;
-                    <a href="/Admin/Tenants/Overrides/Kpis?tenantId=@t.Id">KPI overrides</a>
-                    &middot;
-                    <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@t.Id">Driver overrides</a>
-                    &middot;
-                    <a href="/Admin/Tenants/Delete?id=@t.Id">Delete</a>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-</div>
-<p class="text-sm"><a href="/Admin">&larr; Admin home</a></p>
+
+@if (Model.Items == null)
+{
+    <div class="flex-1 w-full lg:ml-64 p-6">
+        <p class="text-error font-semibold">No tenants found.</p>
+    </div>
+    return;
+}
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-10">
+
+        <div class="max-w-[1200px] mx-auto space-y-10">
+
+            <!-- HEADER -->
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+
+                <div>
+                    <h1 class="text-3xl font-headline font-bold tracking-tight">
+                        Tenants
+                    </h1>
+                    <p class="text-on-surface-variant text-sm mt-1">
+                        Manage distributor accounts and configurations
+                    </p>
+                </div>
+
+                <a href="/Admin/Tenants/Create"
+                   class="flex items-center gap-2 bg-gradient-to-br from-primary to-primary-dim text-white px-6 py-3 rounded-xl font-bold shadow hover:scale-[0.98] transition">
+                    <span class="material-symbols-outlined">person_add</span>
+                    Add Tenant
+                </a>
+
+            </div>
+
+            <!-- TABLE -->
+            <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[900px] text-sm">
+
+                        <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
+                            <tr>
+                                <th class="px-6 py-4 text-left">Client ID</th>
+                                <th class="px-6 py-4 text-left">Name</th>
+                                <th class="px-6 py-4 text-left">Archetype</th>
+                                <th class="px-6 py-4 text-left">Profile</th>
+                                <th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y">
+
+                            @foreach (var t in Model.Items)
+                            {
+                                <tr class="hover:bg-surface-container-low transition">
+
+                                    <!-- CLIENT ID -->
+                                    <td class="px-6 py-4">
+                                        <span class="font-mono text-xs px-2 py-1 bg-surface-container rounded font-bold">
+                                            @t.ClientId
+                                        </span>
+                                    </td>
+
+                                    <!-- NAME -->
+                                    <td class="px-6 py-4 font-headline font-semibold">
+                                        @t.Name
+                                    </td>
+
+                                    <!-- ARCHETYPE -->
+                                    <td class="px-6 py-4 text-on-surface-variant">
+                                        @(t.Archetype ?? "—")
+                                    </td>
+
+                                    <!-- PROFILE -->
+                                    <td class="px-6 py-4">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                                            @(t.BusinessProfile?.Name ?? "—")
+                                        </span>
+                                    </td>
+
+                                    <!-- ACTIONS -->
+                                    <td class="px-6 py-4 text-right">
+
+                                        <div class="flex justify-end gap-3 flex-wrap">
+
+                                            <a href="/Admin/Tenants/Edit?id=@t.Id"
+                                               class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10">
+                                                Edit
+                                            </a>
+
+                                            <a href="/Admin/Tenants/Overrides/Kpis?tenantId=@t.Id"
+                                               class="px-3 py-1 text-xs font-semibold border rounded-lg hover:bg-surface-container-high">
+                                                KPI
+                                            </a>
+
+                                            <a href="/Admin/Tenants/Overrides/Drivers?tenantId=@t.Id"
+                                               class="px-3 py-1 text-xs font-semibold border rounded-lg hover:bg-surface-container-high">
+                                                Drivers
+                                            </a>
+
+                                            <a href="/Admin/Tenants/Delete?id=@t.Id"
+                                               class="px-3 py-1 text-xs font-semibold text-error border border-error/20 rounded-lg hover:bg-error/10">
+                                                Delete
+                                            </a>
+
+                                        </div>
+
+                                    </td>
+
+                                </tr>
+                            }
+
+                        </tbody>
+
+                    </table>
+                </div>
+
+            </div>
+
+            <!-- FOOT LINKS -->
+            <div class="text-sm text-on-surface-variant">
+                <a href="/Admin" class="hover:text-primary">← Admin home</a>
+            </div>
+
+        </div>
+
+    </div>

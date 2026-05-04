@@ -1,31 +1,119 @@
-@page
+﻿@page
 @model DeleteModel
 @{
-    ViewData["Title"] = "Delete tenant";
+    ViewData["Title"] = "Delete Tenant";
+    Layout = "_Layout";
+
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? "";
 }
-@if (Model.Tenant is null)
-{
-    <p>Tenant not found.</p>
-}
-else
-{
-<h1 class="page-title">Delete tenant</h1>
-<div class="card" style="max-width:560px;">
-    <div class="card-body">
-        <p>Delete <strong>@Model.Tenant.Name</strong> (<code>@Model.Tenant.ClientId</code>)?</p>
-        @if (!Model.CanDelete)
-        {
-            <p class="text-danger">This tenant has KPI data and cannot be deleted.</p>
-            <a href="/Admin/Tenants">Back</a>
-        }
-        else
-        {
-            <form method="post">
-                <input type="hidden" asp-for="Id" />
-                <button type="submit" class="btn" style="background:#dc2626;color:white;border:none;">Delete</button>
-                <a href="/Admin/Tenants" class="btn btn-outline" style="margin-left:8px;">Cancel</a>
-            </form>
-        }
+
+    <!-- 🔥 MAIN -->
+    <div class="flex-1 w-full flex items-center justify-center px-4 sm:px-6 py-12">
+
+        <div class="w-full max-w-[480px]">
+
+            @if (Model.Tenant is null)
+            {
+                <p class="text-error font-semibold text-center">Tenant not found.</p>
+            }
+            else if (!Model.CanDelete)
+            {
+                <!-- 🚫 BLOCKED STATE -->
+
+                <div class="bg-surface-container-lowest rounded-2xl shadow p-8 space-y-6">
+
+                    <div class="flex justify-between items-center">
+                        <span class="px-3 py-1 rounded-full text-xs font-bold bg-error/10 text-error">
+                            Restricted Action
+                        </span>
+                        <span class="material-symbols-outlined text-outline-variant">info</span>
+                    </div>
+
+                    <div>
+                        <h2 class="text-2xl font-extrabold font-headline">Delete Tenant</h2>
+                        <p class="text-sm text-on-surface-variant mt-2">
+                            System verification required before deleting
+                            <strong>@Model.Tenant.Name</strong>
+                            (<code>@Model.Tenant.ClientId</code>)
+                        </p>
+                    </div>
+
+                    <div class="bg-error/10 p-5 rounded-xl flex gap-4">
+                        <span class="material-symbols-outlined text-error">error</span>
+                        <div>
+                            <p class="font-bold text-error text-sm">Deletion Blocked</p>
+                            <p class="text-sm text-on-surface-variant">
+                                This tenant has KPI data and cannot be deleted.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <a href="/Admin/Tenants"
+                           class="block w-full text-center py-3 bg-surface-container-high rounded-xl font-semibold">
+                            Back to Directory
+                        </a>
+
+                        <p class="text-xs text-center text-on-surface-variant">
+                            Contact support for force delete
+                        </p>
+                    </div>
+
+                </div>
+            }
+            else
+            {
+                <!-- ⚠️ CONFIRM DELETE -->
+
+                <div class="bg-surface-container-lowest rounded-2xl shadow p-8 space-y-8">
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center">
+                            <span class="material-symbols-outlined text-secondary">warning</span>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-extrabold font-headline">Confirm Deletion</h2>
+                            <p class="text-xs text-on-surface-variant font-semibold">
+                                Permanent Action
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <p class="text-base">
+                            You are about to delete
+                            <strong>@Model.Tenant.Name</strong>
+                            (<code>@Model.Tenant.ClientId</code>)
+                        </p>
+
+                        <div class="bg-surface-container-low p-4 rounded-xl flex gap-3">
+                            <span class="material-symbols-outlined text-sm">report</span>
+                            <p class="text-sm text-on-surface-variant italic">
+                                This action cannot be undone.
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="post" class="flex gap-4">
+
+                        <input type="hidden" asp-for="Id" />
+
+                        <a href="/Admin/Tenants"
+                           class="flex-1 py-3 text-center bg-surface-container-low rounded-xl font-semibold">
+                            Cancel
+                        </a>
+
+                        <button type="submit"
+                                class="flex-[1.5] py-3 bg-gradient-to-br from-error to-error-dim text-white font-bold rounded-xl shadow flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                            Delete Tenant
+                        </button>
+
+                    </form>
+
+                </div>
+            }
+
+        </div>
+
     </div>
-</div>
-}
