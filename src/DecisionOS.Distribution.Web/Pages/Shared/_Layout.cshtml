@@ -89,6 +89,7 @@
                                     || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
                     {
                         <a href="/Operations/ImportRuns" class="hover:text-primary">Imports</a>
+                        <a href="/Operations/Uploads" class="hover:text-primary">Uploads</a>
                     }
                 }
             </nav>
@@ -188,6 +189,11 @@
             <a href="/Operations/ImportRuns" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("ImportRuns", currentPage)">
                 <span class="material-symbols-outlined">history</span>
                 Import History
+            </a>
+
+            <a href="/Operations/Uploads" class="flex items-center gap-3 px-4 py-3 rounded-xl @Active("Uploads", currentPage)">
+                <span class="material-symbols-outlined">upload_file</span>
+                Uploads
             </a>
 
         </nav>

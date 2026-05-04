@@ -94,6 +94,7 @@
                             <th class="px-4 sm:px-6 py-4 text-left">Tenant</th>
                             <th class="px-4 sm:px-6 py-4 text-left">Week</th>
                             <th class="px-4 sm:px-6 py-4 text-left">Status</th>
+                            <th class="px-4 sm:px-6 py-4 text-left">Readiness</th>
                             <th class="px-4 sm:px-6 py-4 text-left">KPI</th>
                             <th class="px-4 sm:px-6 py-4 text-right">Driver</th>
                             <th class="px-4 sm:px-6 py-4 text-left">Fingerprint</th>
@@ -105,9 +106,9 @@
                         {
                             var statusClass = r.Status switch
                             {
-                                "Success" => "bg-primary/10 text-primary",
+                                "Completed" => "bg-primary/10 text-primary",
                                 "Failed" => "bg-error/10 text-error",
-                                "Processing" => "bg-primary/10 text-primary",
+                                "Running" => "bg-primary/10 text-primary",
                                 _ => "bg-gray-100 text-gray-600"
                             };
 
@@ -134,6 +135,10 @@
                                     <span class="px-2 py-1 rounded-full text-xs font-bold @statusClass">
                                         @r.Status
                                     </span>
+                                </td>
+
+                                <td class="px-4 sm:px-6 py-4 text-xs font-mono text-on-surface-variant">
+                                    @(string.IsNullOrWhiteSpace(r.ReadinessStatus) ? "—" : r.ReadinessStatus)
                                 </td>
 
                                 <td class="px-4 sm:px-6 py-4">

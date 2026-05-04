@@ -1,0 +1,158 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Operations.Uploads.DetailsModel
+@using DecisionOS.Distribution.Domain.Uploads
+@{
+    ViewData["Title"] = "Upload Batch";
+    Layout = "_Layout";
+}
+
+@if (Model.Batch is null)
+{
+    <div class="text-error font-semibold">Batch not found.</div>
+    return;
+}
+
+<div class="max-w-[1200px] mx-auto space-y-8">
+    <div class="flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-headline font-bold">Upload Batch</h1>
+            <p class="text-sm text-on-surface-variant mt-1">
+                @Model.Batch.Tenant.Name (@Model.Batch.Tenant.ClientId) · Week ending @Model.Batch.PeriodEnd.ToString("yyyy-MM-dd")
+            </p>
+        </div>
+        <a href="/Operations/Uploads" class="text-sm text-on-surface-variant hover:text-primary">← Back</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="text-xs uppercase text-on-surface-variant">Status</div>
+                        <div class="font-bold">@Model.Batch.Status</div>
+                    </div>
+                    <div>
+                        <div class="text-xs uppercase text-on-surface-variant">Readiness</div>
+                        <div class="font-mono text-sm">@(string.IsNullOrWhiteSpace(Model.Batch.ReadinessStatus) ? "—" : Model.Batch.ReadinessStatus)</div>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex items-center justify-between gap-4">
+                    <form method="post" asp-page-handler="Validate">
+                        <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-primary text-white">Validate package</button>
+                    </form>
+                    <form method="post" asp-page-handler="RunImport">
+                        <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-surface-container-high border border-surface-container-high hover:bg-surface-container-low">
+                            Run import (normalize → score)
+                        </button>
+                    </form>
+                    <div class="text-xs text-on-surface-variant">
+                        @(string.IsNullOrWhiteSpace(Model.Batch.ValidationSummary) ? "Not validated yet." : Model.Batch.ValidationSummary)
+                    </div>
+                </div>
+
+                @if (Model.Issues.Count > 0)
+                {
+                    <div class="mt-4 bg-surface-container-low p-4 rounded-lg border border-surface-container-high">
+                        <div class="text-xs uppercase text-on-surface-variant mb-2">Validation issues</div>
+                        <ul class="space-y-1 text-xs font-mono">
+                            @foreach (var i in Model.Issues)
+                            {
+                                <li>
+                                    <span class="font-bold">@i.Severity</span> · <span class="font-semibold">@i.Category</span>
+                                    @if (!string.IsNullOrWhiteSpace(i.Field))
+                                    {<span> · @i.Field</span>}
+                                    <span> — @i.Message</span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </div>
+
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <h2 class="text-lg font-bold mb-4">Uploaded files</h2>
+
+                @if (Model.Files.Count == 0)
+                {
+                    <div class="text-sm text-on-surface-variant">No files yet.</div>
+                }
+                else
+                {
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm min-w-[800px]">
+                            <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Type</th>
+                                <th class="px-4 py-3 text-left">File</th>
+                                <th class="px-4 py-3 text-left">SHA</th>
+                                <th class="px-4 py-3 text-right">Header row</th>
+                                <th class="px-4 py-3 text-left">Uploaded</th>
+                                <th class="px-4 py-3 text-right">Map</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                            @foreach (var f in Model.Files)
+                            {
+                                <tr class="hover:bg-surface-container-low transition">
+                                    <td class="px-4 py-3 font-semibold">@f.ReportType</td>
+                                    <td class="px-4 py-3">
+                                        <div class="font-mono text-xs">@f.OriginalFileName</div>
+                                        <div class="text-[10px] text-on-surface-variant font-mono">@f.StoredRelativePath</div>
+                                    </td>
+                                    <td class="px-4 py-3 font-mono text-xs">@f.Sha256Hex[..Math.Min(12, f.Sha256Hex.Length)]…</td>
+                                    <td class="px-4 py-3 text-right font-mono text-xs">@f.HeaderRowNumber</td>
+                                    <td class="px-4 py-3 text-xs font-mono text-on-surface-variant">@f.UploadedAt.ToString("u")</td>
+                                    <td class="px-4 py-3 text-right">
+                                        <a class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10"
+                                           href="/Operations/Uploads/Map?batchId=@Model.Batch.Id&fileId=@f.Id">Map</a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <h2 class="text-lg font-bold mb-4">Upload a report (CSV)</h2>
+                <p class="text-xs text-on-surface-variant mb-4">
+                    V1 supports manual uploads by report type. Excel is supported via export to CSV.
+                </p>
+
+                @if (!string.IsNullOrWhiteSpace(Model.UploadError))
+                {
+                    <div class="mb-4 p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.UploadError</div>
+                }
+
+                <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Report type</label>
+                        <select asp-for="ReportType" class="w-full rounded-lg border-surface-container-high bg-white">
+                            @foreach (var rt in Enum.GetValues<ReportType>())
+                            {
+                                <option value="@rt">@rt</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Header row</label>
+                        <input asp-for="HeaderRowNumber" type="number" min="1" max="50" class="w-full rounded-lg border-surface-container-high bg-white" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">File</label>
+                        <input asp-for="UploadFile" type="file" accept=".csv" class="w-full" />
+                    </div>
+
+                    <button type="submit" class="w-full bg-primary text-white px-6 py-2 rounded-xl font-bold">Upload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+

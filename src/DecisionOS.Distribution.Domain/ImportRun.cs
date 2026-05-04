@@ -12,6 +12,10 @@ public class ImportRun
     public DateTimeOffset StartedAt { get; set; }
     public DateTimeOffset? CompletedAt { get; set; }
     public string Status { get; set; } = null!;
+    /// <summary>
+    /// Readiness status rolled up from validation: ReadyToRun / ReadyWithLimitations / NotReadyYet.
+    /// </summary>
+    public string? ReadinessStatus { get; set; }
     public int KpiRowsProcessed { get; set; }
     public int DriverRowsProcessed { get; set; }
     public string? ErrorMessage { get; set; }

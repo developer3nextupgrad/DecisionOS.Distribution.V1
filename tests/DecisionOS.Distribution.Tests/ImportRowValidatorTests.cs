@@ -26,7 +26,9 @@ public class ImportRowValidatorTests
         var r = new ImportValidationResult();
         var d = Def(min: 0.05m, max: 0.5m);
         ImportRowValidator.ValidateKpiValue(d, 0.01m, r, rowNumber: 3);
-        Assert.Contains(r.Issues, i => i.Field == "value");
+        var issue = Assert.Single(r.Issues, i => i.Field == "value");
+        Assert.Equal(ImportValidationSeverity.Warning, issue.Severity);
+        Assert.True(r.IsValid); // warnings imply "ready with limitations", not a blocker
     }
 
     [Fact]

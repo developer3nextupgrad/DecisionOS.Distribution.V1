@@ -1,0 +1,76 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Operations.Uploads.MapModel
+@using DecisionOS.Distribution.Domain.Uploads
+@{
+    ViewData["Title"] = "Map Columns";
+    Layout = "_Layout";
+}
+
+@if (Model.Batch is null || Model.Uploaded is null)
+{
+    <div class="text-error font-semibold">Not found.</div>
+    return;
+}
+
+<div class="max-w-[1200px] mx-auto space-y-8">
+    <div class="flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-headline font-bold">Map Columns</h1>
+            <p class="text-sm text-on-surface-variant mt-1">
+                @Model.Batch.Tenant.Name (@Model.Batch.Tenant.ClientId) · @Model.Uploaded.ReportType · @Model.Uploaded.OriginalFileName
+            </p>
+        </div>
+        <a href="/Operations/Uploads/Details?id=@Model.Batch.Id" class="text-sm text-on-surface-variant hover:text-primary">← Back</a>
+    </div>
+
+    <form method="post" class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-6">
+        <div class="flex items-center gap-4">
+            <label class="flex items-center gap-2 text-sm font-semibold">
+                <input asp-for="SaveAsTemplate" type="checkbox" class="rounded border-surface-container-high" />
+                Save as mapping template
+            </label>
+            <div class="flex-1">
+                <input asp-for="TemplateName" class="w-full rounded-lg border-surface-container-high bg-white" placeholder="Template name (e.g., QuickBooks AR Aging — Client A)" />
+                <span class="text-xs text-error" asp-validation-for="TemplateName"></span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[900px] text-sm">
+                <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
+                <tr>
+                    <th class="px-4 py-3 text-left">Source column</th>
+                    <th class="px-4 py-3 text-left">Maps to system field</th>
+                    <th class="px-4 py-3 text-center">Ignore</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y">
+                @foreach (var col in Model.SourceColumns)
+                {
+                    var key = col;
+                    <tr class="hover:bg-surface-container-low transition">
+                        <td class="px-4 py-3 font-mono text-xs">@col</td>
+                        <td class="px-4 py-3">
+                            <select name="Mapping[@key]" class="w-full rounded-lg border-surface-container-high bg-white">
+                                <option value="">— Unmapped —</option>
+                                @foreach (var f in Model.SystemFields)
+                                {
+                                    <option value="@f" selected="@(Model.Mapping.TryGetValue(col, out var v) && v == f)">@f</option>
+                                }
+                            </select>
+                        </td>
+                        <td class="px-4 py-3 text-center">
+                            <input type="checkbox" name="Ignored" value="@key" checked="@(Model.Ignored.Contains(col))" />
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="flex items-center justify-end gap-3">
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Save</button>
+        </div>
+    </form>
+</div>
+

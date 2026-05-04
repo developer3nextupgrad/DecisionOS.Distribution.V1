@@ -3,6 +3,7 @@ using System;
 using DecisionOS.Distribution.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DecisionOS.Distribution.Infrastructure.Migrations
 {
     [DbContext(typeof(DecisionOsDbContext))]
-    partial class DecisionOsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504182230_UploadBatchesAndMappings")]
+    partial class UploadBatchesAndMappings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -515,276 +518,6 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.ToTable("KpiSnapshots");
                 });
 
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Normalized.NormalizedApRow", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AgingBucket")
-                        .HasColumnType("text");
-
-                    b.Property<string>("BillId")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("DaysPastDue")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly?>("DueDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("IssueSummary")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("OpenBalance")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateOnly>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<string>("RawJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly?>("SnapshotDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("SourceRowNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("UploadBatchId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("VendorId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("VendorName")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "PeriodEnd");
-
-                    b.HasIndex("UploadBatchId", "UploadedFileId");
-
-                    b.ToTable("NormalizedApRows");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Normalized.NormalizedArRow", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("AgingBucket")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CustomerId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CustomerName")
-                        .HasColumnType("text");
-
-                    b.Property<int?>("DaysPastDue")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly?>("DueDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("InvoiceId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("IssueSummary")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("OpenBalance")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateOnly>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<string>("RawJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly?>("SnapshotDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("SourceRowNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("UploadBatchId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "PeriodEnd");
-
-                    b.HasIndex("UploadBatchId", "UploadedFileId");
-
-                    b.ToTable("NormalizedArRows");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Normalized.NormalizedInventoryRow", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<decimal?>("AverageCost")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("InventoryValue")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("IssueSummary")
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly?>("LastSaleDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("LocationId")
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<decimal?>("QuantityOnHand")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("RawJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SkuId")
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly?>("SnapshotDate")
-                        .HasColumnType("date");
-
-                    b.Property<int>("SourceRowNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<long>("UploadBatchId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "PeriodEnd");
-
-                    b.HasIndex("UploadBatchId", "UploadedFileId");
-
-                    b.ToTable("NormalizedInventoryRows");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Normalized.NormalizedSalesRow", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<decimal?>("Cogs")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("CustomerId")
-                        .HasColumnType("text");
-
-                    b.Property<string>("CustomerName")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("GrossProfit")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("IssueSummary")
-                        .HasColumnType("text");
-
-                    b.Property<string>("LocationId")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("NetSales")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateOnly>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<string>("ProductDescription")
-                        .HasColumnType("text");
-
-                    b.Property<decimal?>("QuantitySold")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("RawJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SkuId")
-                        .HasColumnType("text");
-
-                    b.Property<int>("SourceRowNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateOnly?>("TransactionDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("TransactionId")
-                        .HasColumnType("text");
-
-                    b.Property<long>("UploadBatchId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TenantId", "PeriodEnd");
-
-                    b.HasIndex("UploadBatchId", "UploadedFileId");
-
-                    b.ToTable("NormalizedSalesRows");
-                });
-
             modelBuilder.Entity("DecisionOS.Distribution.Domain.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -973,9 +706,6 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int?>("ImportRunId")
-                        .HasColumnType("integer");
-
                     b.Property<DateOnly>("PeriodEnd")
                         .HasColumnType("date");
 
@@ -994,48 +724,9 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ImportRunId");
-
                     b.HasIndex("TenantId", "PeriodEnd");
 
                     b.ToTable("UploadBatches");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadBatchIssue", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Category")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Field")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Message")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("Severity")
-                        .HasColumnType("integer");
-
-                    b.Property<long>("UploadBatchId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UploadedFileId");
-
-                    b.HasIndex("UploadBatchId", "Severity");
-
-                    b.ToTable("UploadBatchIssues");
                 });
 
             modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadedFile", b =>
@@ -1090,35 +781,6 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.HasIndex("UploadBatchId", "ReportType");
 
                     b.ToTable("UploadedFiles");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadedFileColumnMap", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<bool>("Ignore")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SourceColumn")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("SystemField")
-                        .HasColumnType("text");
-
-                    b.Property<long>("UploadedFileId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UploadedFileId", "SourceColumn")
-                        .IsUnique();
-
-                    b.ToTable("UploadedFileColumnMaps");
                 });
 
             modelBuilder.Entity("DecisionOS.Distribution.Domain.VerticalLibrary", b =>
@@ -1573,36 +1235,13 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
 
             modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadBatch", b =>
                 {
-                    b.HasOne("DecisionOS.Distribution.Domain.ImportRun", "ImportRun")
-                        .WithMany()
-                        .HasForeignKey("ImportRunId");
-
                     b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
                         .WithMany()
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ImportRun");
-
                     b.Navigation("Tenant");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadBatchIssue", b =>
-                {
-                    b.HasOne("DecisionOS.Distribution.Domain.Uploads.UploadBatch", "UploadBatch")
-                        .WithMany()
-                        .HasForeignKey("UploadBatchId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DecisionOS.Distribution.Domain.Uploads.UploadedFile", "UploadedFile")
-                        .WithMany()
-                        .HasForeignKey("UploadedFileId");
-
-                    b.Navigation("UploadBatch");
-
-                    b.Navigation("UploadedFile");
                 });
 
             modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadedFile", b =>
@@ -1614,17 +1253,6 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("UploadBatch");
-                });
-
-            modelBuilder.Entity("DecisionOS.Distribution.Domain.Uploads.UploadedFileColumnMap", b =>
-                {
-                    b.HasOne("DecisionOS.Distribution.Domain.Uploads.UploadedFile", "UploadedFile")
-                        .WithMany()
-                        .HasForeignKey("UploadedFileId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("UploadedFile");
                 });
 
             modelBuilder.Entity("DecisionOS.Distribution.Domain.WeeklyFocus", b =>

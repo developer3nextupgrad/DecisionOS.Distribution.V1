@@ -68,6 +68,10 @@
         background: linear-gradient(180deg, #5a9b73 0%, #467a5a 100%);
     }
 
+    .card-gray {
+        background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+    }
+
     .kpi-title {
         font-size: 1rem;
         border-bottom: 1px solid rgba(255,255,255,0.3);
@@ -278,6 +282,7 @@
             <span class="insight-chip" style="border-color:#10b981; color:#047857;">On track: @Model.GreenCount</span>
             <span class="insight-chip" style="border-color:#f59e0b; color:#b45309;">Attention: @Model.YellowCount</span>
             <span class="insight-chip" style="border-color:#ef4444; color:#b91c1c;">Critical: @Model.RedCount</span>
+            <span class="insight-chip" style="border-color:#64748b; color:#334155;">Insufficient data: @Model.GrayCount</span>
         </div>
 
         @if (Model.TopAlert is not null)
@@ -301,7 +306,10 @@
         <div class="kpi-container">
             @foreach (var snapshot in Model.Snapshots.Take(4))
             {
-                var colorClass = snapshot.Status.Equals("GREEN", StringComparison.OrdinalIgnoreCase) ? "card-green" : (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" : "card-red");
+                var colorClass =
+                    snapshot.Status.Equals("GREEN", StringComparison.OrdinalIgnoreCase) ? "card-green" :
+                    (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" :
+                        (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase) ? "card-gray" : "card-red"));
                 <div class="kpi-card @colorClass">
                     <div class="kpi-title">@snapshot.KpiDefinition.Name</div>
                     <div class="kpi-main-val">@Model.FormatValue(snapshot)</div>

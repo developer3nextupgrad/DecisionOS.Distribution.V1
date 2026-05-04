@@ -55,6 +55,7 @@ builder.Services.AddScoped<IKpiStatusService, KpiStatusService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 builder.Services.AddScoped<IWeeklyFocusService, WeeklyFocusService>();
 builder.Services.AddScoped<IDriverRankingService, DriverRankingService>();
+builder.Services.AddScoped<UploadBatchImportService>();
 
 var app = builder.Build();
 
@@ -77,6 +78,12 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
     var holdoverView = string.Equals(req.Query["view"], "holdover", StringComparison.OrdinalIgnoreCase);
     var profileId = tenant.BusinessProfileId;
 
+    var importRun = await db.ImportRuns
+        .AsNoTracking()
+        .Where(r => r.TenantId == tenant.Id && r.PeriodEnd == periodEnd)
+        .OrderByDescending(r => r.StartedAt)
+        .FirstOrDefaultAsync();
+
     var snapshots = await db.KpiSnapshots
         .Include(s => s.KpiDefinition)
         .Where(s => s.TenantId == tenant.Id && s.PeriodEnd == periodEnd)
@@ -88,6 +95,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
             s.Value,
             s.Status,
             s.WeekOverWeekDelta,
+            s.DataConfidence,
             s.CardDetailLine1,
             s.CardDetailLine2
         })
@@ -132,10 +140,40 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
         .Include(w => w.KpiDefinition)
         .FirstOrDefaultAsync(w => w.TenantId == tenant.Id && w.PeriodEnd == periodEnd);
 
+    var holdoverActionsQuery = db.ActionItems.AsNoTracking()
+        .Where(a => a.TenantId == tenant.Id);
+
+    if (!holdoverView)
+        holdoverActionsQuery = holdoverActionsQuery.Where(a => a.PeriodEnd == periodEnd || a.Status != ActionStatuses.Completed);
+
+    var actions = await holdoverActionsQuery
+        .Include(a => a.KpiDefinition)
+        .OrderByDescending(a => a.PeriodEnd)
+        .ThenBy(a => a.Priority)
+        .Take(holdoverView ? 50 : 20)
+        .Select(a => new
+        {
+            a.Id,
+            a.PeriodEnd,
+            PillarCode = a.KpiDefinition != null ? a.KpiDefinition.Code : null,
+            Pillar = a.KpiDefinition != null ? a.KpiDefinition.Name : null,
+            a.Title,
+            a.Description,
+            a.Owner,
+            a.DueDate,
+            a.Status,
+            a.Priority,
+            a.UpdatedAt,
+            a.CompletedAt,
+            a.Notes
+        })
+        .ToListAsync();
+
     return Results.Ok(new
     {
         Tenant = new { tenant.ClientId, tenant.Name, tenant.Archetype, tenant.BusinessProfileId },
         PeriodEnd = periodEnd,
+        Import = importRun is null ? null : new { importRun.Status, importRun.ReadinessStatus, importRun.ValidationSummary },
         Kpis = snapshots,
         TopAlert = alert is null
             ? null
@@ -146,6 +184,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
                 alert.ReasonSummary
             },
         Drivers = drivers,
+        Actions = actions,
         WeeklyFocus = focus is null
             ? null
             : new
@@ -157,6 +196,36 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
                 focus.Cadence
             }
     });
+});
+
+api.MapPost("/tenants/{clientId}/actions/{actionId:long}/status", async (string clientId, long actionId, string status, DecisionOsDbContext db) =>
+{
+    var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var action = await db.ActionItems.FirstOrDefaultAsync(a => a.Id == actionId && a.TenantId == tenant.Id);
+    if (action is null) return Results.NotFound();
+
+    var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ActionStatuses.NotStarted,
+        ActionStatuses.InProgress,
+        ActionStatuses.AtRisk,
+        ActionStatuses.Completed,
+        ActionStatuses.Deferred,
+        ActionStatuses.Blocked
+    };
+    if (!allowed.Contains(status))
+        return Results.BadRequest(new { error = "Invalid status." });
+
+    action.Status = status;
+    action.UpdatedAt = DateTimeOffset.UtcNow;
+    action.CompletedAt = string.Equals(status, ActionStatuses.Completed, StringComparison.OrdinalIgnoreCase)
+        ? DateTimeOffset.UtcNow
+        : null;
+
+    await db.SaveChangesAsync();
+    return Results.Ok(new { action.Id, action.Status, action.UpdatedAt, action.CompletedAt });
 });
 
 api.MapGet("/tenants", async (DecisionOsDbContext db) =>

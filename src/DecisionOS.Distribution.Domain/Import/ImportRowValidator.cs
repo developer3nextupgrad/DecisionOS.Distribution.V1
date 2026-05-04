@@ -12,13 +12,18 @@ public static class ImportRowValidator
         int rowNumber)
     {
         if (definition.MinValue is { } min && value < min)
-            result.Add("KPI", $"Value {value} is below configured minimum {min}.", rowNumber, "value");
+            result.Add("KPI", $"Value {value} is below configured minimum {min}.", rowNumber, "value", ImportValidationSeverity.Warning);
 
         if (definition.MaxValue is { } max && value > max)
-            result.Add("KPI", $"Value {value} is above configured maximum {max}.", rowNumber, "value");
+            result.Add("KPI", $"Value {value} is above configured maximum {max}.", rowNumber, "value", ImportValidationSeverity.Warning);
 
         if (definition.Unit == "pct" && (value < 0m || value > 1.5m))
-            result.Add("KPI", "Percentage KPIs are expected as fractions 0–1 (e.g. 0.27 for 27%).", rowNumber, "value");
+            result.Add(
+                "KPI",
+                "Percentage KPIs are expected as fractions 0–1 (e.g. 0.27 for 27%).",
+                rowNumber,
+                "value",
+                ImportValidationSeverity.Warning);
     }
 
     public static void ValidateDriverRow(
@@ -34,19 +39,19 @@ public static class ImportRowValidator
         int rowNumber)
     {
         if (string.IsNullOrWhiteSpace(pillarCode))
-            result.Add("Driver", "pillar_code is required.", rowNumber, "pillar_code");
+            result.Add("Driver", "pillar_code is required.", rowNumber, "pillar_code", ImportValidationSeverity.Critical);
 
         if (string.IsNullOrWhiteSpace(driverName))
-            result.Add("Driver", "driver_name is required.", rowNumber, "driver_name");
+            result.Add("Driver", "driver_name is required.", rowNumber, "driver_name", ImportValidationSeverity.Critical);
 
         if (rank < 1)
-            result.Add("Driver", "rank must be >= 1.", rowNumber, "rank");
+            result.Add("Driver", "rank must be >= 1.", rowNumber, "rank", ImportValidationSeverity.Critical);
 
         if (string.IsNullOrWhiteSpace(status) || !AllowedStatuses.Contains(status.Trim()))
-            result.Add("Driver", "status must be GREEN, YELLOW, or RED.", rowNumber, "status");
+            result.Add("Driver", "status must be GREEN, YELLOW, or RED.", rowNumber, "status", ImportValidationSeverity.Critical);
 
         if (fixProgress is < 0 or > 100)
-            result.Add("Driver", "fix_progress must be between 0 and 100.", rowNumber, "fix_progress");
+            result.Add("Driver", "fix_progress must be between 0 and 100.", rowNumber, "fix_progress", ImportValidationSeverity.Warning);
 
         var defsForPillar = activeDefinitionsByPillar[pillarCode].Where(d => d.IsActive).ToList();
         if (defsForPillar.Count == 0)
@@ -56,7 +61,7 @@ public static class ImportRowValidator
         {
             result.Add("Driver",
                 $"driver_code is required when a driver catalog exists for pillar '{pillarCode}'.",
-                rowNumber, "driver_code");
+                rowNumber, "driver_code", ImportValidationSeverity.Critical);
             return;
         }
 
@@ -65,6 +70,6 @@ public static class ImportRowValidator
         if (match is null)
             result.Add("Driver",
                 $"driver_code '{driverCode}' is not in the active catalog for pillar '{pillarCode}'.",
-                rowNumber, "driver_code");
+                rowNumber, "driver_code", ImportValidationSeverity.Critical);
     }
 }

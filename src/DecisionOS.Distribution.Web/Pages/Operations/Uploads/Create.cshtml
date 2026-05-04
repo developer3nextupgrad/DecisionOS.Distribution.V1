@@ -1,0 +1,39 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Operations.Uploads.CreateModel
+@{
+    ViewData["Title"] = "New Upload Batch";
+    Layout = "_Layout";
+}
+
+<div class="max-w-[900px] mx-auto space-y-8">
+    <div>
+        <h1 class="text-3xl font-headline font-bold">New Upload Batch</h1>
+        <p class="text-sm text-on-surface-variant mt-1">Create a weekly upload package to classify, map, validate, and import.</p>
+    </div>
+
+    <form method="post" class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-6">
+        <div>
+            <label class="block text-sm font-semibold mb-2">Tenant</label>
+            <select asp-for="ClientId" class="w-full rounded-lg border-surface-container-high bg-white">
+                <option value="">Select tenant…</option>
+                @foreach (var t in Model.Tenants)
+                {
+                    <option value="@t.ClientId">@t.Name (@t.ClientId)</option>
+                }
+            </select>
+            <span class="text-xs text-error" asp-validation-for="ClientId"></span>
+        </div>
+
+        <div>
+            <label class="block text-sm font-semibold mb-2">Week ending (PeriodEnd)</label>
+            <input asp-for="PeriodEnd" type="date" class="w-full rounded-lg border-surface-container-high bg-white" />
+            <span class="text-xs text-error" asp-validation-for="PeriodEnd"></span>
+        </div>
+
+        <div class="flex items-center justify-between">
+            <a href="/Operations/Uploads" class="text-sm text-on-surface-variant hover:text-primary">← Back</a>
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Create batch</button>
+        </div>
+    </form>
+</div>
+

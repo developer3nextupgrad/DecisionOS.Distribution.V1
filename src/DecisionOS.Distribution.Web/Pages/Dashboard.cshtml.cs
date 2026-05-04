@@ -25,6 +25,7 @@ public class DashboardModel : PageModel
     public int GreenCount { get; set; }
     public int YellowCount { get; set; }
     public int RedCount { get; set; }
+    public int GrayCount { get; set; }
     public IReadOnlyDictionary<string, string> PillarDisplayNames { get; private set; } =
         new Dictionary<string, string>();
 
@@ -82,6 +83,7 @@ public class DashboardModel : PageModel
         GreenCount = Snapshots.Count(s => s.Status == "GREEN");
         YellowCount = Snapshots.Count(s => s.Status == "YELLOW");
         RedCount = Snapshots.Count(s => s.Status == "RED");
+        GrayCount = Snapshots.Count(s => s.Status == "GRAY");
 
         return Page();
     }
@@ -117,6 +119,7 @@ public class DashboardModel : PageModel
         "GREEN" => "green",
         "YELLOW" => "amber",
         "RED" => "red",
+        "GRAY" => "neutral",
         _ => "neutral"
     };
 

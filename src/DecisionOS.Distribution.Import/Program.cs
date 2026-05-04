@@ -107,7 +107,10 @@ try
         await ValidateDriverCsvHeadersAsync(driversCsvPath, requireDriverCode);
     }
 
+    var validations = new List<(string Label, ImportValidationResult Result)>();
+
     var kpiValidation = new ImportValidationResult();
+    validations.Add(("KPI", kpiValidation));
     importRun.KpiRowsProcessed = await ImportKpisAsync(db, tenant, periodEnd, kpiCsvPath, kpiStatusService, kpiValidation, definitionResolver);
     if (!kpiValidation.IsValid)
         throw new InvalidOperationException(kpiValidation.FormatMessages());
@@ -115,10 +118,15 @@ try
     if (!string.IsNullOrWhiteSpace(driversCsvPath))
     {
         var driverValidation = new ImportValidationResult();
+        validations.Add(("Driver", driverValidation));
         importRun.DriverRowsProcessed = await ImportDriversAsync(db, tenant, periodEnd, driversCsvPath, driverValidation, definitionResolver);
         if (!driverValidation.IsValid)
             throw new InvalidOperationException(driverValidation.FormatMessages());
     }
+
+    PersistValidation(importRun, validations);
+    await db.SaveChangesAsync();
+    await PersistValidationIssuesAsync(db, importRun, validations.Select(v => v.Result));
 
     var previousPeriodEnd = periodEnd.AddDays(-7);
     var currentSnapshots = await db.KpiSnapshots
@@ -133,6 +141,15 @@ try
         if (previousSnapshots.TryGetValue(snapshot.KpiDefinitionId, out var prev))
             snapshot.WeekOverWeekDelta = snapshot.Value - prev.Value;
     }
+
+    var confidence = importRun.ReadinessStatus switch
+    {
+        "ReadyToRun" => "High",
+        "ReadyWithLimitations" => "Medium",
+        _ => "Low"
+    };
+    foreach (var snapshot in currentSnapshots)
+        snapshot.DataConfidence = confidence;
 
     await db.SaveChangesAsync();
 
@@ -160,7 +177,38 @@ try
 
     await db.SaveChangesAsync();
 
+    // Ensure at least one actionable execution item exists for the week (do not overwrite operator edits).
+    if (topAlert is not null)
+    {
+        var existingAction = await db.ActionItems.FirstOrDefaultAsync(a =>
+            a.TenantId == tenant.Id &&
+            a.PeriodEnd == periodEnd &&
+            a.KpiDefinitionId == topAlert.KpiDefinitionId);
+
+        if (existingAction is null)
+        {
+            var def = definitions.FirstOrDefault(d => d.Id == topAlert.KpiDefinitionId);
+            db.ActionItems.Add(new ActionItem
+            {
+                TenantId = tenant.Id,
+                PeriodEnd = periodEnd,
+                KpiDefinitionId = topAlert.KpiDefinitionId,
+                Title = def is null ? "Weekly priority action" : $"Fix {def.Name}",
+                Description = weeklyFocus?.RecommendedAction,
+                Owner = weeklyFocus?.Owner ?? "Operations",
+                DueDate = periodEnd.AddDays(7),
+                Status = ActionStatuses.NotStarted,
+                Priority = def?.AlertPriority ?? 50,
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
+            });
+        }
+    }
+
+    await db.SaveChangesAsync();
+
     importRun.Status = "Completed";
+    await db.SaveChangesAsync();
     Console.WriteLine("Import completed.");
 }
 catch (Exception ex)
@@ -174,6 +222,63 @@ finally
 {
     importRun.CompletedAt = DateTimeOffset.UtcNow;
     await db.SaveChangesAsync();
+}
+
+static void PersistValidation(ImportRun run, IReadOnlyList<(string Label, ImportValidationResult Result)> results)
+{
+    var hasCritical = results.Any(r => r.Result.HasCritical);
+    var hasWarnings = results.Any(r => r.Result.HasWarnings);
+
+    var readiness = hasCritical
+        ? "NotReadyYet"
+        : hasWarnings
+            ? "ReadyWithLimitations"
+            : "ReadyToRun";
+
+    run.ReadinessStatus = readiness;
+
+    var allIssues = results.SelectMany(r => r.Result.Issues).ToList();
+    var criticalCount = allIssues.Count(i => i.Severity == ImportValidationSeverity.Critical);
+    var warningCount = allIssues.Count(i => i.Severity == ImportValidationSeverity.Warning);
+    var infoCount = allIssues.Count(i => i.Severity == ImportValidationSeverity.Info);
+
+    var header = $"Readiness={readiness}; Critical={criticalCount}; Warning={warningCount}; Info={infoCount}";
+
+    var sections = new List<string> { header };
+    foreach (var (label, r) in results)
+    {
+        if (r.Issues.Count == 0) continue;
+        sections.Add($"--- {label} issues ({r.Issues.Count}) ---");
+        sections.Add(r.FormatMessages(maxLines: 200));
+    }
+
+    if (sections.Count == 1)
+        sections.Add("No validation issues.");
+
+    run.ValidationSummary = string.Join(Environment.NewLine, sections);
+}
+
+static async Task PersistValidationIssuesAsync(DecisionOsDbContext db, ImportRun run, IEnumerable<ImportValidationResult> results)
+{
+    // Replace prior exceptions for the run to keep the latest attempt canonical.
+    var existing = db.ImportRunIssues.Where(x => x.ImportRunId == run.Id);
+    db.ImportRunIssues.RemoveRange(existing);
+
+    var issues = results.SelectMany(r => r.Issues).Select(i => new ImportRunIssue
+    {
+        ImportRunId = run.Id,
+        Category = i.Category,
+        Severity = i.Severity,
+        Message = i.Message,
+        RowNumber = i.RowNumber,
+        Field = i.Field
+    }).ToList();
+
+    if (issues.Count > 0)
+    {
+        db.ImportRunIssues.AddRange(issues);
+        await db.SaveChangesAsync();
+    }
 }
 
 static string ComputeImportFingerprint(string clientId, DateOnly periodEnd, string kpiPath, string? driversPath)
@@ -466,7 +571,7 @@ static async Task<int> ImportKpisAsync(
 
         if (!dict.TryGetValue("value", out var valueObj) || valueObj is null)
         {
-            validation.Add("KPI", "value is required when kpi_code is set.", row, "value");
+            validation.Add("KPI", "value is required when kpi_code is set.", row, "value", ImportValidationSeverity.Critical);
             row++;
             continue;
         }
@@ -474,14 +579,14 @@ static async Task<int> ImportKpisAsync(
         var code = codeObj.ToString()!.Trim();
         if (!definitions.TryGetValue(code, out var definition))
         {
-            validation.Add("KPI", $"Unknown kpi_code '{code}'.", row, "kpi_code");
+            validation.Add("KPI", $"Unknown kpi_code '{code}'.", row, "kpi_code", ImportValidationSeverity.Critical);
             row++;
             continue;
         }
 
         if (!decimal.TryParse(valueObj.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var value))
         {
-            validation.Add("KPI", $"Cannot parse value for '{code}'.", row, "value");
+            validation.Add("KPI", $"Cannot parse value for '{code}'.", row, "value", ImportValidationSeverity.Critical);
             row++;
             continue;
         }
@@ -612,7 +717,7 @@ static async Task<int> ImportDriversAsync(
 
         if (!pillarSet.Contains(pillar))
         {
-            validation.Add("Driver", $"pillar_code '{pillar}' does not match a KPI definition.", row, "pillar_code");
+            validation.Add("Driver", $"pillar_code '{pillar}' does not match a KPI definition.", row, "pillar_code", ImportValidationSeverity.Critical);
             row++;
             continue;
         }
