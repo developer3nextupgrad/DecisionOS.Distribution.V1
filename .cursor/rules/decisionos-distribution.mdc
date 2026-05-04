@@ -1,0 +1,58 @@
+---
+description: DecisionOS.Distribution — stack, layering, auth, and conventions for all AI prompts
+alwaysApply: true
+---
+
+# DecisionOS.Distribution — project rules
+
+## Platform and language
+
+- **.NET 8** (`net8.0`) only. Do not retarget or mix TFMs.
+- **C#** with **nullable reference types** enabled and **implicit usings** — match existing nullability and patterns in touched files.
+- Prefer **async/await** for I/O; use **EF Core async** APIs (`ToListAsync`, `FirstOrDefaultAsync`, etc.) in web and data code.
+
+## Solution layout (respect boundaries)
+
+| Project | Responsibility |
+|--------|----------------|
+| **DecisionOS.Distribution.Domain** | Entities, domain types, security constants (`AppRoles`), **interfaces** and **domain/application services** registered from Web/Import (e.g. `IKpiStatusService`). No EF, no Npgsql, no ASP.NET. |
+| **DecisionOS.Distribution.Infrastructure** | **EF Core** (`DecisionOsDbContext`), **Npgsql** provider, **Identity** EF stores, migrations/conventions. References Domain only. |
+| **DecisionOS.Distribution.Web** | **ASP.NET Core** host: **Razor Pages**, **cookie authentication**, **authorization policies**, **minimal APIs** under `/api`, DI wiring, static files. References Domain + Infrastructure. |
+| **DecisionOS.Distribution.Import** | **Console** app: **CsvHelper**, JSON + environment configuration, batch/import flows; uses Domain + Infrastructure. |
+| **DecisionOS.Distribution.Tests** | **xUnit**, **EF Core InMemory** where tests need a DB; references Domain + Infrastructure as needed. |
+
+Do **not** move infrastructure concerns into Domain, or duplicate DbContext logic in Web when shared persistence belongs in Infrastructure.
+
+## Data and persistence
+
+- Database: **PostgreSQL** via **Npgsql.EntityFrameworkCore.PostgreSQL** (8.x aligned with EF 8.0.8).
+- Connection string name: **`DecisionOs`** (see `appsettings.json` / environment). Do not hardcode secrets in source; use configuration.
+- Single **`DecisionOsDbContext`** extending **`IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>`**.
+
+## Authentication and authorization
+
+- **ASP.NET Core Identity** with **GUID** user and role keys.
+- Authorization policies (defined in `Program.cs`): **`AdminOnly`**, **`OpsPolicy`**, **`AnyDistributionRole`** — use these names and **`AppRoles`** constants; roles are **Admin**, **Operator**, **Viewer**, **Developer**.
+- Razor conventions: **`/Admin`** → AdminOnly; **`/Operations`** → OpsPolicy; login/access-denied anonymous; index/dashboard use AnyDistributionRole — **update `Program.cs` conventions** when adding new secured areas.
+- Cookie auth: login `/Account/Login`, access denied `/Account/AccessDenied` — keep alignment when changing routes.
+
+## Web surface
+
+- **Razor Pages** with **code-behind** `*.cshtml.cs` in `Pages/` — follow existing folder layout (`Admin`, `Operations`, `Account`, shared layouts).
+- **`Program.cs`**: top-level statements; **minimal API** group **`/api`** requires **`AnyDistributionRole`**; **`/health`** is anonymous.
+- New JSON endpoints: prefer **minimal APIs** in `Program.cs` (or extracted static/route modules **only if** the repo already uses that pattern).
+
+## Packages and versions
+
+- Stack on **EF Core 8.0.8** and **ASP.NET Core Identity 8.0.8** unless upgrading the whole solution intentionally.
+- Import tooling uses **CsvHelper**; do not swap CSV libraries without an explicit request.
+
+## Testing
+
+- Use **xUnit** and existing test project patterns; **EF InMemory** for isolated tests when appropriate.
+
+## General guidance for this repo
+
+- Match **existing naming**, folder structure, and HTML/CSS patterns in **`.cshtml`** and layouts.
+- Keep changes **minimal and scoped** to the task; avoid unrelated refactors or new docs unless asked.
+- Do **not** introduce new UI frameworks, ORMs, or auth systems unless the user explicitly requests them.
