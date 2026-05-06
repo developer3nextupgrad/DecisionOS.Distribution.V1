@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
+using ExcelDataReader;
 
 namespace DecisionOS.Distribution.Web.Pages.Operations.Uploads;
 
@@ -79,15 +81,24 @@ public class DetailsModel : PageModel
 
         var originalName = Path.GetFileName(UploadFile.FileName);
         var ext = Path.GetExtension(originalName);
-        if (!string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase))
+        var isCsv = string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase);
+        var isExcel = string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase);
+
+        if (!isCsv && !isExcel)
         {
-            UploadError = "V1 currently supports CSV uploads for mapping/validation (Excel → export to CSV).";
+            UploadError = "Only CSV and Excel (.xlsx) files are supported.";
             return Page();
         }
 
         await using var ms = new MemoryStream();
         await UploadFile.CopyToAsync(ms);
         var bytes = ms.ToArray();
+
+        if (isExcel)
+        {
+            bytes = ConvertExcelToCsvBytes(bytes);
+            ext = ".csv"; // normalize everything to CSV
+        }
         var sha = UploadedFile.ComputeSha256Hex(bytes);
 
         var folder = Path.Combine(_env.ContentRootPath, "App_Data", "uploads", Batch.Tenant.ClientId, Batch.PeriodEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
@@ -176,6 +187,29 @@ public class DetailsModel : PageModel
         }
 
         return RedirectToPage("Details", new { id = Batch.Id });
+    }
+
+    private static byte[] ConvertExcelToCsvBytes(byte[] fileBytes)
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+        using var stream = new MemoryStream(fileBytes);
+        using var reader = ExcelReaderFactory.CreateReader(stream);
+
+        var result = reader.AsDataSet();
+        var table = result.Tables[0];
+
+        var lines = new List<string>();
+
+        foreach (System.Data.DataRow row in table.Rows)
+        {
+            var values = row.ItemArray
+                .Select(x => x?.ToString()?.Replace(",", " "));
+
+            lines.Add(string.Join(",", values));
+        }
+
+        return Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, lines));
     }
 
     private async Task<IReadOnlyList<string>> ReadCsvHeaderAsyncLocal(UploadedFile file)
