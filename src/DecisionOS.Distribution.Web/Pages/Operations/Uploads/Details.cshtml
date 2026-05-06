@@ -38,10 +38,12 @@
                 </div>
 
                 <div class="mt-4 flex items-center justify-between gap-4">
-                    <form method="post" asp-page-handler="Validate">
+                    <form method="post" asp-page-handler="Validate" asp-route-id="@Model.Batch.Id">
+                        @Html.AntiForgeryToken()
                         <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-primary text-white">Validate package</button>
                     </form>
-                    <form method="post" asp-page-handler="RunImport">
+                    <form method="post" asp-page-handler="RunImport" asp-route-id="@Model.Batch.Id">
+                        @Html.AntiForgeryToken()
                         <button type="submit" class="px-4 py-2 rounded-xl font-bold bg-surface-container-high border border-surface-container-high hover:bg-surface-container-low">
                             Run import (normalize → score)
                         </button>
@@ -50,6 +52,11 @@
                         @(string.IsNullOrWhiteSpace(Model.Batch.ValidationSummary) ? "Not validated yet." : Model.Batch.ValidationSummary)
                     </div>
                 </div>
+
+                @if (!string.IsNullOrWhiteSpace(Model.ActionError))
+                {
+                    <div class="mt-4 p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.ActionError</div>
+                }
 
                 @if (Model.Issues.Count > 0)
                 {
@@ -158,7 +165,7 @@
 
                     <div>
                         <label class="block text-sm font-semibold mb-2">File</label>
-                        <input asp-for="UploadFile" type="file" accept=".csv,.xlsx" class="w-full" />
+                        <input asp-for="UploadFile" type="file" accept=".csv,.xlsx,.xls" class="w-full" />
                     </div>
 
                     <button type="submit" class="w-full bg-primary text-white px-6 py-2 rounded-xl font-bold">Upload</button>

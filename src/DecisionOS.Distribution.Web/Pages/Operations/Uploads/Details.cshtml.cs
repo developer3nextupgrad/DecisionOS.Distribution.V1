@@ -35,6 +35,7 @@ public class DetailsModel : PageModel
     [BindProperty] public IFormFile? UploadFile { get; set; }
 
     public string? UploadError { get; private set; }
+    public string? ActionError { get; private set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -82,11 +83,12 @@ public class DetailsModel : PageModel
         var originalName = Path.GetFileName(UploadFile.FileName);
         var ext = Path.GetExtension(originalName);
         var isCsv = string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase);
-        var isExcel = string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase);
+        var isExcel = string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                      string.Equals(ext, ".xls", StringComparison.OrdinalIgnoreCase);
 
         if (!isCsv && !isExcel)
         {
-            UploadError = "Only CSV and Excel (.xlsx) files are supported.";
+            UploadError = "Only CSV and Excel (.xlsx/.xls) files are supported.";
             return Page();
         }
 
@@ -257,13 +259,22 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnPostRunImportAsync()
     {
-        await _pipeline.RunImportAsync(Id, _env.ContentRootPath);
-        await OnGetAsync();
-        var clientId = Batch?.Tenant.ClientId;
-        var periodEnd = Batch?.PeriodEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        return clientId is null || periodEnd is null
-            ? RedirectToPage("Details", new { id = Id })
-            : RedirectToPage("/Dashboard", new { clientId, periodEnd });
+        try
+        {
+            await _pipeline.RunImportAsync(Id, _env.ContentRootPath);
+            await OnGetAsync();
+            var clientId = Batch?.Tenant.ClientId;
+            var periodEnd = Batch?.PeriodEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            return clientId is null || periodEnd is null
+                ? RedirectToPage("Details", new { id = Id })
+                : RedirectToPage("/Dashboard", new { clientId, periodEnd });
+        }
+        catch (InvalidOperationException ex)
+        {
+            await OnGetAsync();
+            ActionError = ex.Message;
+            return Page();
+        }
     }
 }
 

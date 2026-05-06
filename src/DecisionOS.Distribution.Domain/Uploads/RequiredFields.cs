@@ -6,7 +6,6 @@ public static class RequiredFields
     {
         ReportType.Sales => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "Transaction_Date",
             "Quantity_Sold",
             "Net_Sales"
         },
@@ -53,6 +52,7 @@ public static class RequiredFields
     {
         ReportType.Sales => new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
+            "Transaction_Date",
             "SKU_ID",
             "COGS",
             "Customer_ID",

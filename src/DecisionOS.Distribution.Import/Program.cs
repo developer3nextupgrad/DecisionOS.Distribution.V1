@@ -6,15 +6,44 @@ using CsvHelper.Configuration;
 using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Domain.Import;
 using DecisionOS.Distribution.Infrastructure;
+using ExcelDataReader;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
 var rawArgs = args.ToList();
 var forceReimport = rawArgs.RemoveAll(x => string.Equals(x, "--force", StringComparison.OrdinalIgnoreCase)) > 0;
 
+if (rawArgs.Count >= 2 && string.Equals(rawArgs[0], "inspect", StringComparison.OrdinalIgnoreCase))
+{
+    var path = rawArgs[1];
+    var rows = 10;
+    var sheetIndex = 0;
+    for (var i = 2; i < rawArgs.Count; i++)
+    {
+        if (string.Equals(rawArgs[i], "--rows", StringComparison.OrdinalIgnoreCase) && i + 1 < rawArgs.Count &&
+            int.TryParse(rawArgs[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var r))
+        {
+            rows = Math.Clamp(r, 1, 200);
+            i++;
+            continue;
+        }
+        if (string.Equals(rawArgs[i], "--sheet", StringComparison.OrdinalIgnoreCase) && i + 1 < rawArgs.Count &&
+            int.TryParse(rawArgs[i + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var s))
+        {
+            sheetIndex = Math.Max(0, s);
+            i++;
+        }
+    }
+
+    Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    DumpTabularPreview(path, sheetIndex, rows);
+    return;
+}
+
 if (rawArgs.Count < 3)
 {
-    Console.WriteLine("Usage: DecisionOS.Distribution.Import <client_id> <period_end:YYYY-MM-DD> <kpi_csv_path> [drivers_csv_path] [--force]");
+    Console.WriteLine("Usage: DecisionOS.Distribution.Import <client_id> <period_end:YYYY-MM-DD> <kpi_path(.csv|.xlsx|.xls)> [drivers_path(.csv|.xlsx|.xls)] [--force]");
+    Console.WriteLine("       DecisionOS.Distribution.Import inspect <path(.csv|.xlsx|.xls)> [--sheet N] [--rows N]");
     return;
 }
 
@@ -25,8 +54,16 @@ if (!DateOnly.TryParse(rawArgs[1], out var periodEnd))
     return;
 }
 
-var kpiCsvPath = rawArgs[2];
-var driversCsvPath = rawArgs.Count > 3 ? rawArgs[3] : string.Empty;
+var kpiPath = rawArgs[2];
+var driversPath = rawArgs.Count > 3 ? rawArgs[3] : string.Empty;
+
+Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+var tempFilesToDelete = new List<string>();
+try
+{
+    kpiPath = NormalizeToCsvPath(kpiPath, tempFilesToDelete);
+    driversPath = string.IsNullOrWhiteSpace(driversPath) ? string.Empty : NormalizeToCsvPath(driversPath, tempFilesToDelete);
 
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -68,7 +105,7 @@ await SeedKpiDefinitionsIfNeeded(db);
 await SyncKpiDefinitionPriorities(db);
 await SeedDriverDefinitionsIfNeeded(db);
 
-var fingerprint = ComputeImportFingerprint(clientId, periodEnd, kpiCsvPath, driversCsvPath);
+var fingerprint = ComputeImportFingerprint(clientId, periodEnd, kpiPath, driversPath);
 
 if (!forceReimport && await db.ImportRuns.AsNoTracking().AnyAsync(r =>
         r.TenantId == tenant.Id &&
@@ -100,26 +137,26 @@ var definitionResolver = new DefinitionResolver(db);
 
 try
 {
-    ValidateKpiCsvHeaders(kpiCsvPath);
-    if (!string.IsNullOrWhiteSpace(driversCsvPath))
+    ValidateKpiCsvHeaders(kpiPath);
+    if (!string.IsNullOrWhiteSpace(driversPath))
     {
         var requireDriverCode = await RequiresDriverCodeForTenantAsync(db, tenant);
-        await ValidateDriverCsvHeadersAsync(driversCsvPath, requireDriverCode);
+        await ValidateDriverCsvHeadersAsync(driversPath, requireDriverCode);
     }
 
     var validations = new List<(string Label, ImportValidationResult Result)>();
 
     var kpiValidation = new ImportValidationResult();
     validations.Add(("KPI", kpiValidation));
-    importRun.KpiRowsProcessed = await ImportKpisAsync(db, tenant, periodEnd, kpiCsvPath, kpiStatusService, kpiValidation, definitionResolver);
+    importRun.KpiRowsProcessed = await ImportKpisAsync(db, tenant, periodEnd, kpiPath, kpiStatusService, kpiValidation, definitionResolver);
     if (!kpiValidation.IsValid)
         throw new InvalidOperationException(kpiValidation.FormatMessages());
 
-    if (!string.IsNullOrWhiteSpace(driversCsvPath))
+    if (!string.IsNullOrWhiteSpace(driversPath))
     {
         var driverValidation = new ImportValidationResult();
         validations.Add(("Driver", driverValidation));
-        importRun.DriverRowsProcessed = await ImportDriversAsync(db, tenant, periodEnd, driversCsvPath, driverValidation, definitionResolver);
+        importRun.DriverRowsProcessed = await ImportDriversAsync(db, tenant, periodEnd, driversPath, driverValidation, definitionResolver);
         if (!driverValidation.IsValid)
             throw new InvalidOperationException(driverValidation.FormatMessages());
     }
@@ -223,6 +260,14 @@ finally
     importRun.CompletedAt = DateTimeOffset.UtcNow;
     await db.SaveChangesAsync();
 }
+}
+finally
+{
+    foreach (var p in tempFilesToDelete)
+    {
+        try { File.Delete(p); } catch { /* ignore */ }
+    }
+}
 
 static void PersistValidation(ImportRun run, IReadOnlyList<(string Label, ImportValidationResult Result)> results)
 {
@@ -299,6 +344,100 @@ static string ComputeImportFingerprint(string clientId, DateOnly periodEnd, stri
     }
 
     return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(sb.ToString()))).ToLowerInvariant();
+}
+
+static string NormalizeToCsvPath(string path, List<string> tempFilesToDelete)
+{
+    if (string.IsNullOrWhiteSpace(path))
+        return path;
+
+    if (!File.Exists(path))
+        throw new FileNotFoundException($"File not found: {path}", path);
+
+    var ext = Path.GetExtension(path);
+    if (string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase))
+        return path;
+
+    var isExcel = string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(ext, ".xls", StringComparison.OrdinalIgnoreCase);
+    if (!isExcel)
+        throw new InvalidOperationException($"Unsupported file type '{ext}'. Only .csv and .xlsx are supported.");
+
+    var tmp = Path.Combine(Path.GetTempPath(), $"decisionos_import_{Guid.NewGuid():N}.csv");
+    ConvertFirstWorksheetXlsxToCsv(path, tmp);
+    tempFilesToDelete.Add(tmp);
+    return tmp;
+}
+
+static void ConvertFirstWorksheetXlsxToCsv(string xlsxPath, string csvPath)
+{
+    using var stream = File.Open(xlsxPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+    using var reader = ExcelReaderFactory.CreateReader(stream);
+    var data = reader.AsDataSet();
+    if (data.Tables.Count == 0)
+        throw new InvalidOperationException("Excel file has no worksheets.");
+
+    var table = data.Tables[0];
+
+    using var writer = new StreamWriter(csvPath, false, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+    using var csv = new CsvWriter(writer, new CsvConfiguration(CultureInfo.InvariantCulture)
+    {
+        HasHeaderRecord = false,
+        NewLine = Environment.NewLine
+    });
+
+    foreach (System.Data.DataRow row in table.Rows)
+    {
+        foreach (var cell in row.ItemArray)
+            csv.WriteField(cell?.ToString());
+        csv.NextRecord();
+    }
+}
+
+static void DumpTabularPreview(string path, int sheetIndex, int maxRows)
+{
+    if (!File.Exists(path))
+        throw new FileNotFoundException($"File not found: {path}", path);
+
+    var ext = Path.GetExtension(path);
+    if (string.Equals(ext, ".csv", StringComparison.OrdinalIgnoreCase))
+    {
+        var lines = File.ReadLines(path).Take(maxRows).ToList();
+        foreach (var line in lines)
+            Console.WriteLine(line);
+        return;
+    }
+
+    var isExcel = string.Equals(ext, ".xlsx", StringComparison.OrdinalIgnoreCase) ||
+                  string.Equals(ext, ".xls", StringComparison.OrdinalIgnoreCase);
+    if (!isExcel)
+        throw new InvalidOperationException($"Unsupported file type '{ext}'. Only .csv, .xlsx, .xls are supported.");
+
+    using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+    using var reader = ExcelReaderFactory.CreateReader(stream);
+    var data = reader.AsDataSet();
+    if (data.Tables.Count == 0)
+        throw new InvalidOperationException("Excel file has no worksheets.");
+
+    if (sheetIndex >= data.Tables.Count)
+        throw new InvalidOperationException($"Sheet index {sheetIndex} is out of range. Workbook has {data.Tables.Count} sheets.");
+
+    var table = data.Tables[sheetIndex];
+
+    using var csv = new CsvWriter(Console.Out, new CsvConfiguration(CultureInfo.InvariantCulture)
+    {
+        HasHeaderRecord = false,
+        NewLine = Environment.NewLine
+    });
+
+    var rows = Math.Min(maxRows, table.Rows.Count);
+    for (var r = 0; r < rows; r++)
+    {
+        var row = table.Rows[r];
+        foreach (var cell in row.ItemArray)
+            csv.WriteField(cell?.ToString());
+        csv.NextRecord();
+    }
 }
 
 static async Task SeedDriverDefinitionsIfNeeded(DecisionOsDbContext db)

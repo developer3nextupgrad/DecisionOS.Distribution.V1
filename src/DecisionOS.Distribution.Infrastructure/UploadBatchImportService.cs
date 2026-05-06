@@ -113,9 +113,9 @@ public sealed class UploadBatchImportService
                 issues.Add(new UploadBatchIssue
                 {
                     UploadBatchId = batch.Id,
-                    Severity = UploadIssueSeverity.Critical,
+                    Severity = UploadIssueSeverity.Warning,
                     Category = "Package",
-                    Message = $"Missing required report type for V1 minimum package: {rt}.",
+                    Message = $"Missing report type for V1 minimum package: {rt}. Scoring will run with limitations.",
                     Field = rt.ToString()
                 });
             }
@@ -139,8 +139,14 @@ public sealed class UploadBatchImportService
         var batch = await _db.UploadBatches.FirstOrDefaultAsync(b => b.Id == batchId, ct);
         if (batch is null) return;
 
+        // Be defensive: some callers may trigger RunImport without validating first (or with stale readiness).
+        // We validate again so "Run import" either runs or fails with a deterministic validation summary.
+        await ValidateAsync(batchId, contentRootPath, ct);
+        batch = await _db.UploadBatches.FirstOrDefaultAsync(b => b.Id == batchId, ct);
+        if (batch is null) return;
+
         if (string.Equals(batch.ReadinessStatus, "NotReadyYet", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Batch is NotReadyYet.");
+            throw new InvalidOperationException($"Batch is NotReadyYet. {batch.ValidationSummary}");
 
         var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == batch.TenantId, ct);
         if (tenant is null) return;
@@ -203,7 +209,7 @@ public sealed class UploadBatchImportService
                             SourceRowNumber = rowNumber,
                             Status = RowStatus.Valid,
                             RawJson = rawJson,
-                            TransactionDate = TryDate(GetField("Transaction_Date")),
+                            TransactionDate = TryDate(GetField("Transaction_Date")) ?? batch.PeriodEnd,
                             QuantitySold = TryDecimal(GetField("Quantity_Sold")),
                             NetSales = TryDecimal(GetField("Net_Sales")),
                             Cogs = TryDecimal(GetField("COGS"))
