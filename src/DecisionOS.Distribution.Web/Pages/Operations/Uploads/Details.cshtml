@@ -61,7 +61,9 @@
                                 <li>
                                     <span class="font-bold">@i.Severity</span> · <span class="font-semibold">@i.Category</span>
                                     @if (!string.IsNullOrWhiteSpace(i.Field))
-                                    {<span> · @i.Field</span>}
+                                    {
+                                        <span> · @i.Field</span>
+                                    }
                                     <span> — @i.Message</span>
                                 </li>
                             }
@@ -82,33 +84,33 @@
                     <div class="overflow-x-auto">
                         <table class="w-full text-sm min-w-[800px]">
                             <thead class="bg-surface-container-low text-on-surface-variant uppercase text-xs">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Type</th>
-                                <th class="px-4 py-3 text-left">File</th>
-                                <th class="px-4 py-3 text-left">SHA</th>
-                                <th class="px-4 py-3 text-right">Header row</th>
-                                <th class="px-4 py-3 text-left">Uploaded</th>
-                                <th class="px-4 py-3 text-right">Map</th>
-                            </tr>
+                                <tr>
+                                    <th class="px-4 py-3 text-left">Type</th>
+                                    <th class="px-4 py-3 text-left">File</th>
+                                    <th class="px-4 py-3 text-left">SHA</th>
+                                    <th class="px-4 py-3 text-right">Header row</th>
+                                    <th class="px-4 py-3 text-left">Uploaded</th>
+                                    <th class="px-4 py-3 text-right">Map</th>
+                                </tr>
                             </thead>
                             <tbody class="divide-y">
-                            @foreach (var f in Model.Files)
-                            {
-                                <tr class="hover:bg-surface-container-low transition">
-                                    <td class="px-4 py-3 font-semibold">@f.ReportType</td>
-                                    <td class="px-4 py-3">
-                                        <div class="font-mono text-xs">@f.OriginalFileName</div>
-                                        <div class="text-[10px] text-on-surface-variant font-mono">@f.StoredRelativePath</div>
-                                    </td>
-                                    <td class="px-4 py-3 font-mono text-xs">@f.Sha256Hex[..Math.Min(12, f.Sha256Hex.Length)]…</td>
-                                    <td class="px-4 py-3 text-right font-mono text-xs">@f.HeaderRowNumber</td>
-                                    <td class="px-4 py-3 text-xs font-mono text-on-surface-variant">@f.UploadedAt.ToString("u")</td>
-                                    <td class="px-4 py-3 text-right">
-                                        <a class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10"
-                                           href="/Operations/Uploads/Map?batchId=@Model.Batch.Id&fileId=@f.Id">Map</a>
-                                    </td>
-                                </tr>
-                            }
+                                @foreach (var f in Model.Files)
+                                {
+                                    <tr class="hover:bg-surface-container-low transition">
+                                        <td class="px-4 py-3 font-semibold">@f.ReportType</td>
+                                        <td class="px-4 py-3">
+                                            <div class="font-mono text-xs">@f.OriginalFileName</div>
+                                            <div class="text-[10px] text-on-surface-variant font-mono">@f.StoredRelativePath</div>
+                                        </td>
+                                        <td class="px-4 py-3 font-mono text-xs">@f.Sha256Hex[..Math.Min(12, f.Sha256Hex.Length)]…</td>
+                                        <td class="px-4 py-3 text-right font-mono text-xs">@f.HeaderRowNumber</td>
+                                        <td class="px-4 py-3 text-xs font-mono text-on-surface-variant">@f.UploadedAt.ToString("u")</td>
+                                        <td class="px-4 py-3 text-right">
+                                            <a class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10"
+                                               href="/Operations/Uploads/Map?batchId=@Model.Batch.Id&fileId=@f.Id">Map</a>
+                                        </td>
+                                    </tr>
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -128,7 +130,17 @@
                     <div class="mb-4 p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.UploadError</div>
                 }
 
-                <form method="post" enctype="multipart/form-data" asp-page-handler="Upload" class="space-y-4">
+
+
+                <form method="post"
+                      enctype="multipart/form-data"
+                      asp-page="Details"
+                      asp-page-handler="Upload"
+                      asp-route-id="@Model.Batch.Id"
+                      class="space-y-4">
+
+                    @Html.AntiForgeryToken()
+
                     <div>
                         <label class="block text-sm font-semibold mb-2">Report type</label>
                         <select asp-for="ReportType" class="w-full rounded-lg border-surface-container-high bg-white">
@@ -146,11 +158,14 @@
 
                     <div>
                         <label class="block text-sm font-semibold mb-2">File</label>
-                        <input asp-for="UploadFile" type="file" accept=".csv" class="w-full" />
+                        <input asp-for="UploadFile" type="file" accept=".csv,.xlsx" class="w-full" />
                     </div>
 
                     <button type="submit" class="w-full bg-primary text-white px-6 py-2 rounded-xl font-bold">Upload</button>
                 </form>
+
+
+
             </div>
         </div>
     </div>

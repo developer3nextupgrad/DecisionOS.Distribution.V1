@@ -5,6 +5,56 @@
 }
 
 <style>
+    .modal-content {
+        width: 500px;
+    }
+
+        .modal-content.card-red,
+        .modal-content.card-green,
+        .modal-content.card-gray {
+            color: white;
+        }
+
+        .modal-content.card-amber {
+            color: #1a1a1a;
+        }
+
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        cursor: pointer;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .modal-content {
+        padding: 24px;
+        border-radius: 12px;
+        width: 500px;
+        max-width: 90%;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        background: white;
+    }
+
+    .close-btn {
+        float: right;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .modal-body p {
+        margin: 6px 0;
+    }
     /* --- Reset & Base --- */
     :root {
         --decision-red: #f15b6c;
@@ -239,8 +289,17 @@
         color: #0f172a;
     }
 
-    .focus-banner h3 { margin: 0 0 6px; font-size: 1rem; }
-    .focus-banner p { margin: 0; font-size: 0.85rem; color: #475569; line-height: 1.45; }
+        .focus-banner h3 {
+            margin: 0 0 6px;
+            font-size: 1rem;
+        }
+
+        .focus-banner p {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.45;
+        }
 
     .kpi-context {
         font-size: 0.72rem;
@@ -257,6 +316,76 @@
         color: #475569;
         border: 1px dashed #94a3b8;
     }
+
+    /* COLOR STATES */
+    .modal-content.card-red {
+        background: linear-gradient(180deg, #f15b6c 0%, #d93d4e 100%);
+        color: white;
+    }
+
+    .modal-content.card-green {
+        background: linear-gradient(180deg, #5a9b73 0%, #467a5a 100%);
+        color: white;
+    }
+
+    .modal-content.card-amber {
+        background: linear-gradient(180deg, #ffcc33 0%, #e6b82e 100%);
+        color: #1a1a1a;
+    }
+
+    .modal-content.card-gray {
+        background: linear-gradient(180deg, #64748b 0%, #475569 100%);
+        color: white;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+
+    .modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .modal-item {
+        background: rgba(255,255,255,0.15);
+        padding: 10px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .label {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    .value {
+        font-size: 1.2rem;
+        font-weight: 700;
+    }
+
+    .badge {
+        padding: 4px 10px;
+        border-radius: 20px;
+        display: inline-block;
+        width: fit-content;
+        font-size: 0.75rem;
+    }
+
+    .modal-section {
+        margin-top: 15px;
+    }
+
+        .modal-section h4 {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
 </style>
 
 <div class="header-bar">
@@ -307,10 +436,23 @@
             @foreach (var snapshot in Model.Snapshots.Take(4))
             {
                 var colorClass =
-                    snapshot.Status.Equals("GREEN", StringComparison.OrdinalIgnoreCase) ? "card-green" :
-                    (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" :
-                        (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase) ? "card-gray" : "card-red"));
-                <div class="kpi-card @colorClass">
+                snapshot.Status.Equals("GREEN", StringComparison.OrdinalIgnoreCase) ? "card-green" :
+                (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" :
+                (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase) ? "card-gray" : "card-red"));
+                <div class="kpi-card @colorClass"
+                     onclick="openKpiModalFull(
+                    '@snapshot.KpiDefinition.Name',
+                    '@snapshot.KpiDefinition.Code',
+                    '@snapshot.KpiDefinition.Unit',
+                    '@Model.FormatTarget(snapshot.KpiDefinition)',
+                    '@Model.FormatValue(snapshot)',
+                    '@snapshot.WeekOverWeekDelta',
+                    '@snapshot.Status',
+                    '@snapshot.CardDetailLine1',
+                    '@snapshot.CardDetailLine2'
+                )">
+
+
                     <div class="kpi-title">@snapshot.KpiDefinition.Name</div>
                     <div class="kpi-main-val">@Model.FormatValue(snapshot)</div>
                     <div class="kpi-target">Target: @Model.FormatTarget(snapshot.KpiDefinition)</div>
@@ -318,9 +460,13 @@
                     {
                         <div class="kpi-footer kpi-context">
                             @if (!string.IsNullOrWhiteSpace(snapshot.CardDetailLine1))
-                            {<div>@snapshot.CardDetailLine1</div>}
+                            {
+                                <div>@snapshot.CardDetailLine1</div>
+                            }
                             @if (!string.IsNullOrWhiteSpace(snapshot.CardDetailLine2))
-                            {<div>@snapshot.CardDetailLine2</div>}
+                            {
+                                <div>@snapshot.CardDetailLine2</div>
+                            }
                         </div>
                     }
                     <div class="kpi-footer">
@@ -344,18 +490,21 @@
 
         <div class="improvements-panel">
             <div class="panel-title">Holdover Improvements</div>
-            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin: -8px 0 16px;">Open improvements across pillars. @if (Model.TopAlert is not null){<span>Top alert pillar: <strong>@Model.TopAlert.KpiDefinition.Name</strong>.</span>}</p>
-            <table class="imp-table">
-                <thead>
-                    <tr>
-                        <th>Pillar KPI</th>
-                        <th>Driver</th>
-                        <th>Assigned / Target / Current</th>
-                        <th>Owner</th>
-                        <th>Fix status</th>
-                    </tr>
-                </thead>
-                <tbody>
+            <p style="text-align:center; font-size:0.8rem; color:#64748b; margin: -8px 0 16px;">Open improvements across pillars. @if (Model.TopAlert is not null){
+            <span>Top alert pillar: <strong>@Model.TopAlert.KpiDefinition.Name</strong>.</span>
+        }
+</p>
+        <table class="imp-table">
+            <thead>
+                <tr>
+                    <th>Pillar KPI</th>
+                    <th>Driver</th>
+                    <th>Assigned / Target / Current</th>
+                    <th>Owner</th>
+                    <th>Fix status</th>
+                </tr>
+            </thead>
+            <tbody>
                 @foreach (var driver in Model.Drivers)
                 {
                     var pillarSt = Model.PillarBadgeStatus(driver);
@@ -389,19 +538,121 @@
                         </td>
                     </tr>
                 }
-                </tbody>
-            </table>
+            </tbody>
+        </table>
 
-            <p style="font-size:0.78rem; color:#475569; margin: 20px 0 8px; text-align:center;">
-                Note: implemented improvements will roll off Holdover once the driver is back on target (GREEN) and fix progress reaches 100%.
-            </p>
-            <div style="text-align:center; margin-top:12px; font-weight:bold; font-size:0.9rem; color:#475569;">
-                Next Review: @Model.NextReviewDate.ToString("ddd, MMM dd")
-                @if (Model.Focus is not null)
-                {<span> (@Model.Focus.Cadence)</span>}
-                else
-                {<span> (Weekly leadership cadence)</span>}
+        <p style="font-size:0.78rem; color:#475569; margin: 20px 0 8px; text-align:center;">
+            Note: implemented improvements will roll off Holdover once the driver is back on target (GREEN) and fix progress reaches 100%.
+        </p>
+        <div style="text-align:center; margin-top:12px; font-weight:bold; font-size:0.9rem; color:#475569;">
+            Next Review: @Model.NextReviewDate.ToString("ddd, MMM dd")
+            @if (Model.Focus is not null)
+            {
+                <span> (@Model.Focus.Cadence)</span>
+            }
+            else
+            {
+
+                <span> (Weekly leadership cadence)</span>
+            }
+        </div>
+    </div>
+        }
+
+    <div id="kpiModal" class="modal-overlay" onclick="closeKpiModal(event)">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeKpiModal(null, true)">&times;</span>
+
+            <h2 id="modalTitle" class="modal-title"></h2>
+
+            <div class="modal-grid">
+                <div class="modal-item">
+                    <span class="label">Value</span>
+                    <span id="modalValue" class="value"></span>
+                </div>
+
+                <div class="modal-item">
+                    <span class="label">Target</span>
+                    <span id="modalTarget" class="value"></span>
+                </div>
+
+                <div class="modal-item">
+                    <span class="label">WoW Change</span>
+                    <span id="modalWoW" class="value"></span>
+                </div>
+
+                <div class="modal-item">
+                    <span class="label">Status</span>
+                    <span id="modalStatus" class="value badge"></span>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h4>Details</h4>
+                <div id="modalDetails"></div>
             </div>
         </div>
-    }
+    </div>
 </div>
+
+<script>
+         function openKpiModalFull(name, code, unit, target, value, wow, status, d1, d2) {
+
+        // TITLE
+        document.getElementById("modalTitle").innerText = name || "-";
+
+        // VALUES
+        document.getElementById("modalValue").innerText = value || "-";
+        document.getElementById("modalTarget").innerText = target || "-";
+        document.getElementById("modalWoW").innerText = wow || "-";
+        document.getElementById("modalStatus").innerText = status || "-";
+            const statusEl = document.getElementById("modalStatus");
+    statusEl.classList.remove("bg-red","bg-amber","bg-green");
+
+    if (status === "GREEN") statusEl.classList.add("bg-green");
+    else if (status === "YELLOW") statusEl.classList.add("bg-amber");
+    else statusEl.classList.add("bg-red");
+
+        // 🎨 COLOR FIX
+        const modalBox = document.querySelector(".modal-content");
+
+        modalBox.classList.remove("card-red","card-green","card-amber","card-gray");
+
+        if (status === "GREEN") modalBox.classList.add("card-green");
+        else if (status === "YELLOW") modalBox.classList.add("card-amber");
+        else if (status === "RED") modalBox.classList.add("card-red");
+        else modalBox.classList.add("card-gray");
+
+        // DETAILS
+            let detailsHtml = `
+        <div class="modal-item"><span class="label">KPI Code</span><span class="value">${code || "-"}</span></div>
+        <div class="modal-item"><span class="label">Unit</span><span class="value">${unit || "-"}</span></div>
+        <div class="modal-item"><span class="label">Raw Value</span><span class="value">${value || "-"}</span></div>
+        <div class="modal-item"><span class="label">WoW Delta</span><span class="value">${wow || "-"}</span></div>
+
+        <div style="margin-top:10px;">
+            <div>${d1 || ""}</div>
+            <div>${d2 || ""}</div>
+        </div>
+    `;
+
+        document.getElementById("modalDetails").innerHTML = detailsHtml;
+
+        document.getElementById("kpiModal").style.display = "flex";
+    }
+
+       function closeKpiModal(e, forceClose) {
+        const modal = document.getElementById("kpiModal");
+
+        // If X clicked → force close
+        if (forceClose === true) {
+            modal.style.display = "none";
+            return;
+        }
+
+        // If clicked outside modal (overlay)
+        if (e && e.target.id === "kpiModal") {
+            modal.style.display = "none";
+        }
+    }
+</script>
