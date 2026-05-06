@@ -275,3 +275,109 @@ If any of these are missing, use **Option A**.
 - Enforce HTTPS.
 - Consider adding IP allowlist for `/Operations` during pilot if required.
 
+---
+
+## 12) Upload package overview (CSV/Excel) → Dashboard
+
+This system supports uploading **`.csv`** or **Excel (`.xlsx` / `.xls`)** files in **Operations → Uploads**.
+
+- **Excel handling**: Excel uploads are converted to CSV using the **first worksheet**.
+- **Header row**: you choose **Header row number** (1–50) during upload.
+- **Column names**: your file headers can be anything; the app uses **column mapping** to map your headers to the system’s **System Fields**.
+
+### 12.1 Cadence: weekly/monthly/yearly?
+
+The current V1 “upload batch” and dashboard computations are **weekly**:
+
+- The batch uses **`PeriodEnd`** as a **week-ending date**
+- Several computed KPIs assume a 7‑day period (e.g. `COGS / 7`)
+
+You *can* upload month/year data as a file, but the built-in scoring logic will treat it as a **weekly snapshot** for the selected `PeriodEnd`.
+
+### 12.2 Minimum upload package for a “fully loaded” V1 dashboard
+
+To compute the main KPI tiles on the dashboard, the batch should include these **4 report types** (each as its own uploaded file):
+
+- **Sales**
+- **Inventory**
+- **Accounts Receivable (AR)**
+- **Accounts Payable (AP)**
+
+If any are missing, import can still run but will show “limitations” in readiness and may produce “insufficient data” KPI tiles.
+
+### 12.3 Required fields (must be mapped) per report type
+
+Import is blocked (NotReadyYet) if required fields are not mapped.
+
+- **Sales (required)**
+  - `Quantity_Sold`
+  - `Net_Sales`
+
+- **Inventory (required)**
+  - `Snapshot_Date`
+  - `SKU_ID`
+  - `Quantity_On_Hand`
+
+- **Accounts Receivable (required)**
+  - `AR_Snapshot_Date`
+  - `Customer_ID`
+  - `Customer_Name`
+  - `Open_Balance`
+
+- **Accounts Payable (required)**
+  - `AP_Snapshot_Date`
+  - `Vendor_ID`
+  - `Vendor_Name`
+  - `Open_Balance`
+
+### 12.4 Strongly preferred fields (recommended)
+
+These improve scoring/diagnostics and avoid “limitations” warnings, but do not block import:
+
+- **Sales (preferred)**: `Transaction_Date`, `SKU_ID`, `COGS`, `Customer_ID`, `Location_ID`
+- **Inventory (preferred)**: `Inventory_Value`, `Average_Cost`, `Last_Sale_Date`, `Location_ID`, `Vendor_ID`
+- **AR (preferred)**: `Due_Date`, `Aging_Bucket`
+- **AP (preferred)**: `Due_Date`, `Aging_Bucket`, `Payment_Terms`
+
+### 12.5 System Fields you can map to (reference)
+
+You can map any source column to one of these System Fields (depending on report type).
+
+**Sales**
+
+- `Transaction_Date`, `Transaction_ID`, `Customer_ID`, `Customer_Name`, `SKU_ID`, `Product_Description`
+- `Quantity_Sold`, `Gross_Sales`, `Discount_Amount`, `Net_Sales`, `COGS`, `Gross_Profit`, `Gross_Margin_Percent`
+- `Location_ID`, `Sales_Channel`, `Sales_Rep`, `Return_Flag`, `Credit_Memo_Amount`
+
+**Inventory**
+
+- `Snapshot_Date`, `SKU_ID`, `Product_Description`, `Location_ID`
+- `Quantity_On_Hand`, `Quantity_Available`, `Inventory_Value`, `Average_Cost`, `Last_Cost`, `Retail_Price`
+- `Current_Margin_Percent`, `Last_Sale_Date`, `Last_Receipt_Date`, `Units_Sold_Period`, `Sales_Dollars_Period`
+- `Inventory_Turns`, `Days_On_Hand`, `Min_Level`, `Max_Level`, `Reorder_Point`
+- `Vendor_ID`, `Department`, `Category`, `Class`, `Brand`
+
+**Accounts Receivable**
+
+- `AR_Snapshot_Date`, `Customer_ID`, `Customer_Name`, `Invoice_ID`, `Invoice_Date`, `Due_Date`
+- `Invoice_Amount`, `Open_Balance`, `Aging_Bucket`, `Days_Past_Due`, `Payment_Terms`, `Collections_Status`
+
+**Accounts Payable**
+
+- `AP_Snapshot_Date`, `Vendor_ID`, `Vendor_Name`, `Bill_ID`, `Bill_Date`, `Due_Date`
+- `Bill_Amount`, `Open_Balance`, `Aging_Bucket`, `Days_Past_Due`, `Payment_Terms`, `Payment_Status`, `Hold_Flag`
+
+### 12.6 Ready-to-fill templates
+
+Ready-to-fill CSV templates are included in `docs/templates/`:
+
+- `docs/templates/sales.template.csv`
+- `docs/templates/inventory.template.csv`
+- `docs/templates/ar.template.csv`
+- `docs/templates/ap.template.csv`
+
+Optional (console importer workflow, not the web batch importer):
+
+- `docs/templates/kpi_import.template.csv`
+- `docs/templates/drivers_import.template.csv`
+

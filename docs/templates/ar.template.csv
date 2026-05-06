@@ -1,0 +1,3 @@
+AR_Snapshot_Date,Customer_ID,Customer_Name,Invoice_ID,Invoice_Date,Due_Date,Invoice_Amount,Open_Balance,Aging_Bucket,Days_Past_Due,Payment_Terms,Collections_Status
+2026-05-03,CUST-001,Acme Stores,AR-90001,2026-03-15,2026-04-14,5000.00,1200.00,31-60,19,NET30,In Progress
+2026-05-03,CUST-002,Beta Wholesale,AR-90002,2026-02-10,2026-03-11,3200.00,3200.00,61-90,53,NET30,Escalated

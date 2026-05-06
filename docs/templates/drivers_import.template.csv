@@ -1,0 +1,3 @@
+pillar_code,driver_code,driver_name,dimension1,dimension2,current,wow,context,rank,status,why_it_matters,fix_progress,owner,assigned_summary,target_summary,current_summary
+AR_PastDue31p%,ar_acme,Acme Corp,,,1200.00,50.00,Top overdue account,1,RED,Past due balances tie up cash,25,Collections,Assign collector,Reduce 31+ %,Call + dispute resolution
+CCC,ccc_dso,Days Sales Outstanding,,,52.0,-2.0,DSO improved WoW,2,YELLOW,DSO drives CCC and cash,55,Finance,Track invoices,Target < 45,Current 52

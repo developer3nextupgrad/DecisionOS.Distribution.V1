@@ -1,0 +1,3 @@
+AP_Snapshot_Date,Vendor_ID,Vendor_Name,Bill_ID,Bill_Date,Due_Date,Bill_Amount,Open_Balance,Aging_Bucket,Days_Past_Due,Payment_Terms,Payment_Status,Hold_Flag
+2026-05-03,VEND-01,Acme Supply,AP-70001,2026-03-20,2026-04-19,8000.00,2500.00,31-60,14,NET30,Open,false
+2026-05-03,VEND-02,Beta Parts,AP-70002,2026-02-05,2026-03-06,4100.00,4100.00,61-90,58,NET30,Open,false

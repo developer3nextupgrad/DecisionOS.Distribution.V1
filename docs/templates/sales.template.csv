@@ -1,0 +1,3 @@
+Transaction_Date,Transaction_ID,Customer_ID,Customer_Name,SKU_ID,Product_Description,Quantity_Sold,Gross_Sales,Discount_Amount,Net_Sales,COGS,Gross_Profit,Gross_Margin_Percent,Location_ID,Sales_Channel,Sales_Rep,Return_Flag,Credit_Memo_Amount
+2026-05-03,INV-10001,CUST-001,Acme Stores,SKU-123,Widget A,10,1250.00,50.00,1200.00,800.00,400.00,0.3333,LOC-01,Internal,Rep-01,false,0
+2026-05-04,INV-10002,CUST-002,Beta Wholesale,SKU-456,Widget B,4,600.00,0,600.00,420.00,180.00,0.3000,LOC-01,External,Rep-02,false,0
