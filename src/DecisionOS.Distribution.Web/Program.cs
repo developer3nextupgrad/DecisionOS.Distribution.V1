@@ -59,6 +59,14 @@ builder.Services.AddScoped<UploadBatchImportService>();
 
 var app = builder.Build();
 
+// Ensure schema exists before we run any startup seeders (Identity roles/users).
+await using (var scope = app.Services.CreateAsyncScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DecisionOsDbContext>();
+    app.Logger.LogInformation("Applying database migrations (if any)...");
+    await db.Database.MigrateAsync();
+}
+
 await IdentityDataSeeder.SeedAsync(app.Services);
 
 app.UseStaticFiles();

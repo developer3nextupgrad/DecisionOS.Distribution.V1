@@ -28,6 +28,87 @@ It covers two realistic GoDaddy hosting models:
 
 ---
 
+## 0.1) One-click platform deployment (Railway / Render)
+
+If you don’t want to manage a VPS/IIS, **Railway** or **Render** can run the web app + managed Postgres.
+
+### 0.1.1 What caused the Railway/Render crash (and how it’s handled now)
+
+On a brand-new database, ASP.NET Identity tables (e.g. `AspNetRoles`) don’t exist yet. If the app seeds roles/users before migrations, it crashes with:
+
+- `42P01: relation "AspNetRoles" does not exist`
+
+The app now applies EF Core migrations on startup **before** running the Identity seeder, so first deploy to an empty Postgres should boot successfully.
+
+### 0.1.2 Required environment variables (Railway / Render)
+
+Set these as service environment variables:
+
+- `ConnectionStrings__DecisionOs` (required)
+- `ASPNETCORE_ENVIRONMENT=Production` (recommended)
+- `ASPNETCORE_URLS=http://0.0.0.0:${PORT}` (recommended; both platforms provide `${PORT}`)
+- `SeedAdmin__Email` (recommended for first boot)
+- `SeedAdmin__Password` (recommended for first boot; must be >= 8 and meet the password rules)
+
+### 0.1.3 Railway (Deploy from GitHub)
+
+- Create a **PostgreSQL** add-on in the same Railway project.
+- Copy the Postgres connection string and set:
+  - `ConnectionStrings__DecisionOs=<railway postgres connection string>`
+- Ensure the web service exposes the platform port:
+  - `ASPNETCORE_URLS=http://0.0.0.0:${PORT}`
+- Set seed admin (recommended):
+  - `SeedAdmin__Email=admin@yourcompany.com`
+  - `SeedAdmin__Password=<strong password>`
+
+**Build / start**
+
+- Railway’s .NET detection typically works without custom commands.
+- If you must specify a start command, prefer running the published app (fast startup), e.g.:
+  - `dotnet DecisionOS.Distribution.Web.dll`
+
+> Note: Railway expects the app to listen on `${PORT}`; `ASPNETCORE_URLS` above ensures that.
+
+### 0.1.4 Render (Web Service)
+
+Create:
+
+- a **PostgreSQL** database (Render managed Postgres or external)
+- a **Web Service** for the app (not a Static Site)
+
+Set env vars:
+
+- `ConnectionStrings__DecisionOs=<render postgres connection string>`
+- `ASPNETCORE_URLS=http://0.0.0.0:${PORT}`
+- `ASPNETCORE_ENVIRONMENT=Production`
+- `SeedAdmin__Email`, `SeedAdmin__Password` (recommended)
+
+**Build command**
+
+```bash
+dotnet publish src/DecisionOS.Distribution.Web -c Release -o out
+```
+
+**Start command**
+
+```bash
+dotnet out/DecisionOS.Distribution.Web.dll
+```
+
+### 0.1.5 Persistent storage (uploads)
+
+The app stores uploads under:
+
+- `src/DecisionOS.Distribution.Web/App_Data/uploads/` (at runtime: `App_Data/uploads/...`)
+
+On many “container-style” platforms, local disk may be **ephemeral** (lost on restart/redeploy) unless you attach a persistent volume.
+
+- If you need uploads to persist on Railway/Render:
+  - use a **persistent volume / disk** (platform feature), mounted so `App_Data/uploads` is on persistent storage, or
+  - migrate uploads to object storage (S3-compatible) (not covered in this document).
+
+---
+
 ## 1) Prerequisites & decisions (do these first)
 
 ### 1.1 Hosting decision
