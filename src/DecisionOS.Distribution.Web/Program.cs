@@ -46,11 +46,45 @@ static string? TryBuildNpgsqlFromRailwayDatabaseUrl(string? databaseUrl)
 }
 
 var envConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DecisionOs");
-var connectionString =
-    (!string.IsNullOrWhiteSpace(envConnectionString) ? envConnectionString : null)
-    ?? TryBuildNpgsqlFromRailwayDatabaseUrl(Environment.GetEnvironmentVariable("DATABASE_URL"))
-    ?? builder.Configuration.GetConnectionString("DecisionOs")
-    ?? "Host=localhost;Port=5432;Database=decisionos;Username=decisionos;Password=decisionos";
+var envDatabaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+
+string? connectionString = null;
+string connectionStringSource;
+
+if (!string.IsNullOrWhiteSpace(envConnectionString))
+{
+    connectionString = envConnectionString;
+    connectionStringSource = "ConnectionStrings__DecisionOs";
+}
+else
+{
+    connectionString = TryBuildNpgsqlFromRailwayDatabaseUrl(envDatabaseUrl);
+    if (!string.IsNullOrWhiteSpace(connectionString))
+    {
+        connectionStringSource = "DATABASE_URL";
+    }
+    else
+    {
+        connectionString = builder.Configuration.GetConnectionString("DecisionOs");
+        connectionStringSource = !string.IsNullOrWhiteSpace(connectionString)
+            ? "appsettings(ConnectionStrings:DecisionOs)"
+            : "default(fallback)";
+    }
+}
+
+connectionString ??= "Host=localhost;Port=5432;Database=decisionos;Username=decisionos;Password=decisionos";
+
+builder.Logging.AddFilter("DecisionOS.Distribution.Web", LogLevel.Information);
+
+// In Production, do not allow silent localhost fallback (common Railway misconfig).
+if (builder.Environment.IsProduction() &&
+    (connectionString.Contains("Host=localhost", StringComparison.OrdinalIgnoreCase) ||
+     connectionString.Contains("Host=127.0.0.1", StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException(
+        "Database connection is pointing to localhost in Production. " +
+        "Set Railway env var ConnectionStrings__DecisionOs or DATABASE_URL on the Web service.");
+}
 
 var dataProtectionPath = builder.Configuration["DataProtection:Path"];
 if (!string.IsNullOrWhiteSpace(dataProtectionPath))
@@ -122,6 +156,13 @@ await using (var scope = app.Services.CreateAsyncScope())
         try
         {
             await db.Database.MigrateAsync();
+            await ReferenceDataSeeder.SeedDefaultsIfNeededAsync(db, app.Logger);
+
+            if (builder.Configuration.GetValue("DemoSeed:Enabled", false))
+            {
+                var demoClientId = builder.Configuration["DemoSeed:ClientId"] ?? "DEMO-001";
+                await DemoDataSeeder.SeedDemoDashboardIfNeededAsync(db, app.Logger, demoClientId);
+            }
             break;
         }
         catch (Exception ex) when (attempt < delays.Length)
