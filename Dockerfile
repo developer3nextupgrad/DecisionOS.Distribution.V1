@@ -13,7 +13,11 @@ WORKDIR /app
 
 COPY --from=build /app/publish .
 
-ENV ASPNETCORE_URLS=http://+:10000
-EXPOSE 10000
+# Railway injects PORT; default keeps local docker run easy.
+ENV PORT=8080
+ENV ASPNETCORE_URLS=http://+:${PORT}
+ENV DataProtection__Path=/var/dpkeys
+RUN mkdir -p /var/dpkeys
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "DecisionOS.Distribution.Web.dll"]

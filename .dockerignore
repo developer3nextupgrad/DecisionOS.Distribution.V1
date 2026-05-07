@@ -1,0 +1,22 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.cache
+**/*.log
+
+.git/
+.gitignore
+
+# App runtime/generated data (should not be baked into images)
+src/DecisionOS.Distribution.Web/App_Data/uploads/
+
+# Local scratch/docs
+_client_docs/
+
+# OS noise
+Thumbs.db
+Desktop.ini

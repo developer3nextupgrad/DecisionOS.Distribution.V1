@@ -2,12 +2,64 @@ using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Domain.Security;
 using DecisionOS.Distribution.Infrastructure;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DecisionOs")
-                      ?? "Host=localhost;Port=5432;Database=decisionos;Username=decisionos;Password=decisionos";
+static string? TryBuildNpgsqlFromRailwayDatabaseUrl(string? databaseUrl)
+{
+    if (string.IsNullOrWhiteSpace(databaseUrl))
+        return null;
+
+    if (!Uri.TryCreate(databaseUrl, UriKind.Absolute, out var uri))
+        return null;
+
+    // Expected: postgres://user:pass@host:port/dbname?sslmode=require
+    if (!string.Equals(uri.Scheme, "postgres", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(uri.Scheme, "postgresql", StringComparison.OrdinalIgnoreCase))
+        return null;
+
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : "";
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+
+    var database = uri.AbsolutePath.Trim('/');
+    if (string.IsNullOrWhiteSpace(database) || string.IsNullOrWhiteSpace(uri.Host))
+        return null;
+
+    var port = uri.Port > 0 ? uri.Port : 5432;
+
+    var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
+    var sslMode = query.TryGetValue("sslmode", out var ssl) ? ssl.ToString() : null;
+
+    // Npgsql accepts: Ssl Mode=Require; Trust Server Certificate=true
+    var cs = $"Host={uri.Host};Port={port};Database={database};Username={username};Password={password}";
+    if (!string.IsNullOrWhiteSpace(sslMode))
+        cs += $";Ssl Mode={sslMode}";
+
+    if (query.TryGetValue("trustservercertificate", out var tsc) &&
+        string.Equals(tsc.ToString(), "true", StringComparison.OrdinalIgnoreCase))
+        cs += ";Trust Server Certificate=true";
+
+    return cs;
+}
+
+var envConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DecisionOs");
+var connectionString =
+    (!string.IsNullOrWhiteSpace(envConnectionString) ? envConnectionString : null)
+    ?? TryBuildNpgsqlFromRailwayDatabaseUrl(Environment.GetEnvironmentVariable("DATABASE_URL"))
+    ?? builder.Configuration.GetConnectionString("DecisionOs")
+    ?? "Host=localhost;Port=5432;Database=decisionos;Username=decisionos;Password=decisionos";
+
+var dataProtectionPath = builder.Configuration["DataProtection:Path"];
+if (!string.IsNullOrWhiteSpace(dataProtectionPath))
+{
+    builder.Services
+        .AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+        .SetApplicationName("DecisionOS.Distribution");
+}
 
 builder.Services.AddDbContext<DecisionOsDbContext>(options =>
     options.UseNpgsql(connectionString));
