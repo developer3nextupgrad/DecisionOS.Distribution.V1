@@ -116,7 +116,22 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DecisionOsDbContext>();
     app.Logger.LogInformation("Applying database migrations (if any)...");
-    await db.Database.MigrateAsync();
+    var delays = new[] { TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) };
+    for (var attempt = 0; ; attempt++)
+    {
+        try
+        {
+            await db.Database.MigrateAsync();
+            break;
+        }
+        catch (Exception ex) when (attempt < delays.Length)
+        {
+            // Common on Railway during deploy: DB container not ready yet.
+            app.Logger.LogWarning(ex, "Database migration failed (attempt {Attempt}/{Max}). Retrying in {Delay}...",
+                attempt + 1, delays.Length + 1, delays[attempt]);
+            await Task.Delay(delays[attempt]);
+        }
+    }
 }
 
 await IdentityDataSeeder.SeedAsync(app.Services);
