@@ -8,7 +8,11 @@ A .NET 8 pilot system that gives each distributor a **weekly, actionable view of
 - **Priority:** One **Top Alert** KPI per week with ranked drivers explaining why
 - **Action:** One **Weekly Focus** -- a concrete decision and recommended action
 
-Designed for **3-5 distributors** in pilot mode with manual weekly CSV imports and deterministic logic.
+Designed for **3-5 distributors** in pilot mode with **manual weekly file upload** (CSV/Excel) and deterministic scoring logic.
+
+**Operator guide:** `_client_docs/DecisionOS_Distribution_User_Guide.md` (screen-by-screen, Classic vs Simplified upload, dashboard, **`Company_Profile` tab → Business profile + Tenant** setup).
+
+**Tenant vs buyer:** Each **tenant** is one distributor company (`ClientId`, e.g. `DIST-001`). **End customers (buyers)** exist only on imported rows (`Customer_ID` / `Customer_Name`) — not as separate tenants.
 
 ---
 
@@ -24,13 +28,24 @@ DecisionOS.Distribution.V1.sln
 │       ├── Pages/                                # Razor Pages (Index, Dashboard, Layout)
 │       └── wwwroot/                              # CSS, JavaScript static assets
 ├── tests/
-│   └── DecisionOS.Distribution.Tests/            # xUnit test suite (35 tests)
+│   └── DecisionOS.Distribution.Tests/            # xUnit test suite (workbook + import + dashboard tests)
 └── samples/                                      # Sample CSV files for import
 ```
 
 ### Deep dive: how imports become weekly insights
 
 See `docs/Solution-Linkage-and-Import-Analysis.md` for an end-to-end explanation of how the projects connect and how Excel/CSV imports are validated, resolved (Profile → Global → Tenant overrides), and converted into KPI status, Top Alert, drivers, and Weekly Focus.
+
+### Web upload flows (Operations → Uploads)
+
+| Mode | UI path | Input | Outcome |
+|------|---------|-------|---------|
+| **Simplified** | Create → Simplified → **Detect** → **Verify** → Import all periods | One multi-tab `.xlsx` | Auto-detect sheets/columns; import **many** week-ending dates in one run; holdovers applied to each KPI week |
+| **Classic** | Create → Classic → **Details** → Map per file → Validate → Run import | CSV/Excel per report type, one `PeriodEnd` per batch | Operator maps columns; import **one** week per batch |
+
+**Simplified detection rules (V1):** Authoritative week-ending dates come from **Weekly rollup** and **Sales** week columns (plausible years only). AR invoice/due dates are not used as reporting weeks. AR/AP/Inventory detail is staged for the **latest operational week** (last week with sales); rollup supplies per-week KPI inputs where present.
+
+**Dashboard:** `/` selects tenant, optional buyer, and week; `/Dashboard` shows KPIs, top alert, weekly focus, and holdover improvements. Week list excludes invalid legacy dates. Buyer filter scopes the holdover table; KPI cards stay distributor-wide unless data is missing for that week.
 
 ### Layer Responsibilities
 
@@ -114,7 +129,7 @@ dotnet build
 dotnet test
 ```
 
-Expected: **35 passed, 0 failed**
+Expected: all tests pass (run `dotnet test` for current count).
 
 ### Step 3: Set Up PostgreSQL
 
@@ -172,18 +187,33 @@ dotnet run --project src/DecisionOS.Distribution.Import -- "DIST-001" "2026-02-2
 dotnet run --project src/DecisionOS.Distribution.Web
 ```
 
-Then open **http://localhost:5000** in your browser.
+Default URL with `run.ps1` is **http://localhost:5276** (or the port you set). Bare `dotnet run` on the Web project may use port 5000.
 
 ### Step 6: Use the Dashboard
 
-1. The **Index page** shows a tenant selector dropdown
-2. Select a distributor -- a week selector appears with available periods
+1. The **Index page** shows distributor, optional **buyer**, and **reporting week** selectors
+2. Select a distributor -- week and buyer lists load from imported data
 3. Select a week -- you are redirected to the **Dashboard page** showing:
    - **Summary tiles** (GREEN / YELLOW / RED counts)
    - **Top Alert banner** with severity and reason
    - **KPI Grid** (7 tiles with values, status badges, targets, WoW deltas)
    - **Weekly Focus card** (decision question, recommended action, why now, owner)
-   - **Driver Drilldown table** (ranked drivers for the alert pillar)
+   - **Holdover Improvements** table (imported holdover drivers; optional buyer filter)
+   - **Driver drilldown** / ranked drivers for the alert pillar where configured
+
+### Step 7: Simplified workbook import (Web UI)
+
+For a multi-week distributor workbook (pilot template):
+
+1. Sign in as **Operator** or **Admin**
+2. **Operations → Uploads → New Batch** → **Simplified** → tenant + anchor date → **Continue**
+3. Upload `.xlsx` on **Detect** → **Analyze workbook**
+4. On **Verify**: review periods and sheets → **Validate package** → **Import all periods**
+5. Open **Dashboard** for that tenant; choose a week from the dropdown (week-ending dates from your file, e.g. Saturdays)
+
+Fixture used in tests: `tests/DecisionOS.Distribution.Tests/Fixtures/Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx`
+
+**Reset tenant import data (PostgreSQL):** `scripts/sql/clear-tenant-import-data.sql` (edit `ClientId` if not `DIST-001`). Optional: `cleanup-bad-periods.sql`, `holdover-dashboard-diagnostic.sql`.
 
 ---
 
@@ -225,8 +255,11 @@ The web application includes a full Razor Pages dashboard:
 
 | Page | URL | Description |
 |------|-----|-------------|
-| **Index** | `/` | Tenant and week selector with auto-submit dropdowns |
-| **Dashboard** | `/Dashboard?clientId=X&periodEnd=Y` | Full executive dashboard view |
+| **Index** | `/` | Distributor, buyer, and week selector |
+| **Dashboard** | `/Dashboard?clientId=X&periodEnd=Y&customerId=…` | Executive dashboard (optional buyer filter) |
+| **Uploads** | `/Operations/Uploads` | Batch list (Classic + Simplified) |
+| **Simplified Detect** | `/Operations/Uploads/Simplified/Detect?id=…` | Upload and analyze workbook |
+| **Simplified Verify** | `/Operations/Uploads/Simplified/Verify?id=…` | Validate and import all periods |
 
 **Design features:**
 - Modern SaaS aesthetic (clean cards, subtle shadows, slate/neutral palette)
@@ -290,7 +323,8 @@ The JSON API is still available alongside the UI:
 | `WeeklyFocusServiceTests` | 3 | Null alert, valid generation, correct definition lookup |
 | `DriverRankingServiceTests` | 5 | Pillar filtering, sort order, topN, rank reassignment, empty input |
 | `DecisionOsDbContextTests` | 3 | Tenant persistence, unique index model validation, KPI snapshot round-trip |
-| **Total** | **35** | **All domain logic and data access** |
+| Workbook / import / dashboard tests | (varies) | Simplified analyzer, date rules, import service, dashboard context |
+| **Total** | Run `dotnet test` | Domain logic, data access, upload pipeline |
 
 ---
 
@@ -383,7 +417,7 @@ dotnet run --project src/DecisionOS.Distribution.Import -- "DIST-001" "2026-02-2
 # 4. Start the web app
 dotnet run --project src/DecisionOS.Distribution.Web
 
-# 5. Open http://localhost:5000 in your browser
+# 5. Open http://localhost:5276 (or use .\scripts\run.ps1 -OpenBrowser)
 ```
 
 ---
@@ -429,6 +463,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\run.ps1 `
 
 The script sets `ConnectionStrings__DecisionOs` from the DB parameters and runs the web app with `ASPNETCORE_URLS=http://localhost:<WebPort>`.
 
+### SQL helpers (`scripts/sql/`)
+
+| Script | Purpose |
+|--------|---------|
+| `clear-tenant-import-data.sql` | Delete import/KPI/driver data for one tenant (keeps tenant + admin users) |
+| `cleanup-bad-periods.sql` | Remove KPI/driver weeks outside plausible year range |
+| `holdover-dashboard-diagnostic.sql` | Compare KPI weeks vs holdover rows per tenant |
+
 ---
 
 ## Profile Configuration Framework (Vertical → Profile → Tenant)
@@ -456,6 +498,8 @@ Within a profile you can configure:
 - **Business profiles**: `/Admin/Profiles`
   - Use **Apply defaults** to clone the global KPI/Driver standards into a profile, then tailor
 - **Assign a tenant to a profile**: `/Admin/Tenants` → Edit → Business profile
+
+**Workbook `Company_Profile` tab:** Pilot Excel files include Field/Value rows (company name, business type, systems, targets). V1 does **not** import this sheet — admins copy values into **Business profile** and **Tenant** per the user guide section *Setting up from `Company_Profile`*.
 
 ### Controlled overrides (tenant-specific, limited)
 
