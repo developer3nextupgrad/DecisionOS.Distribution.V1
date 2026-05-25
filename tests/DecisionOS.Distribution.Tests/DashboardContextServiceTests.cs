@@ -86,4 +86,60 @@ public class DashboardContextServiceTests
         Assert.Single(weeks);
         Assert.Equal(new DateOnly(2026, 2, 7), weeks[0]);
     }
+
+    [Fact]
+    public async Task GetCustomersAsync_IncludesNameOnlyBuyers()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.NormalizedSalesRows.Add(new NormalizedSalesRow
+        {
+            TenantId = tenantId,
+            PeriodEnd = new DateOnly(2026, 1, 10),
+            UploadBatchId = 1,
+            UploadedFileId = 1,
+            SourceRowNumber = 1,
+            Status = RowStatus.Valid,
+            RawJson = "{}",
+            CustomerName = "Lanes Only"
+        });
+        await db.SaveChangesAsync();
+
+        var sut = new DashboardContextService(db);
+        var customers = await sut.GetCustomersAsync(tenantId);
+
+        Assert.Single(customers);
+        Assert.StartsWith("name:", customers[0].CustomerId, StringComparison.Ordinal);
+        Assert.Equal("Lanes Only", customers[0].DisplayName);
+    }
+
+    [Fact]
+    public async Task GetWeeksAsync_FiltersImplausibleSnapshotDates()
+    {
+        await using var db = CreateDb();
+        var tenantId = Guid.NewGuid();
+        db.KpiSnapshots.Add(new KpiSnapshot
+        {
+            TenantId = tenantId,
+            PeriodEnd = new DateOnly(8818, 3, 1),
+            KpiDefinitionId = 1,
+            Value = 1m,
+            Status = "GRAY"
+        });
+        db.KpiSnapshots.Add(new KpiSnapshot
+        {
+            TenantId = tenantId,
+            PeriodEnd = new DateOnly(2026, 2, 28),
+            KpiDefinitionId = 1,
+            Value = 1m,
+            Status = "GREEN"
+        });
+        await db.SaveChangesAsync();
+
+        var sut = new DashboardContextService(db);
+        var weeks = await sut.GetWeeksAsync(tenantId, null);
+
+        Assert.Single(weeks);
+        Assert.Equal(new DateOnly(2026, 2, 28), weeks[0]);
+    }
 }

@@ -27,8 +27,10 @@ public class WorkbookAnalyzerTests
 
         Assert.Contains(result.Sheets, s => s.Kind == WorkbookSheetKind.WeeklyRollup);
         Assert.Contains(result.Sheets, s => s.Kind == WorkbookSheetKind.Sales);
-        Assert.True(result.FilteredPeriodEnds.Count >= 20);
+        Assert.InRange(result.FilteredPeriodEnds.Count, 20, 30);
         Assert.All(result.FilteredPeriodEnds, d => Assert.True(d >= anchor));
+        Assert.All(result.FilteredPeriodEnds, d => Assert.InRange(d.Year, WorkbookDateRules.MinPeriodYear, WorkbookDateRules.MaxPeriodYear));
+        Assert.Contains(result.Warnings, w => w.Contains("week-ending columns only", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

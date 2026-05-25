@@ -163,6 +163,7 @@ public static class ColumnSynonymMatcher
             "AR_Over_60_Pct", "AP_Past_Due_Pct", "Fill_Rate_Pct", "Cash_Balance", "Inventory_Value",
             "Net_Income", "Net_Profit_Percent", "Revenue"
         },
+        WorkbookSheetKind.Holdover => new[] { "Customer_ID", "Customer_Name" },
         _ => SystemFields.Generic
     };
 
@@ -174,13 +175,21 @@ public static class ColumnSynonymMatcher
         return row.TryGetValue(source, out var v) ? v : null;
     }
 
+    private static readonly string[] PeriodSystemFields =
+    [
+        "Transaction_Date", "Period_End_Date", "AR_Snapshot_Date", "AP_Snapshot_Date", "Snapshot_Date"
+    ];
+
+    public static bool MapsAnyPeriodField(IReadOnlyDictionary<string, string> colMap)
+        => colMap.Values.Any(v => PeriodSystemFields.Contains(v, StringComparer.OrdinalIgnoreCase));
+
     public static DateOnly? ResolveRowPeriod(
         IReadOnlyDictionary<string, string?> row,
         IReadOnlyDictionary<string, string> colMap)
     {
-        foreach (var field in new[] { "Transaction_Date", "Period_End_Date", "AR_Snapshot_Date", "AP_Snapshot_Date", "Snapshot_Date" })
+        foreach (var field in PeriodSystemFields)
         {
-            var d = WorkbookParseHelper.ParseDate(GetMapped(row, colMap, field));
+            var d = WorkbookDateRules.TryParsePeriodDate(GetMapped(row, colMap, field));
             if (d is not null) return d;
         }
         return null;

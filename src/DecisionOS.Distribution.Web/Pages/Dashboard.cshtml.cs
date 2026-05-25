@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Infrastructure;
+using DecisionOS.Distribution.Infrastructure.Workbooks;
 using DecisionOS.Distribution.Web.Pages.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,8 @@ public class DashboardModel : PageModel
     public List<KpiSnapshot> Snapshots { get; set; } = new();
     public Alert? TopAlert { get; set; }
     public List<DriverValue> Drivers { get; set; } = new();
+    public bool HoldoverCarriedForward { get; set; }
+    public DateOnly? HoldoverSourcePeriod { get; set; }
     public WeeklyFocus? Focus { get; set; }
     public int GreenCount { get; set; }
     public int YellowCount { get; set; }
@@ -54,10 +57,25 @@ public class DashboardModel : PageModel
         if (!DateOnly.TryParse(PeriodEnd, out var periodEnd))
             return RedirectToPage("Index");
 
-        ParsedPeriodEnd = periodEnd;
-
         Tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.ClientId == ClientId);
         if (Tenant is null) return RedirectToPage("Index");
+
+        if (!WorkbookDateRules.IsPlausiblePeriod(periodEnd))
+        {
+            var weeks = await _context.GetWeeksAsync(Tenant.Id, CustomerId);
+            if (weeks.Count > 0)
+            {
+                return RedirectToPage(new
+                {
+                    clientId = ClientId,
+                    periodEnd = weeks[0].ToString("yyyy-MM-dd"),
+                    customerId = CustomerId
+                });
+            }
+            return RedirectToPage("Index", new { selectedClientId = ClientId, selectedCustomerId = CustomerId });
+        }
+
+        ParsedPeriodEnd = periodEnd;
 
         var profileId = Tenant.BusinessProfileId;
         var kpiDefs = await _db.KpiDefinitions
@@ -80,6 +98,20 @@ public class DashboardModel : PageModel
             .ThenBy(s => s.KpiDefinition.Name)
             .ToListAsync();
 
+        if (Snapshots.Count == 0)
+        {
+            var weeks = await _context.GetWeeksAsync(Tenant.Id, CustomerId);
+            if (weeks.Count > 0 && weeks[0] != periodEnd)
+            {
+                return RedirectToPage(new
+                {
+                    clientId = ClientId,
+                    periodEnd = weeks[0].ToString("yyyy-MM-dd"),
+                    customerId = CustomerId
+                });
+            }
+        }
+
         TopAlert = await _db.Alerts
             .Include(a => a.KpiDefinition)
             .FirstOrDefaultAsync(a => a.TenantId == Tenant.Id && a.PeriodEnd == periodEnd);
@@ -94,14 +126,41 @@ public class DashboardModel : PageModel
         if (!string.IsNullOrWhiteSpace(CustomerId))
         {
             CustomerDisplayName = await _context.ResolveCustomerDisplayNameAsync(Tenant.Id, CustomerId);
-            var cid = CustomerId.Trim();
-            var cname = CustomerDisplayName ?? cid;
-            Drivers = Drivers.Where(d =>
-                    string.Equals(d.Dimension1, cid, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(d.Dimension1, cname, StringComparison.OrdinalIgnoreCase) ||
-                    d.DriverName.Contains(cid, StringComparison.OrdinalIgnoreCase) ||
-                    d.DriverName.Contains(cname, StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            Drivers = ApplyBuyerDriverFilter(Drivers, CustomerId, CustomerDisplayName);
+        }
+
+        if (Drivers.Count == 0)
+        {
+            var sourcePeriod = await _db.DriverValues.AsNoTracking()
+                .Where(d => d.TenantId == Tenant.Id &&
+                            d.PeriodEnd.Year >= WorkbookDateRules.MinPeriodYear &&
+                            d.PeriodEnd.Year <= WorkbookDateRules.MaxPeriodYear)
+                .OrderByDescending(d => d.PeriodEnd)
+                .Select(d => d.PeriodEnd)
+                .FirstOrDefaultAsync();
+
+            if (sourcePeriod != default)
+            {
+                var carried = await _db.DriverValues
+                    .Where(d => d.TenantId == Tenant.Id && d.PeriodEnd == sourcePeriod)
+                    .OrderBy(d => d.PillarCode)
+                    .ThenBy(d => d.Rank)
+                    .Take(50)
+                    .ToListAsync();
+
+                if (!string.IsNullOrWhiteSpace(CustomerId))
+                {
+                    CustomerDisplayName ??= await _context.ResolveCustomerDisplayNameAsync(Tenant.Id, CustomerId);
+                    carried = ApplyBuyerDriverFilter(carried, CustomerId, CustomerDisplayName);
+                }
+
+                if (carried.Count > 0)
+                {
+                    Drivers = carried;
+                    HoldoverCarriedForward = sourcePeriod != periodEnd;
+                    HoldoverSourcePeriod = sourcePeriod;
+                }
+            }
         }
 
         await BuildSelectorAsync(periodEnd);
@@ -215,6 +274,23 @@ public class DashboardModel : PageModel
         }
 
         return d.Current.ToString("F2");
+    }
+
+    private static List<DriverValue> ApplyBuyerDriverFilter(
+        List<DriverValue> drivers,
+        string customerId,
+        string? customerDisplayName)
+    {
+        var cid = customerId.Trim();
+        var cname = customerDisplayName ?? cid;
+        return drivers.Where(d =>
+                string.IsNullOrWhiteSpace(d.Dimension1) ||
+                string.Equals(d.Dimension1, cid, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(d.Dimension1, cname, StringComparison.OrdinalIgnoreCase) ||
+                d.DriverName.Contains(cid, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(cname) &&
+                 d.DriverName.Contains(cname, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
     }
 
     public int FixProgressDisplayPercent(DriverValue d)

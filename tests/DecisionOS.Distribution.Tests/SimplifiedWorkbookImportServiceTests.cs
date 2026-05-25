@@ -83,6 +83,8 @@ public class SimplifiedWorkbookImportServiceTests
 
         var drivers = await db.DriverValues.Where(d => d.TenantId == tenant.Id).ToListAsync();
         Assert.True(drivers.Count >= 3);
+        var driverWeeks = drivers.Select(d => d.PeriodEnd).Distinct().Count();
+        Assert.True(driverWeeks >= 10, "Holdovers should be copied to each imported KPI week.");
 
         var imported = await db.UploadBatches.FirstAsync(b => b.Id == batch.Id);
         Assert.Equal(UploadBatchStatuses.Imported, imported.Status);

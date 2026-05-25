@@ -47,6 +47,9 @@ bld/
 TestResult.xml
 coverage*/
 
+## Local upload artifacts (runtime)
+**/App_Data/uploads/**
+
 ## Misc
 *.tmp
 *.bak

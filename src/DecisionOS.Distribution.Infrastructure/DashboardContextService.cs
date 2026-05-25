@@ -1,4 +1,5 @@
 using DecisionOS.Distribution.Domain.Normalized;
+using DecisionOS.Distribution.Infrastructure.Workbooks;
 using Microsoft.EntityFrameworkCore;
 
 namespace DecisionOS.Distribution.Infrastructure;
@@ -17,22 +18,33 @@ public sealed class DashboardContextService
     public async Task<IReadOnlyList<DashboardCustomerOption>> GetCustomersAsync(Guid tenantId, CancellationToken ct = default)
     {
         var sales = await _db.NormalizedSalesRows.AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.CustomerId != null && r.CustomerId != "")
+            .Where(r => r.TenantId == tenantId &&
+                        ((r.CustomerId != null && r.CustomerId != "") ||
+                         (r.CustomerName != null && r.CustomerName != "")))
             .Select(r => new { r.CustomerId, r.CustomerName })
             .ToListAsync(ct);
 
         var ar = await _db.NormalizedArRows.AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.CustomerId != null && r.CustomerId != "")
+            .Where(r => r.TenantId == tenantId &&
+                        ((r.CustomerId != null && r.CustomerId != "") ||
+                         (r.CustomerName != null && r.CustomerName != "")))
             .Select(r => new { r.CustomerId, r.CustomerName })
             .ToListAsync(ct);
 
         return sales.Concat(ar)
-            .GroupBy(x => x.CustomerId!, StringComparer.OrdinalIgnoreCase)
+            .Select(x => CustomerKeyResolver.Resolve(x.CustomerId, x.CustomerName))
+            .Where(x => x.Id is not null)
+            .GroupBy(x => x.Id!, StringComparer.OrdinalIgnoreCase)
             .Select(g =>
             {
-                var name = g.Select(x => x.CustomerName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim();
-                var label = string.IsNullOrWhiteSpace(name) ? g.Key : $"{name} ({g.Key})";
-                return new DashboardCustomerOption(g.Key, label);
+                var name = g.Select(x => x.DisplayName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))?.Trim();
+                var key = g.Key;
+                var label = string.IsNullOrWhiteSpace(name)
+                    ? key
+                    : key.StartsWith(CustomerKeyResolver.NameKeyPrefix, StringComparison.Ordinal)
+                        ? name!
+                        : $"{name} ({key})";
+                return new DashboardCustomerOption(key, label);
             })
             .OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToList();
@@ -45,12 +57,13 @@ public sealed class DashboardContextService
     {
         if (string.IsNullOrWhiteSpace(customerId))
         {
-            return await _db.KpiSnapshots.AsNoTracking()
+            var snapshotWeeks = await _db.KpiSnapshots.AsNoTracking()
                 .Where(s => s.TenantId == tenantId)
                 .Select(s => s.PeriodEnd)
                 .Distinct()
                 .OrderByDescending(p => p)
                 .ToListAsync(ct);
+            return FilterPlausibleWeeks(snapshotWeeks);
         }
 
         var cid = customerId.Trim();
@@ -68,15 +81,19 @@ public sealed class DashboardContextService
             .ToListAsync(ct);
 
         if (weeks.Count > 0)
-            return weeks;
+            return FilterPlausibleWeeks(weeks);
 
-        return await _db.KpiSnapshots.AsNoTracking()
+        var fallback = await _db.KpiSnapshots.AsNoTracking()
             .Where(s => s.TenantId == tenantId)
             .Select(s => s.PeriodEnd)
             .Distinct()
             .OrderByDescending(p => p)
             .ToListAsync(ct);
+        return FilterPlausibleWeeks(fallback);
     }
+
+    private static IReadOnlyList<DateOnly> FilterPlausibleWeeks(IReadOnlyList<DateOnly> weeks)
+        => weeks.Where(WorkbookDateRules.IsPlausiblePeriod).ToList();
 
     public async Task<string?> ResolveCustomerDisplayNameAsync(
         Guid tenantId,
@@ -86,6 +103,18 @@ public sealed class DashboardContextService
         if (string.IsNullOrWhiteSpace(customerId)) return null;
 
         var cid = customerId.Trim();
+        if (cid.StartsWith(CustomerKeyResolver.NameKeyPrefix, StringComparison.Ordinal))
+        {
+            var norm = cid[CustomerKeyResolver.NameKeyPrefix.Length..];
+            var byName = await _db.NormalizedSalesRows.AsNoTracking()
+                .Where(r => r.TenantId == tenantId && r.CustomerName != null && r.CustomerName != "")
+                .Select(r => r.CustomerName!)
+                .ToListAsync(ct);
+            var match = byName.FirstOrDefault(n =>
+                string.Equals(CustomerKeyResolver.Resolve(null, n).Id, cid, StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(match)) return match.Trim();
+        }
+
         var name = await _db.NormalizedSalesRows.AsNoTracking()
             .Where(r => r.TenantId == tenantId && r.CustomerId == cid && r.CustomerName != null && r.CustomerName != "")
             .Select(r => r.CustomerName)

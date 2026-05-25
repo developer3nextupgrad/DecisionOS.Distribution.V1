@@ -56,17 +56,27 @@ public sealed class WorkbookAnalyzer : IWorkbookAnalyzer
         if (!sheets.Any(s => s.Kind == WorkbookSheetKind.Sales))
             warnings.Add("No sales detail sheet detected.");
 
+        var useAuthoritativeWeeks = sheets.Any(s =>
+            s.Kind is WorkbookSheetKind.WeeklyRollup or WorkbookSheetKind.Sales);
         var rawPeriods = PeriodExtractor.ExtractRawPeriods(wb, sheets);
         var (effectiveAnchor, filtered, suggested, autoAdjusted) =
             PeriodExtractor.ResolvePeriods(rawPeriods, cadence, anchorPeriodEnd);
 
+        if (useAuthoritativeWeeks)
+            warnings.Add("Reporting weeks taken from Weekly rollup and Sales week-ending columns only (invoice dates excluded).");
+
+        var plausibleRaw = WorkbookDateRules.FilterPlausible(rawPeriods).ToList();
+        var plausibleFiltered = WorkbookDateRules.FilterPlausible(filtered).ToList();
+        if (plausibleRaw.Count < rawPeriods.Count)
+            warnings.Add($"Ignored {rawPeriods.Count - plausibleRaw.Count} implausible date(s) (likely IDs mistaken for dates).");
+
         if (autoAdjusted && effectiveAnchor is not null)
             warnings.Add($"Anchor auto-adjusted to earliest detected period {effectiveAnchor:yyyy-MM-dd} (configured anchor excluded all periods).");
 
-        if (filtered.Count == 0 && rawPeriods.Count > 0 && !autoAdjusted)
+        if (plausibleFiltered.Count == 0 && plausibleRaw.Count > 0 && !autoAdjusted)
             warnings.Add("Anchor date excluded all periods; set anchor to earliest week in workbook or leave blank on create.");
 
-        if (filtered.Count == 0 && rawPeriods.Count == 0)
+        if (plausibleFiltered.Count == 0 && plausibleRaw.Count == 0)
             warnings.Add("No week-ending dates detected; check date column headers (e.g. Week_End_Date, Period_End).");
 
         if (sheets.Any(s => s.Kind == WorkbookSheetKind.AccountsReceivable))
@@ -76,8 +86,8 @@ public sealed class WorkbookAnalyzer : IWorkbookAnalyzer
         {
             WorkbookFingerprint = fingerprint,
             Sheets = sheets,
-            RawPeriodEnds = rawPeriods,
-            FilteredPeriodEnds = filtered,
+            RawPeriodEnds = plausibleRaw,
+            FilteredPeriodEnds = plausibleFiltered,
             SuggestedAnchorPeriodEnd = suggested,
             EffectiveAnchorPeriodEnd = effectiveAnchor,
             AnchorAutoAdjusted = autoAdjusted,

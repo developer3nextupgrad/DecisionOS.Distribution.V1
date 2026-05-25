@@ -12,6 +12,12 @@ public static class PeriodExtractor
         "arsnapshotdate", "apsnapshotdate", "reportdate", "asofdate", "as_of_date", "fiscalweekend"
     ];
 
+    /// <summary>Week-ending columns only — excludes invoice/bill dates on AR/AP detail.</summary>
+    private static readonly string[] AuthoritativeWeekFields =
+    [
+        "Period_End_Date", "Transaction_Date", "AR_Snapshot_Date", "AP_Snapshot_Date", "Snapshot_Date"
+    ];
+
     private static readonly string[] PeriodSystemFields =
     [
         "Period_End_Date", "Transaction_Date", "AR_Snapshot_Date", "AP_Snapshot_Date", "Snapshot_Date",
@@ -25,12 +31,15 @@ public static class PeriodExtractor
         ParsedWorkbook workbook,
         IReadOnlyList<DetectedSheet>? sheets)
     {
-        var dates = new HashSet<DateOnly>();
-
-        foreach (var sheet in workbook.Sheets)
+        if (sheets is not null &&
+            sheets.Any(s => s.Kind is WorkbookSheetKind.WeeklyRollup or WorkbookSheetKind.Sales))
         {
-            CollectDatesFromDateLikeColumns(sheet, dates);
+            return ExtractAuthoritativeWeekPeriods(workbook, sheets);
         }
+
+        var dates = new HashSet<DateOnly>();
+        foreach (var sheet in workbook.Sheets)
+            CollectDatesFromDateLikeColumns(sheet, dates);
 
         if (sheets is not null)
         {
@@ -38,18 +47,39 @@ public static class PeriodExtractor
             foreach (var det in sheets.Where(s => s.Kind is not WorkbookSheetKind.Skip and not WorkbookSheetKind.Unknown))
             {
                 if (!byName.TryGetValue(det.SheetName, out var parsed)) continue;
-                CollectDatesFromMappings(parsed, det.ColumnMappings, dates);
+                CollectDatesFromMappings(parsed, det.ColumnMappings, dates, PeriodSystemFields);
             }
         }
 
-        return dates.OrderBy(d => d).ToList();
+        return WorkbookDateRules.FilterPlausible(dates).OrderBy(d => d).ToList();
+    }
+
+    /// <summary>
+    /// Use weekly rollup + sales week-ending dates only (avoids hundreds of AR/AP invoice dates).
+    /// </summary>
+    public static IReadOnlyList<DateOnly> ExtractAuthoritativeWeekPeriods(
+        ParsedWorkbook workbook,
+        IReadOnlyList<DetectedSheet> sheets)
+    {
+        var dates = new HashSet<DateOnly>();
+        var byName = workbook.Sheets.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
+
+        foreach (var det in sheets.Where(s =>
+                     s.Kind is WorkbookSheetKind.WeeklyRollup or WorkbookSheetKind.Sales))
+        {
+            if (!byName.TryGetValue(det.SheetName, out var parsed)) continue;
+            CollectDatesFromMappings(parsed, det.ColumnMappings, dates, AuthoritativeWeekFields);
+        }
+
+        return WorkbookDateRules.FilterPlausible(dates).OrderBy(d => d).ToList();
     }
 
     public static (DateOnly? EffectiveAnchor, IReadOnlyList<DateOnly> Filtered, DateOnly? SuggestedMin, bool AutoAdjusted)
         ResolvePeriods(IReadOnlyList<DateOnly> raw, UploadCadence cadence, DateOnly? anchorPeriodEnd)
     {
+        raw = WorkbookDateRules.FilterPlausible(raw).ToList();
+        DateOnly? anchor = anchorPeriodEnd is DateOnly a && WorkbookDateRules.IsPlausiblePeriod(a) ? a : null;
         var suggested = raw.Count > 0 ? raw.Min() : (DateOnly?)null;
-        var anchor = anchorPeriodEnd;
         var filtered = ApplyCadenceAndAnchor(raw, cadence, anchor);
         var autoAdjusted = false;
 
@@ -103,7 +133,7 @@ public static class PeriodExtractor
             {
                 if (row.TryGetValue(header, out var raw))
                 {
-                    var d = WorkbookParseHelper.ParseDate(raw);
+                    var d = WorkbookDateRules.TryParsePeriodDate(raw);
                     if (d is not null) dates.Add(d.Value);
                 }
             }
@@ -111,6 +141,9 @@ public static class PeriodExtractor
 
         foreach (var header in sheet.Headers)
         {
+            if (WorkbookDateRules.IsNonPeriodDataColumn(header))
+                continue;
+
             var norm = WorkbookParseHelper.NormalizeHeader(header);
             if (DateHeaderTokens.Any(t => norm.Contains(t, StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -121,7 +154,7 @@ public static class PeriodExtractor
             {
                 if (!row.TryGetValue(header, out var raw) || string.IsNullOrWhiteSpace(raw)) continue;
                 total++;
-                if (WorkbookParseHelper.ParseDate(raw) is not null) parsed++;
+                if (WorkbookDateRules.TryParsePeriodDate(raw) is not null) parsed++;
             }
 
             if (total >= 5 && parsed >= Math.Max(3, total / 5))
@@ -130,7 +163,7 @@ public static class PeriodExtractor
                 {
                     if (row.TryGetValue(header, out var raw))
                     {
-                        var d = WorkbookParseHelper.ParseDate(raw);
+                        var d = WorkbookDateRules.TryParsePeriodDate(raw);
                         if (d is not null) dates.Add(d.Value);
                     }
                 }
@@ -141,9 +174,10 @@ public static class PeriodExtractor
     private static void CollectDatesFromMappings(
         ParsedSheet sheet,
         IReadOnlyDictionary<string, string> colMap,
-        HashSet<DateOnly> dates)
+        HashSet<DateOnly> dates,
+        string[] fields)
     {
-        foreach (var field in PeriodSystemFields)
+        foreach (var field in fields)
         {
             var source = colMap.FirstOrDefault(kvp =>
                 string.Equals(kvp.Value, field, StringComparison.OrdinalIgnoreCase)).Key;
@@ -153,7 +187,7 @@ public static class PeriodExtractor
             {
                 if (row.TryGetValue(source, out var raw))
                 {
-                    var d = WorkbookParseHelper.ParseDate(raw);
+                    var d = WorkbookDateRules.TryParsePeriodDate(raw);
                     if (d is not null) dates.Add(d.Value);
                 }
             }

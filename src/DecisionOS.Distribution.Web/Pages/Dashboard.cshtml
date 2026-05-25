@@ -596,6 +596,10 @@
             <p style="text-align:center; font-size:0.8rem; color:#64748b; margin: -8px 0 16px;">Open improvements across pillars. @if (Model.TopAlert is not null){
             <span>Top alert pillar: <strong>@Model.TopAlert.KpiDefinition.Name</strong>.</span>
         }
+        @if (Model.HoldoverCarriedForward && Model.HoldoverSourcePeriod is not null)
+        {
+            <span> Showing open items from week ending <strong>@Model.HoldoverSourcePeriod.Value.ToString("yyyy-MM-dd")</strong> (re-import to attach holdovers to each KPI week).</span>
+        }
 </p>
         <table class="imp-table">
             <thead>

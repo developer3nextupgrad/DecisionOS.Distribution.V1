@@ -210,7 +210,11 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         var sheetByName = wb.Sheets.ToDictionary(s => s.Name, StringComparer.OrdinalIgnoreCase);
 
         var tenant = batch.Tenant;
-        var periods = detection.FilteredPeriodEnds.ToList();
+        var periods = detection.FilteredPeriodEnds
+            .Where(WorkbookDateRules.IsPlausiblePeriod)
+            .Distinct()
+            .OrderBy(p => p)
+            .ToList();
         if (periods.Count == 0) return;
 
         var confidence = batch.ReadinessStatus switch
@@ -231,8 +235,9 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         var invSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Inventory);
         var arSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.AccountsReceivable);
         var apSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.AccountsPayable);
+        var customerSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Customer);
 
-        var latestPeriod = periods.Max();
+        var latestPeriod = ResolveLatestOperationalPeriod(detection, sheetByName, periods);
         var totalDrivers = 0;
         var totalSnapshots = 0;
         var traceFileId = await _db.UploadedFiles
@@ -245,7 +250,7 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             var directKpis = ExtractDirectKpis(rollupParsed, rollupSheet?.ColumnMappings, period);
 
             if (salesSheet is not null && sheetByName.TryGetValue(salesSheet.SheetName, out var sp))
-                ImportSales(sp, salesSheet.ColumnMappings, tenant.Id, batch.Id, traceFileId, period);
+                ImportSales(sp, salesSheet.ColumnMappings, tenant.Id, batch.Id, traceFileId, period, latestPeriod);
 
             if (period == latestPeriod)
             {
@@ -286,10 +291,13 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             _db.ImportRuns.Add(run);
         }
 
-        totalDrivers += await ImportHoldoversAsync(
-            detection, sheetByName, tenant.Id, batch.Id, latestPeriod, ct);
+        totalDrivers += await ImportHoldoversForAllPeriodsAsync(
+            detection, sheetByName, tenant.Id, periods, ct);
         totalDrivers += await ImportOperationalIssuesAsync(
             detection, sheetByName, tenant, latestPeriod, ct);
+
+        if (customerSheet is not null && sheetByName.TryGetValue(customerSheet.SheetName, out var cp))
+            ImportCustomerMaster(cp, customerSheet.ColumnMappings, tenant.Id, batch.Id, traceFileId, latestPeriod);
 
         await _db.SaveChangesAsync(ct);
 
@@ -324,7 +332,7 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
 
         foreach (var row in sheet.Rows)
         {
-            var rowDate = WorkbookParseHelper.ParseDate(ColumnSynonymMatcher.GetMapped(row, colMap, "Period_End_Date"));
+            var rowDate = WorkbookDateRules.TryParsePeriodDate(ColumnSynonymMatcher.GetMapped(row, colMap, "Period_End_Date"));
             if (rowDate != period) continue;
 
             void Set(string code, string field)
@@ -365,14 +373,30 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         Guid tenantId,
         long batchId,
         long uploadedFileId,
-        DateOnly period)
+        DateOnly period,
+        DateOnly latestPeriod)
     {
+        var hasPeriodColumn = ColumnSynonymMatcher.MapsAnyPeriodField(colMap);
         var rowNum = 1;
         foreach (var row in sheet.Rows)
         {
             rowNum++;
-            var txDate = ColumnSynonymMatcher.ResolveRowPeriod(row, colMap);
-            if (txDate != period) continue;
+            DateOnly txDate;
+            if (hasPeriodColumn)
+            {
+                var resolved = ColumnSynonymMatcher.ResolveRowPeriod(row, colMap);
+                if (resolved is null || resolved != period) continue;
+                txDate = resolved.Value;
+            }
+            else
+            {
+                if (period != latestPeriod) continue;
+                txDate = period;
+            }
+
+            var (customerId, customerName) = CustomerKeyResolver.Resolve(
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_ID"),
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_Name"));
 
             _db.NormalizedSalesRows.Add(new NormalizedSalesRow
             {
@@ -387,8 +411,44 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                 QuantitySold = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Quantity_Sold")),
                 NetSales = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Net_Sales")),
                 Cogs = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "COGS")),
-                CustomerId = ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_ID"),
+                CustomerId = customerId,
+                CustomerName = customerName,
                 SkuId = ColumnSynonymMatcher.GetMapped(row, colMap, "SKU_ID")
+            });
+        }
+    }
+
+    private void ImportCustomerMaster(
+        ParsedSheet sheet,
+        IReadOnlyDictionary<string, string> colMap,
+        Guid tenantId,
+        long batchId,
+        long uploadedFileId,
+        DateOnly period)
+    {
+        var rowNum = 1;
+        foreach (var row in sheet.Rows)
+        {
+            rowNum++;
+            var (customerId, customerName) = CustomerKeyResolver.Resolve(
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_ID"),
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_Name"));
+            if (customerId is null) continue;
+
+            _db.NormalizedArRows.Add(new NormalizedArRow
+            {
+                TenantId = tenantId,
+                PeriodEnd = period,
+                UploadBatchId = batchId,
+                UploadedFileId = uploadedFileId,
+                SourceRowNumber = rowNum,
+                Status = RowStatus.Valid,
+                RawJson = JsonSerializer.Serialize(row),
+                SnapshotDate = period,
+                CustomerId = customerId,
+                CustomerName = customerName,
+                OpenBalance = 0m,
+                DaysPastDue = 0
             });
         }
     }
@@ -433,6 +493,10 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         foreach (var row in sheet.Rows)
         {
             rowNum++;
+            var (customerId, customerName) = CustomerKeyResolver.Resolve(
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_ID"),
+                ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_Name"));
+
             _db.NormalizedArRows.Add(new NormalizedArRow
             {
                 TenantId = tenantId,
@@ -445,7 +509,9 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                 SnapshotDate = period,
                 DaysPastDue = WorkbookParseHelper.ParseInt(ColumnSynonymMatcher.GetMapped(row, colMap, "Days_Past_Due")),
                 AgingBucket = ColumnSynonymMatcher.GetMapped(row, colMap, "Aging_Bucket"),
-                OpenBalance = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Open_Balance"))
+                OpenBalance = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Open_Balance")),
+                CustomerId = customerId,
+                CustomerName = customerName
             });
         }
     }
@@ -479,21 +545,62 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         }
     }
 
-    private async Task<int> ImportHoldoversAsync(
+    /// <summary>
+    /// Open holdover actions apply to every imported reporting week (carry-forward), not only the batch anchor week.
+    /// </summary>
+    private async Task<int> ImportHoldoversForAllPeriodsAsync(
         WorkbookDetectionResult detection,
         Dictionary<string, ParsedSheet> sheetByName,
         Guid tenantId,
-        long batchId,
-        DateOnly period,
+        IReadOnlyList<DateOnly> periods,
         CancellationToken ct)
+    {
+        if (periods.Count == 0) return 0;
+
+        var templates = BuildHoldoverTemplates(detection, sheetByName);
+        if (templates.Count == 0) return 0;
+
+        foreach (var period in periods)
+        {
+            _db.DriverValues.RemoveRange(
+                _db.DriverValues.Where(d => d.TenantId == tenantId && d.PeriodEnd == period));
+
+            foreach (var template in templates)
+            {
+                _db.DriverValues.Add(new DriverValue
+                {
+                    TenantId = tenantId,
+                    PeriodEnd = period,
+                    PillarCode = template.PillarCode,
+                    DriverName = template.DriverName,
+                    Rank = template.Rank,
+                    Status = template.Status,
+                    WhyItMatters = template.WhyItMatters,
+                    Owner = template.Owner,
+                    AssignedSummary = template.AssignedSummary,
+                    TargetSummary = template.TargetSummary,
+                    CurrentSummary = template.CurrentSummary,
+                    FixProgressPercent = template.FixProgressPercent,
+                    Dimension1 = template.Dimension1,
+                    Dimension2 = template.Dimension2
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return templates.Count * periods.Count;
+    }
+
+    private static List<HoldoverTemplate> BuildHoldoverTemplates(
+        WorkbookDetectionResult detection,
+        Dictionary<string, ParsedSheet> sheetByName)
     {
         var holdSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Holdover);
         if (holdSheet is null || !sheetByName.TryGetValue(holdSheet.SheetName, out var sheet))
-            return 0;
-
-        _db.DriverValues.RemoveRange(_db.DriverValues.Where(d => d.TenantId == tenantId && d.PeriodEnd == period));
+            return [];
 
         var colMap = holdSheet.ColumnMappings;
+        var templates = new List<HoldoverTemplate>();
         var rank = 1;
         foreach (var row in sheet.Rows)
         {
@@ -502,27 +609,39 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             var completion = WorkbookParseHelper.ParseDecimal(
                 row.FirstOrDefault(kvp => kvp.Key.Contains("Completion", StringComparison.OrdinalIgnoreCase)).Value);
             var pct = completion is not null ? (int)Math.Round(completion > 1 ? completion.Value * 100 : completion.Value) : (int?)null;
+            var (buyerId, buyerName) = ResolveHoldoverBuyer(row, colMap);
 
-            _db.DriverValues.Add(new DriverValue
-            {
-                TenantId = tenantId,
-                PeriodEnd = period,
-                PillarCode = MapAreaToPillar(area),
-                DriverName = row.FirstOrDefault(kvp => kvp.Key.Contains("Action", StringComparison.OrdinalIgnoreCase)).Value ?? "Holdover action",
-                Rank = rank++,
-                Status = MapHoldoverStatus(row),
-                WhyItMatters = row.FirstOrDefault(kvp => kvp.Key.Contains("Expected", StringComparison.OrdinalIgnoreCase)).Value ?? "",
-                Owner = row.FirstOrDefault(kvp => kvp.Key.Contains("Owner", StringComparison.OrdinalIgnoreCase)).Value,
-                AssignedSummary = row.FirstOrDefault(kvp => kvp.Key.Contains("Owner", StringComparison.OrdinalIgnoreCase)).Value,
-                TargetSummary = row.FirstOrDefault(kvp => kvp.Key.Contains("Expected", StringComparison.OrdinalIgnoreCase)).Value,
-                CurrentSummary = row.FirstOrDefault(kvp => kvp.Key.Contains("Current", StringComparison.OrdinalIgnoreCase)).Value,
-                FixProgressPercent = pct is >= 0 and <= 100 ? pct : null
-            });
+            templates.Add(new HoldoverTemplate(
+                MapAreaToPillar(area),
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Action", StringComparison.OrdinalIgnoreCase)).Value ?? "Holdover action",
+                rank++,
+                MapHoldoverStatus(row),
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Expected", StringComparison.OrdinalIgnoreCase)).Value ?? "",
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Owner", StringComparison.OrdinalIgnoreCase)).Value,
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Owner", StringComparison.OrdinalIgnoreCase)).Value,
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Expected", StringComparison.OrdinalIgnoreCase)).Value,
+                row.FirstOrDefault(kvp => kvp.Key.Contains("Current", StringComparison.OrdinalIgnoreCase)).Value,
+                pct is >= 0 and <= 100 ? pct : null,
+                buyerId,
+                buyerName));
         }
 
-        await _db.SaveChangesAsync(ct);
-        return sheet.Rows.Count;
+        return templates;
     }
+
+    private sealed record HoldoverTemplate(
+        string PillarCode,
+        string DriverName,
+        int Rank,
+        string Status,
+        string WhyItMatters,
+        string? Owner,
+        string? AssignedSummary,
+        string? TargetSummary,
+        string? CurrentSummary,
+        int? FixProgressPercent,
+        string? Dimension1,
+        string? Dimension2);
 
     private async Task<int> ImportOperationalIssuesAsync(
         WorkbookDetectionResult detection,
@@ -590,6 +709,67 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         if (a.Contains("vendor")) return "PerfectOrderRate";
         if (a.Contains("ap") || a.Contains("payable")) return "AP_PastDue31p%";
         return "CCC";
+    }
+
+    /// <summary>Last week that has sales/rollup in the workbook — not max of spurious invoice-derived dates.</summary>
+    internal static DateOnly ResolveLatestOperationalPeriod(
+        WorkbookDetectionResult detection,
+        Dictionary<string, ParsedSheet> sheetByName,
+        IReadOnlyList<DateOnly> periods)
+    {
+        var fromSales = new HashSet<DateOnly>();
+        var salesSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Sales);
+        if (salesSheet is not null && sheetByName.TryGetValue(salesSheet.SheetName, out var sp))
+        {
+            foreach (var row in sp.Rows)
+            {
+                var d = ColumnSynonymMatcher.ResolveRowPeriod(row, salesSheet.ColumnMappings);
+                if (d is not null) fromSales.Add(d.Value);
+            }
+        }
+
+        if (fromSales.Count > 0)
+            return fromSales.Max();
+
+        var rollupSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.WeeklyRollup);
+        if (rollupSheet is not null && sheetByName.TryGetValue(rollupSheet.SheetName, out var rp))
+        {
+            var fromRollup = new HashSet<DateOnly>();
+            foreach (var row in rp.Rows)
+            {
+                var d = WorkbookDateRules.TryParsePeriodDate(
+                    ColumnSynonymMatcher.GetMapped(row, rollupSheet.ColumnMappings, "Period_End_Date"));
+                if (d is not null) fromRollup.Add(d.Value);
+            }
+            if (fromRollup.Count > 0)
+                return fromRollup.Max();
+        }
+
+        return periods.Max();
+    }
+
+    private static (string? Id, string? Name) ResolveHoldoverBuyer(
+        IReadOnlyDictionary<string, string?> row,
+        IReadOnlyDictionary<string, string> colMap)
+    {
+        var customerId = ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_ID")
+            ?? FindCellByHeaderToken(row, "customerid", "custid", "accountid", "buyerid");
+        var customerName = ColumnSynonymMatcher.GetMapped(row, colMap, "Customer_Name")
+            ?? FindCellByHeaderToken(row, "customername", "custname", "accountname", "buyername");
+        return CustomerKeyResolver.Resolve(customerId, customerName);
+    }
+
+    private static string? FindCellByHeaderToken(
+        IReadOnlyDictionary<string, string?> row,
+        params string[] tokens)
+    {
+        foreach (var kvp in row)
+        {
+            var norm = WorkbookParseHelper.NormalizeHeader(kvp.Key);
+            if (tokens.Any(t => norm.Contains(t, StringComparison.Ordinal)))
+                return kvp.Value;
+        }
+        return null;
     }
 
     private static string MapHoldoverStatus(IReadOnlyDictionary<string, string?> row)
