@@ -31,7 +31,11 @@
         <div>
             <label class="block text-sm font-semibold mb-2">Excel workbook</label>
             <input type="file" name="WorkbookFile" accept=".xlsx,.xls" class="w-full" />
-            <p class="text-xs text-on-surface-variant mt-1">Upload one file per batch. Use separate batches for multiple distributors.</p>
+            <p class="text-xs text-on-surface-variant mt-1">
+                One .xlsx with multiple tabs (Sales, Inventory, AR, AP, Weekly rollup, etc.).
+                The system detects each sheet, maps columns by synonyms, and finds week-ending dates.
+                If your anchor is after all data weeks, periods will auto-adjust to the earliest week found.
+            </p>
         </div>
         <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Analyze workbook</button>
     </form>

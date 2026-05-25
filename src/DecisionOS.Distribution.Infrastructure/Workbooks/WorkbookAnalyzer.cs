@@ -45,7 +45,8 @@ public sealed class WorkbookAnalyzer : IWorkbookAnalyzer
                 Confidence = conf,
                 DataRowCount = ps.Rows.Count,
                 Headers = ps.Headers,
-                ColumnMappings = mappings
+                ColumnMappings = mappings,
+                HeaderRowNumber = ps.HeaderRowNumber
             });
         }
 
@@ -55,11 +56,18 @@ public sealed class WorkbookAnalyzer : IWorkbookAnalyzer
         if (!sheets.Any(s => s.Kind == WorkbookSheetKind.Sales))
             warnings.Add("No sales detail sheet detected.");
 
-        var rawPeriods = PeriodExtractor.ExtractRawPeriods(wb);
-        var filtered = PeriodExtractor.ApplyCadenceAndAnchor(rawPeriods, cadence, anchorPeriodEnd);
+        var rawPeriods = PeriodExtractor.ExtractRawPeriods(wb, sheets);
+        var (effectiveAnchor, filtered, suggested, autoAdjusted) =
+            PeriodExtractor.ResolvePeriods(rawPeriods, cadence, anchorPeriodEnd);
 
-        if (filtered.Count == 0 && rawPeriods.Count > 0)
-            warnings.Add("Anchor date excluded all periods; adjust anchor or cadence.");
+        if (autoAdjusted && effectiveAnchor is not null)
+            warnings.Add($"Anchor auto-adjusted to earliest detected period {effectiveAnchor:yyyy-MM-dd} (configured anchor excluded all periods).");
+
+        if (filtered.Count == 0 && rawPeriods.Count > 0 && !autoAdjusted)
+            warnings.Add("Anchor date excluded all periods; set anchor to earliest week in workbook or leave blank on create.");
+
+        if (filtered.Count == 0 && rawPeriods.Count == 0)
+            warnings.Add("No week-ending dates detected; check date column headers (e.g. Week_End_Date, Period_End).");
 
         if (sheets.Any(s => s.Kind == WorkbookSheetKind.AccountsReceivable))
             warnings.Add("AR_Over_60_% in rollup maps to AR_PastDue31p% KPI (approximation).");
@@ -70,6 +78,9 @@ public sealed class WorkbookAnalyzer : IWorkbookAnalyzer
             Sheets = sheets,
             RawPeriodEnds = rawPeriods,
             FilteredPeriodEnds = filtered,
+            SuggestedAnchorPeriodEnd = suggested,
+            EffectiveAnchorPeriodEnd = effectiveAnchor,
+            AnchorAutoAdjusted = autoAdjusted,
             Warnings = warnings
         };
     }

@@ -55,11 +55,51 @@
                 </table>
             </div>
 
-            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
-                <div class="text-xs uppercase text-on-surface-variant mb-2">Periods to import (≥ anchor)</div>
-                <p class="text-sm font-mono break-all">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
+                <div class="text-xs uppercase text-on-surface-variant">Periods in workbook</div>
+                <p class="text-sm">
+                    <span class="font-semibold">@(Model.Detection.RawPeriodEnds.Count)</span> date(s) detected;
+                    <span class="font-semibold">@(Model.Detection.FilteredPeriodEnds.Count)</span> to import (≥ anchor).
+                </p>
+                @if (Model.Detection.SuggestedAnchorPeriodEnd is not null)
+                {
+                    <p class="text-xs text-on-surface-variant">
+                        Earliest week in file: <span class="font-mono">@Model.Detection.SuggestedAnchorPeriodEnd.Value.ToString("yyyy-MM-dd")</span>
+                        @if (Model.Detection.AnchorAutoAdjusted)
+                        {
+                            <span class="text-amber-700 font-semibold"> — anchor was auto-adjusted on upload.</span>
+                        }
+                    </p>
+                }
+                <p class="text-sm font-mono break-all text-on-surface-variant">
                     @string.Join(", ", Model.Detection.FilteredPeriodEnds.Select(d => d.ToString("yyyy-MM-dd")))
                 </p>
+                <form method="post" asp-page-handler="Reanalyze" asp-route-id="@Model.Batch.Id" class="flex flex-wrap gap-2 items-end pt-2 border-t border-surface-container-high">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label class="text-xs font-semibold block mb-1">Anchor (first period to include)</label>
+                        <input asp-for="AnchorPeriodEnd" type="date" class="rounded-lg border-surface-container-high bg-white text-sm" />
+                    </div>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold bg-surface-container-high border">Re-detect periods</button>
+                </form>
+            </div>
+
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <div class="text-xs uppercase text-on-surface-variant mb-2">Column mapping (auto-detected per tab)</div>
+                <div class="space-y-3 text-xs max-h-80 overflow-auto">
+                    @foreach (var s in Model.Detection.Sheets.Where(x => x.ColumnMappings.Count > 0).OrderBy(x => x.SheetName))
+                    {
+                        <div>
+                            <div class="font-mono font-bold text-sm">@s.SheetName <span class="text-on-surface-variant font-normal">(@s.Kind, header row @s.HeaderRowNumber)</span></div>
+                            <ul class="list-disc pl-5 mt-1 text-on-surface-variant">
+                                @foreach (var m in s.ColumnMappings.OrderBy(m => m.Value))
+                                {
+                                    <li><span class="font-mono">@m.Key</span> → @m.Value</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
             </div>
 
             @if (Model.Detection.Warnings.Count > 0)

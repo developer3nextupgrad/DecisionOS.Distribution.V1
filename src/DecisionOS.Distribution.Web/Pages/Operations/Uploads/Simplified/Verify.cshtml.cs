@@ -23,6 +23,7 @@ public class VerifyModel : PageModel
     }
 
     [BindProperty(SupportsGet = true)] public long Id { get; set; }
+    [BindProperty] public DateOnly? AnchorPeriodEnd { get; set; }
 
     public UploadBatch? Batch { get; private set; }
     public WorkbookDetectionResult? Detection { get; private set; }
@@ -38,7 +39,26 @@ public class VerifyModel : PageModel
         if (Batch is null) return NotFound();
         if (Detection is null)
             return RedirectToPage("Detect", new { id = Id });
+        AnchorPeriodEnd = Batch.AnchorPeriodEnd ?? Detection.SuggestedAnchorPeriodEnd;
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostReanalyzeAsync()
+    {
+        await LoadAsync();
+        if (Batch is null) return NotFound();
+
+        try
+        {
+            await _simplified.ReanalyzeStoredWorkbookAsync(Id, _env.ContentRootPath, AnchorPeriodEnd, Batch.Cadence);
+            return RedirectToPage(new { id = Id });
+        }
+        catch (Exception ex)
+        {
+            ActionError = ex.Message;
+            await LoadAsync();
+            return Page();
+        }
     }
 
     public async Task<IActionResult> OnPostValidateAsync()

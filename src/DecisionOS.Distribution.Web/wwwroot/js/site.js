@@ -14,6 +14,7 @@
 
     const handleChange = () => {
       const clientSelect = bar.querySelector('[name="clientId"]');
+      const customerSelect = bar.querySelector('[name="customerId"]');
       const periodSelect = bar.querySelector('[name="periodEnd"]');
       if (!clientSelect || !periodSelect) return;
 
@@ -22,7 +23,8 @@
       if (!clientId || !periodEnd) return;
 
       const params = new URLSearchParams({ clientId, periodEnd });
-      window.location.href = `/dashboard?${params.toString()}`;
+      if (customerSelect?.value) params.set('customerId', customerSelect.value);
+      window.location.href = `/Dashboard?${params.toString()}`;
     };
 
     bar.addEventListener('change', (e) => {

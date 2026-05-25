@@ -7,6 +7,11 @@ public sealed class WorkbookDetectionResult
     public IReadOnlyList<DateOnly> RawPeriodEnds { get; set; } = Array.Empty<DateOnly>();
     public IReadOnlyList<DateOnly> FilteredPeriodEnds { get; set; } = Array.Empty<DateOnly>();
     public IReadOnlyList<string> Warnings { get; set; } = Array.Empty<string>();
+    /// <summary>Earliest period date found anywhere in the workbook.</summary>
+    public DateOnly? SuggestedAnchorPeriodEnd { get; set; }
+    /// <summary>Anchor used after auto-adjustment (may match batch anchor or earliest period).</summary>
+    public DateOnly? EffectiveAnchorPeriodEnd { get; set; }
+    public bool AnchorAutoAdjusted { get; set; }
 }
 
 public sealed class DetectedSheet
@@ -17,6 +22,8 @@ public sealed class DetectedSheet
     public ReportType? ReportType { get; set; }
     public double Confidence { get; set; }
     public int DataRowCount { get; set; }
+    /// <summary>1-based header row detected in the tab.</summary>
+    public int HeaderRowNumber { get; set; } = 1;
     public IReadOnlyList<string> Headers { get; set; } = Array.Empty<string>();
     public IReadOnlyDictionary<string, string> ColumnMappings { get; set; } =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

@@ -480,11 +480,29 @@
     Decision OS &ndash; Distribution
     @if (Model.Tenant is not null)
     {
-        <span style="float:right; font-weight: 400; font-size: 0.95rem; opacity: 0.95;">@Model.Tenant.Name &middot; Week ending @Model.ParsedPeriodEnd.ToString("MMMM d, yyyy")</span>
+        <span style="float:right; font-weight: 400; font-size: 0.95rem; opacity: 0.95;">
+            @Model.Tenant.Name
+            @if (!string.IsNullOrWhiteSpace(Model.CustomerDisplayName))
+            {
+                <span> &middot; Buyer: @Model.CustomerDisplayName</span>
+            }
+            &middot; Week ending @Model.ParsedPeriodEnd.ToString("MMMM d, yyyy")
+        </span>
     }
 </div>
 
 <div class="dashboard-wrapper">
+    <partial name="Shared/_ContextSelector" model="Model.Selector" />
+
+    @if (!string.IsNullOrWhiteSpace(Model.CustomerId))
+    {
+        <div class="focus-banner" style="margin-bottom: 12px;">
+            <p style="margin:0; font-size:0.85rem;">
+                <strong>Buyer context:</strong> @Model.CustomerDisplayName (@Model.CustomerId).
+                KPI cards show distributor-wide results for this week; the table below is filtered to this buyer where possible.
+            </p>
+        </div>
+    }
     @if (Model.Snapshots.Count == 0)
     {
         <div class="empty-panel">
@@ -856,3 +874,4 @@
         if (ev.key === "Escape") closeKpiModal(null, true);
     });
 </script>
+<script src="~/js/dashboard-context.js" asp-append-version="true"></script>

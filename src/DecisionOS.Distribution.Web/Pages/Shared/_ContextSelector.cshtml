@@ -1,0 +1,53 @@
+@model DecisionOS.Distribution.Web.Pages.Shared.ContextSelectorViewModel
+
+<div class="selector-bar bg-white/90 border border-slate-200 rounded-xl p-4 mb-4 shadow-sm"
+     data-context-selector
+     data-initial-customer="@(Model.SelectedCustomerId ?? "")"
+     data-initial-period="@(Model.SelectedPeriodEnd ?? "")">
+    <div class="grid grid-cols-1 md:grid-cols-@(Model.ShowGoButton ? 4 : 3) gap-3 items-end">
+        <div>
+            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 pl-1">Distributor</label>
+            <select name="clientId" data-select="distributor"
+                    class="w-full mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium bg-white">
+                @foreach (var item in Model.Tenants)
+                {
+                    <option value="@item.Value" selected="@(item.Value == Model.SelectedClientId)">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 pl-1">Buyer (end customer)</label>
+            <select name="customerId" data-select="customer"
+                    class="w-full mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium bg-white"
+                    @(string.IsNullOrEmpty(Model.SelectedClientId) ? "disabled" : null)>
+                @foreach (var item in Model.Customers)
+                {
+                    <option value="@item.Value" selected="@(item.Value == (Model.SelectedCustomerId ?? ""))">@item.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="text-[10px] font-bold uppercase tracking-wider text-slate-500 pl-1">Reporting week</label>
+            <select name="periodEnd" data-select="week"
+                    class="w-full mt-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium bg-white"
+                    @(string.IsNullOrEmpty(Model.SelectedClientId) ? "disabled" : null)>
+                @foreach (var item in Model.Weeks)
+                {
+                    <option value="@item.Value" selected="@(item.Value == Model.SelectedPeriodEnd)">@item.Text</option>
+                }
+            </select>
+        </div>
+        @if (Model.ShowGoButton)
+        {
+            <div>
+                <button type="button" data-action="go"
+                        class="w-full mt-5 bg-white/20 hover:bg-white/30 text-inherit font-bold py-2.5 rounded-lg text-sm border border-white/40">
+                    Apply
+                </button>
+            </div>
+        }
+    </div>
+    <p class="text-xs opacity-80 mt-2">
+        Weeks depend on buyer. KPI tiles are distributor-wide; holdover drivers filter when a buyer is selected.
+    </p>
+</div>

@@ -9,45 +9,54 @@ public static class SheetClassifier
         IReadOnlyList<string> headers)
     {
         var norms = headers.Select(WorkbookParseHelper.NormalizeHeader).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var name = sheetName.ToLowerInvariant();
-        var hasSkuColumn = norms.Contains("sku");
+        var name = NormalizeSheetName(sheetName);
+        var hasSkuColumn = norms.Contains("sku") || norms.Contains("skuid") || norms.Contains("itemno");
 
         double Score(params string[] tokens) =>
-            tokens.Count(t => norms.Contains(t) || name.Contains(t.Replace("_", ""), StringComparison.OrdinalIgnoreCase));
+            tokens.Count(t => norms.Contains(t) || name.Contains(t, StringComparison.OrdinalIgnoreCase));
 
         var candidates = new List<(WorkbookSheetKind Kind, ReportType? Rt, double Score)>();
 
-        if (hasSkuColumn && (norms.Contains("netsales") || norms.Contains("weeknumber") || norms.Contains("weekenddate")) ||
-            name.Contains("sales_by") || name.Contains("salesby"))
+        if (name.Contains("readme") || name.Contains("source_note") || name.Contains("validation_summary") ||
+            name.Contains("import_map") || name.Contains("changelog"))
+            return (WorkbookSheetKind.Skip, null, 1.0);
+
+        if (hasSkuColumn && (norms.Contains("netsales") || norms.Contains("quantitysold") ||
+                             norms.Contains("weeknumber") || norms.Contains("weekenddate") ||
+                             norms.Contains("cogs")) ||
+            name.Contains("sales_by") || name.Contains("salesby") || (name.Contains("sales") && !name.Contains("history")))
             candidates.Add((WorkbookSheetKind.Sales, ReportType.Sales, 0.92));
 
         if (!hasSkuColumn && (
                 name.Contains("weekly_financial") || name.Contains("weeklyfinancial") ||
+                name.Contains("weekly_rollup") || name.Contains("weeklyrollup") ||
                 (name.Contains("weekly") && norms.Contains("weekenddate")) ||
-                (name.Contains("financial") && norms.Contains("netsales") && norms.Contains("grossmargin"))))
+                (name.Contains("financial") && (norms.Contains("netsales") || norms.Contains("grossmargin")))))
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.95));
 
-        if (!hasSkuColumn && Score("weekenddate", "netsales", "grossmargin") >= 2)
+        if (!hasSkuColumn && Score("weekenddate", "netsales", "grossmargin", "cogs") >= 2)
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.9));
 
-        if (Score("sku", "onhandunits", "inventoryvalue") >= 2 || name.Contains("inventory"))
+        if (Score("sku", "onhandunits", "inventoryvalue", "quantityonhand") >= 2 ||
+            name.Contains("inventory") || name.Contains("stock_on_hand"))
             candidates.Add((WorkbookSheetKind.Inventory, ReportType.Inventory, 0.85));
 
-        if (Score("invoiceid", "customerid", "openamount") >= 2 ||
-            name.Contains("receivable") || name.StartsWith("ar"))
+        if (Score("invoiceid", "customerid", "openamount", "openbalance") >= 2 ||
+            name.Contains("receivable") || name.StartsWith("ar") || name.Contains("_ar"))
             candidates.Add((WorkbookSheetKind.AccountsReceivable, ReportType.AccountsReceivable, 0.85));
 
-        if (Score("billid", "vendorid", "openamount") >= 2 ||
-            name.Contains("payable") || name.StartsWith("ap"))
+        if (Score("billid", "vendorid", "openamount", "openbalance") >= 2 ||
+            name.Contains("payable") || name.StartsWith("ap") || name.Contains("_ap"))
             candidates.Add((WorkbookSheetKind.AccountsPayable, ReportType.AccountsPayable, 0.85));
 
-        if (Score("customerid", "customername") >= 2 && !norms.Contains("openamount"))
+        if ((Score("customerid", "customername") >= 2 || name.Contains("customer_master") || name.Contains("customermaster")) &&
+            !norms.Contains("openamount") && !norms.Contains("openbalance"))
             candidates.Add((WorkbookSheetKind.Customer, ReportType.Customer, 0.8));
 
-        if (Score("vendorid", "vendorname", "ontime") >= 2)
+        if (Score("vendorid", "vendorname", "ontime") >= 2 || name.Contains("vendor_master"))
             candidates.Add((WorkbookSheetKind.Vendor, ReportType.Vendor, 0.8));
 
-        if (Score("sku", "description", "unitcost") >= 2 && name.Contains("master"))
+        if (Score("sku", "description", "unitcost") >= 2 && (name.Contains("master") || name.Contains("product")))
             candidates.Add((WorkbookSheetKind.Product, ReportType.Product, 0.8));
 
         if ((Score("poid", "poamount") >= 1 && name.Contains("purchase")) ||
@@ -63,13 +72,10 @@ public static class SheetClassifier
         if (Score("field", "value") >= 2 && name.Contains("company"))
             candidates.Add((WorkbookSheetKind.CompanyProfile, null, 0.9));
 
-        if (name.Contains("readme") || name.Contains("source_note") || name.Contains("validation_summary"))
-            candidates.Add((WorkbookSheetKind.Skip, null, 1.0));
-
-        if (name.Contains("kpi_target"))
+        if (name.Contains("kpi_target") || name.Contains("expected_kpi"))
             candidates.Add((WorkbookSheetKind.ExpectedKpiValidation, null, 0.85));
 
-        if (name.Contains("decision_board"))
+        if (name.Contains("decision_board") || name.Contains("expected_decision"))
             candidates.Add((WorkbookSheetKind.ExpectedDecisionBoard, null, 0.85));
 
         if (candidates.Count == 0)
@@ -77,5 +83,17 @@ public static class SheetClassifier
 
         var best = candidates.OrderByDescending(c => c.Score).First();
         return (best.Kind, best.Rt, Math.Min(1.0, best.Score / 3.0 + 0.4));
+    }
+
+    private static string NormalizeSheetName(string sheetName)
+    {
+        var lower = sheetName.Trim().ToLowerInvariant();
+        var sb = new System.Text.StringBuilder();
+        foreach (var ch in lower)
+        {
+            if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+            else if (ch is ' ' or '-' or '.') sb.Append('_');
+        }
+        return sb.ToString();
     }
 }

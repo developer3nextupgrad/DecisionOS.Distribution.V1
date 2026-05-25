@@ -2,8 +2,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Infrastructure;
+using DecisionOS.Distribution.Web.Pages.Shared;
 using Microsoft.EntityFrameworkCore;
 
 namespace DecisionOS.Distribution.Web.Pages;
@@ -12,12 +14,21 @@ namespace DecisionOS.Distribution.Web.Pages;
 public class DashboardModel : PageModel
 {
     private readonly DecisionOsDbContext _db;
-    public DashboardModel(DecisionOsDbContext db) => _db = db;
+    private readonly DashboardContextService _context;
+
+    public DashboardModel(DecisionOsDbContext db, DashboardContextService context)
+    {
+        _db = db;
+        _context = context;
+    }
 
     [BindProperty(SupportsGet = true)] public string ClientId { get; set; } = null!;
     [BindProperty(SupportsGet = true)] public string PeriodEnd { get; set; } = null!;
+    [BindProperty(SupportsGet = true)] public string? CustomerId { get; set; }
 
     public Tenant? Tenant { get; set; }
+    public string? CustomerDisplayName { get; set; }
+    public ContextSelectorViewModel Selector { get; set; } = new();
     public DateOnly ParsedPeriodEnd { get; set; }
     public List<KpiSnapshot> Snapshots { get; set; } = new();
     public Alert? TopAlert { get; set; }
@@ -80,6 +91,21 @@ public class DashboardModel : PageModel
             .Take(50)
             .ToListAsync();
 
+        if (!string.IsNullOrWhiteSpace(CustomerId))
+        {
+            CustomerDisplayName = await _context.ResolveCustomerDisplayNameAsync(Tenant.Id, CustomerId);
+            var cid = CustomerId.Trim();
+            var cname = CustomerDisplayName ?? cid;
+            Drivers = Drivers.Where(d =>
+                    string.Equals(d.Dimension1, cid, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(d.Dimension1, cname, StringComparison.OrdinalIgnoreCase) ||
+                    d.DriverName.Contains(cid, StringComparison.OrdinalIgnoreCase) ||
+                    d.DriverName.Contains(cname, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        await BuildSelectorAsync(periodEnd);
+
         Focus = await _db.WeeklyFocuses
             .Include(w => w.KpiDefinition)
             .FirstOrDefaultAsync(w => w.TenantId == Tenant.Id && w.PeriodEnd == periodEnd);
@@ -96,6 +122,39 @@ public class DashboardModel : PageModel
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         return Page();
+    }
+
+    private async Task BuildSelectorAsync(DateOnly periodEnd)
+    {
+        var tenants = await _db.Tenants.OrderBy(t => t.Name).ToListAsync();
+        var tenantItems = tenants.Select(t => new SelectListItem(t.Name, t.ClientId)).ToList();
+        tenantItems.Insert(0, new SelectListItem("— Select distributor —", ""));
+
+        var customerItems = new List<SelectListItem>
+        {
+            new("All buyers (distributor total)", "")
+        };
+        var weekItems = new List<SelectListItem> { new("— Select week —", "") };
+
+        if (Tenant is not null)
+        {
+            var customers = await _context.GetCustomersAsync(Tenant.Id);
+            customerItems.AddRange(customers.Select(c => new SelectListItem(c.DisplayName, c.CustomerId)));
+
+            var weeks = await _context.GetWeeksAsync(Tenant.Id, CustomerId);
+            weekItems.AddRange(weeks.Select(w => new SelectListItem(w.ToString("yyyy-MM-dd"), w.ToString("yyyy-MM-dd"))));
+        }
+
+        Selector = new ContextSelectorViewModel
+        {
+            Tenants = tenantItems,
+            Customers = customerItems,
+            Weeks = weekItems,
+            SelectedClientId = ClientId,
+            SelectedCustomerId = CustomerId ?? "",
+            SelectedPeriodEnd = periodEnd.ToString("yyyy-MM-dd"),
+            ShowGoButton = true
+        };
     }
 
     public string FormatValue(KpiSnapshot snapshot)

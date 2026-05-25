@@ -37,6 +37,7 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
 
         var cadence = batch.Cadence ?? UploadCadence.Weekly;
         var detection = _analyzer.Analyze(workbookBytes, cadence, batch.AnchorPeriodEnd);
+        ApplyDetectionToBatch(batch, detection);
 
         var sha = UploadedFile.ComputeSha256Hex(workbookBytes);
         var folder = Path.Combine(contentRootPath, "App_Data", "uploads", batch.Tenant.ClientId,
@@ -48,14 +49,7 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         await File.WriteAllBytesAsync(fullPath, workbookBytes, ct);
         var rel = Path.GetRelativePath(contentRootPath, fullPath).Replace('\\', '/');
 
-        batch.WorkbookFingerprint = detection.WorkbookFingerprint;
-        batch.DetectionSummaryJson = WorkbookAnalyzer.Serialize(detection);
         batch.WorkbookStoredRelativePath = rel;
-        batch.ReadinessStatus = detection.FilteredPeriodEnds.Count > 0 ? "ReadyWithLimitations" : "NotReadyYet";
-        batch.Status = UploadBatchStatuses.MappingInProgress;
-
-        if (detection.FilteredPeriodEnds.Count > 0)
-            batch.PeriodEnd = detection.FilteredPeriodEnds.Max();
 
         _db.UploadedFiles.RemoveRange(_db.UploadedFiles.Where(f => f.UploadBatchId == batch.Id));
         foreach (var sheet in detection.Sheets.Where(s => s.Kind != WorkbookSheetKind.Skip && s.Kind != WorkbookSheetKind.Unknown))
@@ -68,13 +62,57 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                 StoredFileName = storedName,
                 StoredRelativePath = rel,
                 Sha256Hex = sha,
-                HeaderRowNumber = 1,
+                HeaderRowNumber = sheet.HeaderRowNumber > 0 ? sheet.HeaderRowNumber : 1,
                 UploadedAt = DateTimeOffset.UtcNow
             });
         }
 
         await _db.SaveChangesAsync(ct);
         return detection;
+    }
+
+    public async Task<WorkbookDetectionResult> ReanalyzeStoredWorkbookAsync(
+        long batchId,
+        string contentRootPath,
+        DateOnly? anchorPeriodEnd,
+        UploadCadence? cadence,
+        CancellationToken ct = default)
+    {
+        var batch = await _db.UploadBatches.Include(b => b.Tenant)
+            .FirstOrDefaultAsync(b => b.Id == batchId, ct)
+            ?? throw new InvalidOperationException("Batch not found.");
+
+        if (string.IsNullOrWhiteSpace(batch.WorkbookStoredRelativePath))
+            throw new InvalidOperationException("No workbook stored for this batch.");
+
+        if (anchorPeriodEnd is not null)
+            batch.AnchorPeriodEnd = anchorPeriodEnd;
+        if (cadence is not null)
+            batch.Cadence = cadence;
+
+        var fullPath = Path.Combine(contentRootPath,
+            batch.WorkbookStoredRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        var bytes = await File.ReadAllBytesAsync(fullPath, ct);
+        var detection = _analyzer.Analyze(bytes, batch.Cadence ?? UploadCadence.Weekly, batch.AnchorPeriodEnd);
+        ApplyDetectionToBatch(batch, detection);
+        batch.DetectionSummaryJson = WorkbookAnalyzer.Serialize(detection);
+
+        await _db.SaveChangesAsync(ct);
+        return detection;
+    }
+
+    private static void ApplyDetectionToBatch(UploadBatch batch, WorkbookDetectionResult detection)
+    {
+        batch.WorkbookFingerprint = detection.WorkbookFingerprint;
+        batch.DetectionSummaryJson = WorkbookAnalyzer.Serialize(detection);
+        batch.ReadinessStatus = detection.FilteredPeriodEnds.Count > 0 ? "ReadyWithLimitations" : "NotReadyYet";
+        batch.Status = UploadBatchStatuses.MappingInProgress;
+
+        if (detection.AnchorAutoAdjusted && detection.EffectiveAnchorPeriodEnd is not null)
+            batch.AnchorPeriodEnd = detection.EffectiveAnchorPeriodEnd;
+
+        if (detection.FilteredPeriodEnds.Count > 0)
+            batch.PeriodEnd = detection.FilteredPeriodEnds.Max();
     }
 
     public async Task ValidateSimplifiedAsync(long batchId, CancellationToken ct = default)
@@ -333,7 +371,7 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         foreach (var row in sheet.Rows)
         {
             rowNum++;
-            var txDate = WorkbookParseHelper.ParseDate(ColumnSynonymMatcher.GetMapped(row, colMap, "Transaction_Date"));
+            var txDate = ColumnSynonymMatcher.ResolveRowPeriod(row, colMap);
             if (txDate != period) continue;
 
             _db.NormalizedSalesRows.Add(new NormalizedSalesRow

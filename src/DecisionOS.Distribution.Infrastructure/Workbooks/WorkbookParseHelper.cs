@@ -14,6 +14,8 @@ public sealed class ParsedSheet
 {
     public string Name { get; init; } = "";
     public int Index { get; init; }
+    /// <summary>1-based Excel row number of the detected header row.</summary>
+    public int HeaderRowNumber { get; init; } = 1;
     public IReadOnlyList<string> Headers { get; init; } = Array.Empty<string>();
     public IReadOnlyList<IReadOnlyDictionary<string, string?>> Rows { get; init; } =
         Array.Empty<IReadOnlyDictionary<string, string?>>();
@@ -45,7 +47,8 @@ public static class WorkbookParseHelper
                 continue;
             }
 
-            var headerRow = table.Rows[0];
+            var headerRowIndex = WorkbookHeaderDetector.DetectHeaderRowIndex(table);
+            var headerRow = table.Rows[headerRowIndex];
             var headers = new List<string>();
             for (var c = 0; c < table.Columns.Count; c++)
             {
@@ -54,7 +57,7 @@ public static class WorkbookParseHelper
             }
 
             var rows = new List<IReadOnlyDictionary<string, string?>>();
-            for (var r = 1; r < table.Rows.Count; r++)
+            for (var r = headerRowIndex + 1; r < table.Rows.Count; r++)
             {
                 var dr = table.Rows[r];
                 if (IsEmptyRow(dr)) continue;
@@ -70,7 +73,8 @@ public static class WorkbookParseHelper
                 Name = table.TableName,
                 Index = i,
                 Headers = headers,
-                Rows = rows
+                Rows = rows,
+                HeaderRowNumber = headerRowIndex + 1
             });
         }
 

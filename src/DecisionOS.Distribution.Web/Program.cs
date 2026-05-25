@@ -147,6 +147,7 @@ builder.Services.AddScoped<IWeeklyScoringService, WeeklyScoringService>();
 builder.Services.AddScoped<IWorkbookAnalyzer, WorkbookAnalyzer>();
 builder.Services.AddScoped<ISimplifiedWorkbookImportService, SimplifiedWorkbookImportService>();
 builder.Services.AddScoped<UploadBatchImportService>();
+builder.Services.AddScoped<DashboardContextService>();
 
 var app = builder.Build();
 
@@ -358,19 +359,22 @@ api.MapGet("/tenants", async (DecisionOsDbContext db) =>
     return Results.Ok(tenants);
 });
 
-api.MapGet("/tenants/{clientId}/weeks", async (string clientId, DecisionOsDbContext db) =>
+api.MapGet("/tenants/{clientId}/weeks", async (string clientId, string? customerId, DashboardContextService context, DecisionOsDbContext db) =>
 {
     var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
     if (tenant is null) return Results.NotFound();
 
-    var weeks = await db.KpiSnapshots
-        .Where(s => s.TenantId == tenant.Id)
-        .Select(s => s.PeriodEnd)
-        .Distinct()
-        .OrderByDescending(p => p)
-        .ToListAsync();
+    var weeks = await context.GetWeeksAsync(tenant.Id, customerId);
+    return Results.Ok(weeks.Select(w => w.ToString("yyyy-MM-dd")));
+});
 
-    return Results.Ok(weeks);
+api.MapGet("/tenants/{clientId}/customers", async (string clientId, DashboardContextService context, DecisionOsDbContext db) =>
+{
+    var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var customers = await context.GetCustomersAsync(tenant.Id);
+    return Results.Ok(customers.Select(c => new { customerId = c.CustomerId, displayName = c.DisplayName }));
 });
 
 app.MapRazorPages();
