@@ -6,7 +6,11 @@
 
 <style>
     .modal-content {
-        width: 500px;
+        width: 560px;
+        max-height: 90vh;
+        overflow-y: auto;
+        color: #0f172a;
+        background: #fff;
     }
 
         .modal-content.card-red,
@@ -40,10 +44,105 @@
     .modal-content {
         padding: 24px;
         border-radius: 12px;
-        width: 500px;
-        max-width: 90%;
+        width: 560px;
+        max-width: 92%;
         box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         background: white;
+    }
+
+    .modal-content .modal-inner {
+        color: #0f172a;
+    }
+
+    .modal-accent {
+        border-radius: 10px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        font-size: 0.88rem;
+        line-height: 1.45;
+    }
+
+    .modal-accent.alert-accent {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+
+    .modal-accent.focus-accent {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #1e40af;
+    }
+
+    .modal-accent.status-accent {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #334155;
+    }
+
+    .modal-section-block {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .modal-section-block h4 {
+        margin: 0 0 8px;
+        font-size: 0.82rem;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #64748b;
+        font-weight: 700;
+    }
+
+    .modal-section-block p,
+    .modal-section-block li {
+        font-size: 0.88rem;
+        line-height: 1.5;
+        color: #334155;
+    }
+
+    .modal-missing-list {
+        margin: 0;
+        padding-left: 1.2rem;
+    }
+
+    .modal-missing-list li {
+        margin-bottom: 6px;
+    }
+
+    .modal-driver-row {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+        font-size: 0.82rem;
+    }
+
+    .modal-code-chip {
+        display: inline-block;
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(0,0,0,0.08);
+        margin-left: 8px;
+        vertical-align: middle;
+    }
+
+    .kpi-card[role="button"]:focus-visible,
+    .mini-card-clickable:focus-visible {
+        outline: 2px solid #fff;
+        outline-offset: 2px;
+    }
+
+    .mini-card-clickable {
+        cursor: pointer;
+    }
+
+    .mini-card-clickable:hover {
+        filter: brightness(1.05);
     }
 
     .close-btn {
@@ -317,31 +416,22 @@
         border: 1px dashed #94a3b8;
     }
 
-    /* COLOR STATES */
-    .modal-content.card-red {
-        background: linear-gradient(180deg, #f15b6c 0%, #d93d4e 100%);
-        color: white;
+    .modal-status-bar {
+        height: 6px;
+        border-radius: 6px 6px 0 0;
+        margin: -24px -24px 16px -24px;
     }
 
-    .modal-content.card-green {
-        background: linear-gradient(180deg, #5a9b73 0%, #467a5a 100%);
-        color: white;
-    }
-
-    .modal-content.card-amber {
-        background: linear-gradient(180deg, #ffcc33 0%, #e6b82e 100%);
-        color: #1a1a1a;
-    }
-
-    .modal-content.card-gray {
-        background: linear-gradient(180deg, #64748b 0%, #475569 100%);
-        color: white;
-    }
+    .modal-status-bar.bar-green { background: #10b981; }
+    .modal-status-bar.bar-amber { background: #f59e0b; }
+    .modal-status-bar.bar-red { background: #ef4444; }
+    .modal-status-bar.bar-gray { background: #64748b; }
 
     .modal-title {
-        font-size: 1.5rem;
+        font-size: 1.35rem;
         font-weight: 700;
-        margin-bottom: 15px;
+        margin-bottom: 4px;
+        color: #0f172a;
     }
 
     .modal-grid {
@@ -352,41 +442,39 @@
     }
 
     .modal-item {
-        background: rgba(255,255,255,0.15);
+        background: #f1f5f9;
         padding: 10px;
         border-radius: 8px;
         display: flex;
         flex-direction: column;
+        border: 1px solid #e2e8f0;
     }
 
-    .label {
-        font-size: 0.75rem;
-        opacity: 0.8;
+    .modal-item .label {
+        font-size: 0.72rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
     }
 
-    .value {
-        font-size: 1.2rem;
+    .modal-item .value {
+        font-size: 1.1rem;
         font-weight: 700;
+        color: #0f172a;
     }
 
-    .badge {
+    #modalStatus.badge {
         padding: 4px 10px;
         border-radius: 20px;
         display: inline-block;
         width: fit-content;
         font-size: 0.75rem;
+        color: white;
     }
-
-    .modal-section {
-        margin-top: 15px;
-    }
-
-        .modal-section h4 {
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
 </style>
+
+<script id="kpi-insights-json" type="application/json">@Html.Raw(Model.KpiInsightsJson)</script>
 
 <div class="header-bar">
     Decision OS &ndash; Distribution
@@ -440,17 +528,10 @@
                 (snapshot.Status.Equals("YELLOW", StringComparison.OrdinalIgnoreCase) ? "card-amber" :
                 (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase) ? "card-gray" : "card-red"));
                 <div class="kpi-card @colorClass"
-                     onclick="openKpiModalFull(
-                    '@snapshot.KpiDefinition.Name',
-                    '@snapshot.KpiDefinition.Code',
-                    '@snapshot.KpiDefinition.Unit',
-                    '@Model.FormatTarget(snapshot.KpiDefinition)',
-                    '@Model.FormatValue(snapshot)',
-                    '@snapshot.WeekOverWeekDelta',
-                    '@snapshot.Status',
-                    '@snapshot.CardDetailLine1',
-                    '@snapshot.CardDetailLine2'
-                )">
+                     role="button"
+                     tabindex="0"
+                     data-snapshot-id="@snapshot.Id"
+                     aria-label="View details for @snapshot.KpiDefinition.Name">
 
 
                     <div class="kpi-title">@snapshot.KpiDefinition.Name</div>
@@ -479,7 +560,11 @@
             <div class="mini-column">
                 @foreach (var snapshot in Model.Snapshots.Skip(4))
                 {
-                    <div class="mini-card">
+                    <div class="mini-card mini-card-clickable"
+                         role="button"
+                         tabindex="0"
+                         data-snapshot-id="@snapshot.Id"
+                         aria-label="View details for @snapshot.KpiDefinition.Name">
                         <div style="font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 4px;">@snapshot.KpiDefinition.Name</div>
                         <div style="font-size: 1.1rem; font-weight: 800;">@Model.FormatValue(snapshot)</div>
                         <div style="font-size: 0.7rem; margin-top:4px;">Target @Model.FormatTarget(snapshot.KpiDefinition)</div>
@@ -559,100 +644,215 @@
     </div>
         }
 
-    <div id="kpiModal" class="modal-overlay" onclick="closeKpiModal(event)">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeKpiModal(null, true)">&times;</span>
+    <div id="kpiModal" class="modal-overlay" onclick="closeKpiModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div id="modalStatusBar" class="modal-status-bar"></div>
+            <span class="close-btn" onclick="closeKpiModal(null, true)" aria-label="Close">&times;</span>
 
-            <h2 id="modalTitle" class="modal-title"></h2>
+            <div class="modal-inner">
+                <h2 id="modalTitle" class="modal-title"></h2>
+                <div id="modalSubtitle" style="font-size:0.8rem; color:#64748b; margin-bottom:12px;"></div>
 
-            <div class="modal-grid">
-                <div class="modal-item">
-                    <span class="label">Value</span>
-                    <span id="modalValue" class="value"></span>
+                <div id="modalBanners"></div>
+
+                <div class="modal-grid">
+                    <div class="modal-item">
+                        <span class="label">This week</span>
+                        <span id="modalValue" class="value"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Target</span>
+                        <span id="modalTarget" class="value"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Gap vs target</span>
+                        <span id="modalGap" class="value" style="font-size:0.95rem;"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Week over week</span>
+                        <span id="modalWoW" class="value" style="font-size:0.95rem;"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Status</span>
+                        <span id="modalStatus" class="value badge"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Data confidence</span>
+                        <span id="modalConfidence" class="value" style="font-size:0.95rem;"></span>
+                    </div>
                 </div>
 
-                <div class="modal-item">
-                    <span class="label">Target</span>
-                    <span id="modalTarget" class="value"></span>
+                <div id="modalColorCoding" class="modal-section-block" style="margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
+                    <h4>Color coding</h4>
+                    <p id="modalColorNote" style="font-size:0.85rem; margin:0 0 8px;"></p>
+                    <p id="modalThresholds" style="font-size:0.78rem; color:#475569; margin:0;"></p>
+                    <div class="color-band-legend" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:0.72rem; font-weight:600;">
+                        <span style="padding:3px 10px; border-radius:999px; background:#10b981; color:#fff;">Green</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#f59e0b; color:#1a1a1a;">Yellow</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#ef4444; color:#fff;">Red</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#64748b; color:#fff;">Gray = not scored</span>
+                    </div>
                 </div>
 
-                <div class="modal-item">
-                    <span class="label">WoW Change</span>
-                    <span id="modalWoW" class="value"></span>
+                <div id="modalMissingSection" class="modal-section-block" style="display:none;">
+                    <h4>What&apos;s missing</h4>
+                    <p id="modalMissingIntro"></p>
+                    <ul id="modalMissingList" class="modal-missing-list"></ul>
                 </div>
 
-                <div class="modal-item">
-                    <span class="label">Status</span>
-                    <span id="modalStatus" class="value badge"></span>
+                <div class="modal-section-block">
+                    <h4>How to improve this KPI</h4>
+                    <p id="modalRecommended"></p>
                 </div>
-            </div>
 
-            <div class="modal-section">
-                <h4>Details</h4>
-                <div id="modalDetails"></div>
+                <div class="modal-section-block">
+                    <h4>Diagnostic checks</h4>
+                    <p id="modalDiagnostics"></p>
+                </div>
+
+                <div id="modalDriversSection" class="modal-section-block" style="display:none;">
+                    <h4>Related drivers (holdover)</h4>
+                    <div id="modalDrivers"></div>
+                </div>
+
+                <div id="modalContextSection" class="modal-section-block" style="display:none;">
+                    <h4>Import notes</h4>
+                    <div id="modalContext"></div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-         function openKpiModalFull(name, code, unit, target, value, wow, status, d1, d2) {
+    const kpiInsightsRaw = document.getElementById("kpi-insights-json");
+    const kpiInsightsById = kpiInsightsRaw ? JSON.parse(kpiInsightsRaw.textContent || "{}") : {};
 
-        // TITLE
-        document.getElementById("modalTitle").innerText = name || "-";
+    function escapeHtml(text) {
+        if (!text) return "";
+        const d = document.createElement("div");
+        d.textContent = text;
+        return d.innerHTML;
+    }
 
-        // VALUES
-        document.getElementById("modalValue").innerText = value || "-";
-        document.getElementById("modalTarget").innerText = target || "-";
-        document.getElementById("modalWoW").innerText = wow || "-";
-        document.getElementById("modalStatus").innerText = status || "-";
-            const statusEl = document.getElementById("modalStatus");
-    statusEl.classList.remove("bg-red","bg-amber","bg-green");
+    function statusBarClass(status) {
+        const s = (status || "").toUpperCase();
+        if (s === "GREEN") return "bar-green";
+        if (s === "YELLOW") return "bar-amber";
+        if (s === "GRAY") return "bar-gray";
+        return "bar-red";
+    }
 
-    if (status === "GREEN") statusEl.classList.add("bg-green");
-    else if (status === "YELLOW") statusEl.classList.add("bg-amber");
-    else statusEl.classList.add("bg-red");
+    function statusBadgeClass(status) {
+        const s = (status || "").toUpperCase();
+        if (s === "GREEN") return "bg-green";
+        if (s === "YELLOW") return "bg-amber";
+        if (s === "GRAY") return "bg-neutral";
+        return "bg-red";
+    }
 
-        // 🎨 COLOR FIX
-        const modalBox = document.querySelector(".modal-content");
+    function openKpiModal(snapshotId) {
+        const insight = kpiInsightsById[String(snapshotId)] || kpiInsightsById[snapshotId];
+        if (!insight) return;
 
-        modalBox.classList.remove("card-red","card-green","card-amber","card-gray");
+        const status = insight.status || "";
+        document.getElementById("modalTitle").innerText = insight.name || "-";
+        document.getElementById("modalSubtitle").innerHTML =
+            "Executive KPI" +
+            (insight.code ? ' <span class="modal-code-chip">' + escapeHtml(insight.code) + "</span>" : "");
 
-        if (status === "GREEN") modalBox.classList.add("card-green");
-        else if (status === "YELLOW") modalBox.classList.add("card-amber");
-        else if (status === "RED") modalBox.classList.add("card-red");
-        else modalBox.classList.add("card-gray");
+        const bar = document.getElementById("modalStatusBar");
+        bar.className = "modal-status-bar " + statusBarClass(status);
 
-        // DETAILS
-            let detailsHtml = `
-        <div class="modal-item"><span class="label">KPI Code</span><span class="value">${code || "-"}</span></div>
-        <div class="modal-item"><span class="label">Unit</span><span class="value">${unit || "-"}</span></div>
-        <div class="modal-item"><span class="label">Raw Value</span><span class="value">${value || "-"}</span></div>
-        <div class="modal-item"><span class="label">WoW Delta</span><span class="value">${wow || "-"}</span></div>
+        document.getElementById("modalValue").innerText = insight.formattedValue || "—";
+        document.getElementById("modalTarget").innerText = insight.formattedTarget || "—";
+        document.getElementById("modalGap").innerText = insight.gapSummary || "—";
+        document.getElementById("modalWoW").innerText = insight.formattedWow || "—";
+        document.getElementById("modalConfidence").innerText = insight.dataConfidence || "—";
 
-        <div style="margin-top:10px;">
-            <div>${d1 || ""}</div>
-            <div>${d2 || ""}</div>
-        </div>
-    `;
+        const statusEl = document.getElementById("modalStatus");
+        statusEl.innerText = status || "—";
+        statusEl.className = "value badge " + statusBadgeClass(status);
 
-        document.getElementById("modalDetails").innerHTML = detailsHtml;
+        document.getElementById("modalColorNote").innerText = insight.colorCodingNote || insight.thresholdSummary || "";
+        document.getElementById("modalThresholds").innerText = insight.thresholdSummary
+            ? "Bands: " + insight.thresholdSummary
+            : "";
+
+        let banners = '<div class="modal-accent status-accent"><strong>Summary</strong><br>' + escapeHtml(insight.statusHeadline || "") + "</div>";
+        if (insight.isTopAlert && insight.alertReason) {
+            banners += '<div class="modal-accent alert-accent"><strong>Top alert this week</strong><br>' + escapeHtml(insight.alertReason) + "</div>";
+        }
+        if (insight.isWeeklyFocusKpi && insight.weeklyFocusAction) {
+            banners += '<div class="modal-accent focus-accent"><strong>Weekly focus action</strong><br>' + escapeHtml(insight.weeklyFocusAction) + "</div>";
+        }
+        document.getElementById("modalBanners").innerHTML = banners;
+
+        const missingSection = document.getElementById("modalMissingSection");
+        const missingItems = insight.missingDataItems || [];
+        if (missingItems.length > 0) {
+            missingSection.style.display = "block";
+            document.getElementById("modalMissingIntro").innerText = insight.missingDataSummary || "Add the following to enable scoring:";
+            const list = document.getElementById("modalMissingList");
+            list.innerHTML = missingItems.map(i => "<li>" + escapeHtml(i) + "</li>").join("");
+        } else {
+            missingSection.style.display = "none";
+        }
+
+        document.getElementById("modalRecommended").innerText = insight.recommendedAction || "—";
+        document.getElementById("modalDiagnostics").innerText = insight.diagnosticChecks || "—";
+
+        const drivers = insight.relatedDrivers || [];
+        const driversSection = document.getElementById("modalDriversSection");
+        if (drivers.length > 0) {
+            driversSection.style.display = "block";
+            document.getElementById("modalDrivers").innerHTML = drivers.map(d =>
+                '<div class="modal-driver-row">' +
+                '<strong>' + escapeHtml(d.driverName) + '</strong> · ' + escapeHtml(d.status) +
+                ' · Fix ' + (d.fixProgressPercent ?? 0) + '%' +
+                (d.owner ? ' · Owner: ' + escapeHtml(d.owner) : '') +
+                (d.whyItMatters ? '<div style="margin-top:4px;color:#64748b;">' + escapeHtml(d.whyItMatters) + '</div>' : '') +
+                '</div>'
+            ).join("");
+        } else {
+            driversSection.style.display = "none";
+        }
+
+        const ctx1 = insight.cardDetailLine1;
+        const ctx2 = insight.cardDetailLine2;
+        const ctxSection = document.getElementById("modalContextSection");
+        if (ctx1 || ctx2) {
+            ctxSection.style.display = "block";
+            document.getElementById("modalContext").innerHTML =
+                (ctx1 ? "<p>" + escapeHtml(ctx1) + "</p>" : "") +
+                (ctx2 ? "<p>" + escapeHtml(ctx2) + "</p>" : "");
+        } else {
+            ctxSection.style.display = "none";
+        }
 
         document.getElementById("kpiModal").style.display = "flex";
+        document.body.style.overflow = "hidden";
     }
 
-       function closeKpiModal(e, forceClose) {
+    function closeKpiModal(e, forceClose) {
         const modal = document.getElementById("kpiModal");
-
-        // If X clicked → force close
-        if (forceClose === true) {
+        if (forceClose === true || (e && e.target.id === "kpiModal")) {
             modal.style.display = "none";
-            return;
-        }
-
-        // If clicked outside modal (overlay)
-        if (e && e.target.id === "kpiModal") {
-            modal.style.display = "none";
+            document.body.style.overflow = "";
         }
     }
+
+    document.querySelectorAll("[data-snapshot-id]").forEach(el => {
+        el.addEventListener("click", () => openKpiModal(el.getAttribute("data-snapshot-id")));
+        el.addEventListener("keydown", ev => {
+            if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                openKpiModal(el.getAttribute("data-snapshot-id"));
+            }
+        });
+    });
+
+    document.addEventListener("keydown", ev => {
+        if (ev.key === "Escape") closeKpiModal(null, true);
+    });
 </script>

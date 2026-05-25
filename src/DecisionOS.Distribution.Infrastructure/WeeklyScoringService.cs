@@ -127,6 +127,11 @@ public sealed class WeeklyScoringService : IWeeklyScoringService
 
         _db.KpiSnapshots.RemoveRange(_db.KpiSnapshots.Where(s => s.TenantId == tenant.Id && s.PeriodEnd == period));
 
+        var priorPeriod = period.AddDays(-7);
+        var priorSnapshots = await _db.KpiSnapshots.AsNoTracking()
+            .Where(s => s.TenantId == tenant.Id && s.PeriodEnd == priorPeriod)
+            .ToDictionaryAsync(s => s.KpiDefinitionId, ct);
+
         foreach (var kvp in computed)
         {
             if (!defsByCode.TryGetValue(kvp.Key, out var def)) continue;
@@ -140,20 +145,29 @@ public sealed class WeeklyScoringService : IWeeklyScoringService
                     Value = 0m,
                     Status = "GRAY",
                     DataConfidence = "Low",
-                    CardDetailLine1 = "Insufficient data from uploaded package.",
-                    CardDetailLine2 = "Add missing fields/files to enable scoring."
+                    CardDetailLine1 = KpiScoringNarrative.MissingDataHeadline(kvp.Key),
+                    CardDetailLine2 = "Open the KPI card for the full missing-data checklist."
                 });
             }
             else
             {
+                var status = _kpiStatusService.ComputeStatus(def, kvp.Value.Value);
+                decimal? wow = priorSnapshots.TryGetValue(def.Id, out var prior)
+                    ? kvp.Value.Value - prior.Value
+                    : null;
+                var (line1, line2) = KpiScoringNarrative.ForScoredKpi(def, kvp.Value.Value, status);
+
                 _db.KpiSnapshots.Add(new KpiSnapshot
                 {
                     TenantId = tenant.Id,
                     PeriodEnd = period,
                     KpiDefinitionId = def.Id,
                     Value = kvp.Value.Value,
-                    Status = _kpiStatusService.ComputeStatus(def, kvp.Value.Value),
-                    DataConfidence = request.DataConfidence
+                    Status = status,
+                    WeekOverWeekDelta = wow,
+                    DataConfidence = request.DataConfidence,
+                    CardDetailLine1 = line1,
+                    CardDetailLine2 = line2
                 });
             }
         }

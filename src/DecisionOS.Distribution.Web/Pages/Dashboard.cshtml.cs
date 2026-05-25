@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -28,6 +29,9 @@ public class DashboardModel : PageModel
     public int GrayCount { get; set; }
     public IReadOnlyDictionary<string, string> PillarDisplayNames { get; private set; } =
         new Dictionary<string, string>();
+
+    public Dictionary<int, DashboardKpiInsight> KpiInsightsBySnapshotId { get; private set; } = new();
+    public string KpiInsightsJson { get; private set; } = "{}";
 
     public DateOnly NextReviewDate => ParsedPeriodEnd.AddDays(7);
 
@@ -85,11 +89,20 @@ public class DashboardModel : PageModel
         RedCount = Snapshots.Count(s => s.Status == "RED");
         GrayCount = Snapshots.Count(s => s.Status == "GRAY");
 
+        KpiInsightsBySnapshotId = DashboardKpiInsightBuilder.Build(
+            Snapshots, Drivers, TopAlert, Focus, FormatValue, FormatTarget, FormatWoW);
+        KpiInsightsJson = JsonSerializer.Serialize(
+            KpiInsightsBySnapshotId,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
         return Page();
     }
 
     public string FormatValue(KpiSnapshot snapshot)
     {
+        if (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase))
+            return "—";
+
         if (snapshot.KpiDefinition.Unit == "pct")
             return (snapshot.Value * 100m).ToString("F1") + "%";
         if (snapshot.KpiDefinition.Unit == "days")
