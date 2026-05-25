@@ -1,0 +1,35 @@
+---
+description: Verify facts in repo before claiming behavior; cite code or docs
+alwaysApply: true
+---
+
+# Anti-hallucination workflow
+
+## Before stating how something works
+
+1. **Grep or read** the file that implements it (`Program.cs`, `*ImportService*`, `Pages/`, `DecisionOsDbContext.cs`).
+2. **Name the source**: path + type/method, or user guide section.
+3. If not found → **"Not implemented in this repo"** or **"I need to check X"** — do not guess APIs, tables, or UI routes.
+
+## Before adding features
+
+- Match **layer boundaries** in `decisionos-distribution.mdc` (Domain has no EF).
+- Reuse **existing policy names**: `AdminOnly`, `OpsPolicy`, `AnyDistributionRole`.
+- New secured Razor areas → update **`Program.cs`** authorization conventions.
+- DB changes → EF migration in **Infrastructure**, connection string **`DecisionOs`**.
+
+## Before answering data / onboarding questions
+
+- Apply **`decisionos-domain-truth.mdc`** (Tenant ≠ end customer).
+- Distinguish **Classic vs Simplified** upload; do not merge flows.
+
+## Red flags (stop and verify)
+
+- New microservices, Redis, SignalR, GraphQL, multi-tenant SaaS billing
+- "Create customer" as Admin screen
+- KPI names not in the seven codes above
+- Importing all 13 `ReportType` values in web batch (check `switch` in `UploadBatchImportService`)
+
+## When uncertain
+
+Ask **one** clarifying question, or state **one assumption** and proceed with a repo search in the same turn.

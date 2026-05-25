@@ -1,6 +1,8 @@
 using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Domain.Security;
+using DecisionOS.Distribution.Domain.Uploads;
 using DecisionOS.Distribution.Infrastructure;
+using DecisionOS.Distribution.Infrastructure.Workbooks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -141,6 +143,9 @@ builder.Services.AddScoped<IKpiStatusService, KpiStatusService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 builder.Services.AddScoped<IWeeklyFocusService, WeeklyFocusService>();
 builder.Services.AddScoped<IDriverRankingService, DriverRankingService>();
+builder.Services.AddScoped<IWeeklyScoringService, WeeklyScoringService>();
+builder.Services.AddScoped<IWorkbookAnalyzer, WorkbookAnalyzer>();
+builder.Services.AddScoped<ISimplifiedWorkbookImportService, SimplifiedWorkbookImportService>();
 builder.Services.AddScoped<UploadBatchImportService>();
 
 var app = builder.Build();

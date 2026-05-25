@@ -1,0 +1,118 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Operations.Uploads.Simplified.VerifyModel
+@using DecisionOS.Distribution.Domain.Uploads
+@{
+    ViewData["Title"] = "Simplified Upload — Verify";
+    Layout = "_Layout";
+}
+
+@if (Model.Batch is null || Model.Detection is null)
+{
+    <div class="text-error font-semibold">Batch or detection not found.</div>
+    return;
+}
+
+<div class="max-w-[1200px] mx-auto space-y-8">
+    <div class="flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-headline font-bold">Verify &amp; import</h1>
+            <p class="text-sm text-on-surface-variant mt-1">
+                @Model.Batch.Tenant.Name (@Model.Batch.Tenant.ClientId) · Simplified · @Model.Detection.FilteredPeriodEnds.Count period(s)
+            </p>
+        </div>
+        <span class="text-xs font-mono px-2 py-1 rounded bg-surface-container-high">@Model.Batch.Status</span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ActionError))
+    {
+        <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.ActionError</div>
+    }
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <div class="text-xs uppercase text-on-surface-variant mb-2">Detected sheets</div>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-on-surface-variant">
+                            <th class="pb-2">Sheet</th>
+                            <th class="pb-2">Kind</th>
+                            <th class="pb-2">Rows</th>
+                            <th class="pb-2">Conf.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model.Detection.Sheets.OrderByDescending(x => x.Confidence))
+                        {
+                            <tr class="border-t border-surface-container-high">
+                                <td class="py-2 font-mono">@s.SheetName</td>
+                                <td class="py-2">@s.Kind @(s.ReportType is not null ? $"({s.ReportType})" : "")</td>
+                                <td class="py-2">@s.DataRowCount</td>
+                                <td class="py-2">@($"{s.Confidence:P0}")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <div class="text-xs uppercase text-on-surface-variant mb-2">Periods to import (≥ anchor)</div>
+                <p class="text-sm font-mono break-all">
+                    @string.Join(", ", Model.Detection.FilteredPeriodEnds.Select(d => d.ToString("yyyy-MM-dd")))
+                </p>
+            </div>
+
+            @if (Model.Detection.Warnings.Count > 0)
+            {
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
+                    <div class="font-semibold mb-2">Detection warnings</div>
+                    <ul class="list-disc pl-5 space-y-1">
+                        @foreach (var w in Model.Detection.Warnings)
+                        {
+                            <li>@w</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+
+        <div class="space-y-4">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
+                <div>
+                    <div class="text-xs uppercase text-on-surface-variant">Readiness</div>
+                    <div class="font-bold">@(Model.Batch.ReadinessStatus ?? "—")</div>
+                </div>
+                <div class="text-xs text-on-surface-variant">@(Model.Batch.ValidationSummary ?? "Run validate before import.")</div>
+
+                <form method="post" asp-page-handler="Validate" asp-route-id="@Model.Batch.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="w-full px-4 py-2 rounded-xl font-bold bg-surface-container-high border">Validate package</button>
+                </form>
+                <form method="post" asp-page-handler="RunImport" asp-route-id="@Model.Batch.Id">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="w-full px-4 py-2 rounded-xl font-bold bg-primary text-white"
+                            @(string.Equals(Model.Batch.ReadinessStatus, "NotReadyYet", StringComparison.OrdinalIgnoreCase) ? "disabled" : null)>
+                        Import all periods
+                    </button>
+                </form>
+            </div>
+
+            @if (Model.Issues.Count > 0)
+            {
+                <div class="bg-surface-container-low p-4 rounded-lg border text-xs font-mono max-h-64 overflow-auto">
+                    @foreach (var i in Model.Issues)
+                    {
+                        <div class="mb-1"><span class="font-bold">@i.Severity</span> — @i.Message</div>
+                    }
+                </div>
+            }
+
+            @if (Model.Batch.Status == UploadBatchStatuses.Imported)
+            {
+                <a href="@Model.DashboardUrl" class="block text-center text-primary font-semibold">Open latest dashboard week →</a>
+            }
+        </div>
+    </div>
+
+    <a href="/Operations/Uploads/Simplified/Detect?id=@Model.Batch.Id" class="text-sm text-on-surface-variant hover:text-primary">← Re-upload workbook</a>
+</div>

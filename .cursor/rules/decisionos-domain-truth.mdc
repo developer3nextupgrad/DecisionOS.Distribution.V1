@@ -1,0 +1,57 @@
+---
+description: Canonical domain model — tenant vs customer, entities, KPIs; do not invent features
+alwaysApply: true
+---
+
+# DecisionOS Distribution — domain truth (V1)
+
+Read this before answering product, data, or onboarding questions. **If not listed here, say "not in V1" or verify in code/docs.**
+
+## Who is who
+
+| Term in conversation | In the system | Create how |
+|---------------------|---------------|------------|
+| **Distributor / client / "customer" (company)** | **`Tenant`** (`ClientId`, `Name`, `BusinessProfileId`) | **Admin → Tenants** — one per onboarded distributor |
+| **Buyer / account / end customer** | **`Customer_ID` / `Customer_Name` on import rows** — not a `Tenant` | **Import only** (CSV columns or workbook `Customer_Master` + sales/AR). **No Admin "Create Customer" UI** |
+| **Internal user** | **ASP.NET Identity** user + role | **Admin → Users** |
+
+**Never** tell users to create a new Tenant for each B2B buyer. Tenants isolate dashboard, uploads, KPIs, and alerts per **distributor**.
+
+## Weekly outcomes (what the dashboard reads)
+
+Per **`TenantId` + `PeriodEnd` (week ending date)**:
+
+- `KpiSnapshot` — R/Y/G from `KpiDefinition` thresholds
+- `DriverValue` — ranked drivers / holdovers
+- `Alert` — one top alert per week
+- `WeeklyFocus` — action guidance
+
+**KPI codes in DB (do not invent others without checking `KpiDefinitions`):**  
+`GrossMargin%`, `AR_PastDue31p%`, `AP_PastDue31p%`, `DOH`, `CCC`, `NetProfit%`, `PerfectOrderRate`
+
+## Upload modes (both exist)
+
+| Mode | UI entry | Persistence |
+|------|----------|-------------|
+| **Classic** | Upload Batch → Details → per-file **Map** → Validate → Run import | `UploadedFile` + `UploadedFileColumnMap` → normalized staging → scoring |
+| **Simplified** | Upload Batch → **Simplified** Detect → Verify → Import all periods | One `.xlsx`, `WorkbookAnalyzer`, `SimplifiedWorkbookImportService`, multi-`PeriodEnd` |
+
+Services: `UploadBatchImportService` (classic), `IWeeklyScoringService` / `WeeklyScoringService` (shared scoring), `ISimplifiedWorkbookImportService`.
+
+## What is NOT in V1 (common hallucinations)
+
+- No **`Customer` entity / DbSet** — only fields on normalized rows
+- No **live ERP/POS integration** — manual file upload only
+- No **Customer CRUD** Razor pages
+- **`Customer_Master` sheet** is detected in simplified import; **not** a dedicated master table yet (rows used via sales/AR linkage)
+- Do not claim **all** `ReportType` values are imported in classic `RunImport` — only **Sales, Inventory, AccountsReceivable, AccountsPayable** are normalized in web batch import
+
+## Config layers
+
+`VerticalLibrary` → `BusinessProfile` → `Tenant` (+ `TenantKpiOverride`, `TenantDriverOverride`, `InfluencerDefinition`)
+
+## Authoritative docs (prefer over memory)
+
+- `_client_docs/DecisionOS_Distribution_User_Guide.md` — operator UI
+- `docs/Solution-Linkage-and-Import-Analysis.md` — import → KPI pipeline
+- `docs/templates/*.csv` — column names

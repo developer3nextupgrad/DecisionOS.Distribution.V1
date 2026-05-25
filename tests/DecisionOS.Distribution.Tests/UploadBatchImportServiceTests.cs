@@ -111,7 +111,8 @@ public class UploadBatchImportServiceTests
         );
         await db.SaveChangesAsync();
 
-        var sut = new UploadBatchImportService(db, new KpiStatusService(), new AlertService(), new WeeklyFocusService());
+        var scoring = new WeeklyScoringService(db, new KpiStatusService(), new AlertService(), new WeeklyFocusService());
+        var sut = new UploadBatchImportService(db, scoring);
 
         await sut.ValidateAsync(batch.Id, root);
         var loadedBatch = await db.UploadBatches.FirstAsync(b => b.Id == batch.Id);

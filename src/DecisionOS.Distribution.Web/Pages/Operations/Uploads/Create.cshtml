@@ -1,5 +1,6 @@
 @page
 @model DecisionOS.Distribution.Web.Pages.Operations.Uploads.CreateModel
+@using DecisionOS.Distribution.Domain.Uploads
 @{
     ViewData["Title"] = "New Upload Batch";
     Layout = "_Layout";
@@ -8,10 +9,24 @@
 <div class="max-w-[900px] mx-auto space-y-8">
     <div>
         <h1 class="text-3xl font-headline font-bold">New Upload Batch</h1>
-        <p class="text-sm text-on-surface-variant mt-1">Create a weekly upload package to classify, map, validate, and import.</p>
+        <p class="text-sm text-on-surface-variant mt-1">Choose classic multi-file upload or simplified workbook import.</p>
     </div>
 
     <form method="post" class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-6">
+        <div>
+            <label class="block text-sm font-semibold mb-2">Import mode</label>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" asp-for="ImportMode" value="@UploadImportMode.Classic" checked="@(Model.ImportMode == UploadImportMode.Classic)" />
+                    <span>Classic — multi-file CSV/Excel with column mapping</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="radio" asp-for="ImportMode" value="@UploadImportMode.Simplified" />
+                    <span>Simplified — single workbook, auto-detect sheets</span>
+                </label>
+            </div>
+        </div>
+
         <div>
             <label class="block text-sm font-semibold mb-2">Tenant</label>
             <select asp-for="ClientId" class="w-full rounded-lg border-surface-container-high bg-white">
@@ -24,16 +39,46 @@
             <span class="text-xs text-error" asp-validation-for="ClientId"></span>
         </div>
 
-        <div>
+        <div id="classic-fields">
             <label class="block text-sm font-semibold mb-2">Week ending (PeriodEnd)</label>
             <input asp-for="PeriodEnd" type="date" class="w-full rounded-lg border-surface-container-high bg-white" />
             <span class="text-xs text-error" asp-validation-for="PeriodEnd"></span>
         </div>
 
+        <div id="simplified-fields" class="space-y-4 hidden">
+            <div>
+                <label class="block text-sm font-semibold mb-2">Anchor date (first period to include)</label>
+                <input asp-for="AnchorPeriodEnd" type="date" class="w-full rounded-lg border-surface-container-high bg-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold mb-2">Cadence</label>
+                <select asp-for="Cadence" class="w-full rounded-lg border-surface-container-high bg-white">
+                    <option value="@UploadCadence.Weekly">Weekly</option>
+                    <option value="@UploadCadence.Monthly">Monthly</option>
+                    <option value="@UploadCadence.Yearly">Yearly</option>
+                </select>
+            </div>
+        </div>
+
         <div class="flex items-center justify-between">
             <a href="/Operations/Uploads" class="text-sm text-on-surface-variant hover:text-primary">← Back</a>
-            <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Create batch</button>
+            <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Continue</button>
         </div>
     </form>
 </div>
 
+<script>
+    (function () {
+        const classic = document.getElementById('classic-fields');
+        const simplified = document.getElementById('simplified-fields');
+        const radios = document.querySelectorAll('input[name="ImportMode"]');
+        function sync() {
+            const val = document.querySelector('input[name="ImportMode"]:checked')?.value;
+            const isSimplified = val === '@((int)UploadImportMode.Simplified)';
+            classic.classList.toggle('hidden', isSimplified);
+            simplified.classList.toggle('hidden', !isSimplified);
+        }
+        radios.forEach(r => r.addEventListener('change', sync));
+        sync();
+    })();
+</script>

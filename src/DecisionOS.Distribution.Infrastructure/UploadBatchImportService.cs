@@ -10,20 +10,14 @@ namespace DecisionOS.Distribution.Infrastructure;
 public sealed class UploadBatchImportService
 {
     private readonly DecisionOsDbContext _db;
-    private readonly IKpiStatusService _kpiStatusService;
-    private readonly IAlertService _alertService;
-    private readonly IWeeklyFocusService _weeklyFocusService;
+    private readonly IWeeklyScoringService _weeklyScoring;
 
     public UploadBatchImportService(
         DecisionOsDbContext db,
-        IKpiStatusService kpiStatusService,
-        IAlertService alertService,
-        IWeeklyFocusService weeklyFocusService)
+        IWeeklyScoringService weeklyScoring)
     {
         _db = db;
-        _kpiStatusService = kpiStatusService;
-        _alertService = alertService;
-        _weeklyFocusService = weeklyFocusService;
+        _weeklyScoring = weeklyScoring;
     }
 
     public async Task ValidateAsync(long batchId, string contentRootPath, CancellationToken ct = default)
@@ -268,9 +262,6 @@ public sealed class UploadBatchImportService
 
         await _db.SaveChangesAsync(ct);
 
-        var kpiDefs = await _db.KpiDefinitions.AsNoTracking().ToListAsync(ct);
-        var defsByCode = kpiDefs.ToDictionary(d => d.Code, StringComparer.OrdinalIgnoreCase);
-
         var confidence = batch.ReadinessStatus switch
         {
             "ReadyToRun" => "High",
@@ -278,124 +269,13 @@ public sealed class UploadBatchImportService
             _ => "Low"
         };
 
-        async Task<decimal?> GrossMarginPct()
+        var scoreResult = await _weeklyScoring.ScorePeriodAsync(new WeeklyScoringRequest
         {
-            var rows = await _db.NormalizedSalesRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var net = rows.Where(r => r.NetSales is not null).Sum(r => r.NetSales!.Value);
-            var cogs = rows.Where(r => r.Cogs is not null).Sum(r => r.Cogs!.Value);
-            if (net <= 0) return null;
-            if (cogs <= 0) return null;
-            return (net - cogs) / net;
-        }
-
-        async Task<decimal?> ArPastDue31Pct()
-        {
-            var rows = await _db.NormalizedArRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var total = rows.Where(r => r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            if (total <= 0) return null;
-            var past = rows.Where(r => IsPastDue31(r.DaysPastDue, r.AgingBucket) && r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            return past / total;
-        }
-
-        async Task<decimal?> ApPastDue31Pct()
-        {
-            var rows = await _db.NormalizedApRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var total = rows.Where(r => r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            if (total <= 0) return null;
-            var past = rows.Where(r => IsPastDue31(r.DaysPastDue, r.AgingBucket) && r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            return past / total;
-        }
-
-        async Task<decimal?> DoH()
-        {
-            var invRows = await _db.NormalizedInventoryRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var inv = invRows.Where(r => r.InventoryValue is not null).Sum(r => r.InventoryValue!.Value);
-            if (inv <= 0) return null;
-            var salesRows = await _db.NormalizedSalesRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var salesCogs = salesRows.Where(r => r.Cogs is not null).Sum(r => r.Cogs!.Value);
-            if (salesCogs <= 0) return null;
-            var perDay = salesCogs / 7m;
-            if (perDay <= 0) return null;
-            return inv / perDay;
-        }
-
-        async Task<decimal?> CCC()
-        {
-            var salesRows = await _db.NormalizedSalesRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var netSales = salesRows.Where(r => r.NetSales is not null).Sum(r => r.NetSales!.Value);
-            var cogs = salesRows.Where(r => r.Cogs is not null).Sum(r => r.Cogs!.Value);
-            if (netSales <= 0 || cogs <= 0) return null;
-            var arRows = await _db.NormalizedArRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var apRows = await _db.NormalizedApRows.AsNoTracking().Where(r => r.UploadBatchId == batch.Id).ToListAsync(ct);
-            var ar = arRows.Where(r => r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            var ap = apRows.Where(r => r.OpenBalance is not null).Sum(r => r.OpenBalance!.Value);
-            var dso = ar / (netSales / 7m);
-            var dio = await DoH();
-            var dpo = ap / (cogs / 7m);
-            if (dio is null) return null;
-            return dso + dio.Value - dpo;
-        }
-
-        var computed = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["GrossMargin%"] = await GrossMarginPct(),
-            ["AR_PastDue31p%"] = await ArPastDue31Pct(),
-            ["AP_PastDue31p%"] = await ApPastDue31Pct(),
-            ["DOH"] = await DoH(),
-            ["CCC"] = await CCC(),
-            ["NetProfit%"] = null,
-            ["PerfectOrderRate"] = null
-        };
-
-        _db.KpiSnapshots.RemoveRange(_db.KpiSnapshots.Where(s => s.TenantId == tenant.Id && s.PeriodEnd == batch.PeriodEnd));
-
-        foreach (var kvp in computed)
-        {
-            if (!defsByCode.TryGetValue(kvp.Key, out var def)) continue;
-            if (kvp.Value is null)
-            {
-                _db.KpiSnapshots.Add(new KpiSnapshot
-                {
-                    TenantId = tenant.Id,
-                    PeriodEnd = batch.PeriodEnd,
-                    KpiDefinitionId = def.Id,
-                    Value = 0m,
-                    Status = "GRAY",
-                    DataConfidence = "Low",
-                    CardDetailLine1 = "Insufficient data from uploaded package.",
-                    CardDetailLine2 = "Add missing fields/files to enable scoring."
-                });
-            }
-            else
-            {
-                var value = kvp.Value.Value;
-                _db.KpiSnapshots.Add(new KpiSnapshot
-                {
-                    TenantId = tenant.Id,
-                    PeriodEnd = batch.PeriodEnd,
-                    KpiDefinitionId = def.Id,
-                    Value = value,
-                    Status = _kpiStatusService.ComputeStatus(def, value),
-                    DataConfidence = confidence
-                });
-            }
-        }
-
-        await _db.SaveChangesAsync(ct);
-
-        var snapshots = await _db.KpiSnapshots.Include(s => s.KpiDefinition)
-            .Where(s => s.TenantId == tenant.Id && s.PeriodEnd == batch.PeriodEnd)
-            .ToListAsync(ct);
-
-        var topAlert = _alertService.SelectTopAlert(tenant.Id, batch.PeriodEnd, snapshots, kpiDefs);
-        _db.Alerts.RemoveRange(_db.Alerts.Where(a => a.TenantId == tenant.Id && a.PeriodEnd == batch.PeriodEnd));
-        if (topAlert is not null) _db.Alerts.Add(topAlert);
-
-        _db.WeeklyFocuses.RemoveRange(_db.WeeklyFocuses.Where(f => f.TenantId == tenant.Id && f.PeriodEnd == batch.PeriodEnd));
-        var focus = _weeklyFocusService.GenerateWeeklyFocus(tenant.Id, batch.PeriodEnd, topAlert, kpiDefs);
-        if (focus is not null) _db.WeeklyFocuses.Add(focus);
-
-        await _db.SaveChangesAsync(ct);
+            TenantId = tenant.Id,
+            PeriodEnd = batch.PeriodEnd,
+            UploadBatchId = batch.Id,
+            DataConfidence = confidence
+        }, ct);
 
         var fp = UploadedFile.ComputeSha256Hex(string.Join("|",
             files.OrderBy(f => f.ReportType).Select(f => $"{f.ReportType}:{f.Sha256Hex}:{f.HeaderRowNumber}")));
@@ -409,7 +289,7 @@ public sealed class UploadBatchImportService
             SourceFingerprint = fp,
             ValidationSummary = batch.ValidationSummary,
             ReadinessStatus = batch.ReadinessStatus,
-            KpiRowsProcessed = snapshots.Count,
+            KpiRowsProcessed = scoreResult.SnapshotsWritten,
             DriverRowsProcessed = 0
         };
         _db.ImportRuns.Add(run);
@@ -467,12 +347,5 @@ public sealed class UploadBatchImportService
     private static string? TrimOrNull(string? s)
         => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 
-    private static bool IsPastDue31(int? daysPastDue, string? bucket)
-    {
-        if (daysPastDue is >= 31) return true;
-        if (string.IsNullOrWhiteSpace(bucket)) return false;
-        var b = bucket.Trim().ToLowerInvariant();
-        return b.Contains("31") || b.Contains("60") || b.Contains("90") || b.Contains("past due") || b.Contains("over");
-    }
 }
 

@@ -1,0 +1,34 @@
+---
+description: Upload/import and workbook simplified flow — file map and constraints
+globs: "{**/Uploads/**,**/Workbooks/**,*Import*,**/Normalized/**}"
+alwaysApply: false
+---
+
+# Upload & import rules
+
+## Classic flow (unchanged behavior)
+
+`Operations/Uploads/Create` → `Details` (per `ReportType` file) → `Map` → Validate → `RunImportAsync`.
+
+Minimum package warning: Sales + Inventory + AR + AP (`RequiredFields.MinimumPackageForV1`).
+
+## Simplified flow
+
+- `UploadBatch.ImportMode = Simplified`, `Cadence`, `AnchorPeriodEnd`
+- Pages: `Operations/Uploads/Simplified/Detect`, `Verify`
+- `WorkbookAnalyzer` + `SheetClassifier` + `ColumnSynonymMatcher` + `PeriodExtractor`
+- Multi-week: loop `FilteredPeriodEnds` ≥ anchor; scoring via `IWeeklyScoringService`
+- Rollup sheet KPI mapping: `Gross_Margin_%` → `GrossMargin%`; `AR_Over_60_%` → `AR_PastDue31p%` (approximation — document warning)
+
+## Excel
+
+- **ExcelDataReader** in Web + Infrastructure (not ClosedXML).
+- Steve reference fixture: `tests/DecisionOS.Distribution.Tests/Fixtures/Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx`
+
+## Tests to run after import changes
+
+```bash
+dotnet test tests/DecisionOS.Distribution.Tests --filter "UploadBatch|Simplified|Workbook"
+```
+
+Optional Postgres E2E: `Postgres_SimplifiedImportTests` (needs local DB + fixture).

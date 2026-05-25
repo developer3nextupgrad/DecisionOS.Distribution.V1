@@ -1,0 +1,49 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Operations.Uploads.Simplified.DetectModel
+@using DecisionOS.Distribution.Domain.Uploads
+@{
+    ViewData["Title"] = "Simplified Upload — Detect";
+    Layout = "_Layout";
+}
+
+@if (Model.Batch is null)
+{
+    <div class="text-error font-semibold">Batch not found.</div>
+    return;
+}
+
+<div class="max-w-[1000px] mx-auto space-y-8">
+    <div>
+        <h1 class="text-3xl font-headline font-bold">Upload workbook</h1>
+        <p class="text-sm text-on-surface-variant mt-1">
+            @Model.Batch.Tenant.Name · Anchor @Model.Batch.AnchorPeriodEnd?.ToString("yyyy-MM-dd") · @Model.Batch.Cadence cadence
+        </p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.Error</div>
+    }
+
+    <form method="post" asp-page-handler="Upload" asp-route-id="@Model.Batch.Id" enctype="multipart/form-data"
+          class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-4">
+        @Html.AntiForgeryToken()
+        <div>
+            <label class="block text-sm font-semibold mb-2">Excel workbook</label>
+            <input type="file" name="WorkbookFile" accept=".xlsx,.xls" class="w-full" />
+            <p class="text-xs text-on-surface-variant mt-1">Upload one file per batch. Use separate batches for multiple distributors.</p>
+        </div>
+        <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Analyze workbook</button>
+    </form>
+
+    @if (Model.Detection is not null)
+    {
+        <div class="bg-surface-container-low p-4 rounded-lg border border-surface-container-high text-sm">
+            <div class="font-semibold mb-2">Previous detection</div>
+            <p>Periods: @Model.Detection.FilteredPeriodEnds.Count · Sheets: @Model.Detection.Sheets.Count</p>
+            <a href="/Operations/Uploads/Simplified/Verify?id=@Model.Batch.Id" class="text-primary font-semibold">Continue to verify →</a>
+        </div>
+    }
+
+    <a href="/Operations/Uploads" class="text-sm text-on-surface-variant hover:text-primary">← Back to uploads</a>
+</div>

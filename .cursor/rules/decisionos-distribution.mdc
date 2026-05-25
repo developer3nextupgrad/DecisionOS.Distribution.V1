@@ -5,6 +5,8 @@ alwaysApply: true
 
 # DecisionOS.Distribution — project rules
 
+**Also read:** `AGENTS.md`, `decisionos-domain-truth.mdc`, `decisionos-anti-hallucination.mdc`. Skill: `.cursor/skills/decisionos-distribution/`.
+
 ## Platform and language
 
 - **.NET 8** (`net8.0`) only. Do not retarget or mix TFMs.

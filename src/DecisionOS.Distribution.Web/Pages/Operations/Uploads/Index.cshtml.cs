@@ -22,7 +22,8 @@ public class IndexModel : PageModel
         DateTimeOffset CreatedAt,
         string Status,
         string? Readiness,
-        int FileCount);
+        int FileCount,
+        UploadImportMode ImportMode);
 
     public async Task OnGetAsync()
     {
@@ -37,7 +38,8 @@ public class IndexModel : PageModel
                     b.CreatedAt,
                     b.Status,
                     b.ReadinessStatus,
-                    _db.UploadedFiles.Count(f => f.UploadBatchId == b.Id)))
+                    _db.UploadedFiles.Count(f => f.UploadBatchId == b.Id),
+                    b.ImportMode))
             .Take(200)
             .ToListAsync();
     }
