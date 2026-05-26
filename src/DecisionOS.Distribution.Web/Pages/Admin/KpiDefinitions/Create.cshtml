@@ -1,0 +1,113 @@
+﻿@page
+@model CreateModel
+@{
+    ViewData["Title"] = "Add KPI";
+    Layout = "_Layout";
+}
+
+<div class="max-w-[760px] mx-auto space-y-8">
+
+    <div>
+        <h1 class="text-2xl md:text-3xl font-extrabold font-headline text-on-surface">
+            Add KPI
+        </h1>
+
+        <p class="text-sm text-on-surface-variant mt-1">
+            Create a KPI definition
+        </p>
+    </div>
+
+    <form method="post"
+          class="bg-surface-container-lowest rounded-2xl shadow border border-outline/10 p-6 md:p-8 space-y-6">
+
+        <div asp-validation-summary="ModelOnly" class="text-error text-sm"></div>
+
+        <div>
+            <label asp-for="Input.Code"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <input asp-for="Input.Code"
+                   class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm font-mono" />
+        </div>
+
+        <div>
+            <label asp-for="Input.Name"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <input asp-for="Input.Name"
+                   class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm" />
+        </div>
+
+        <div>
+            <label asp-for="Input.Unit"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <input asp-for="Input.Unit"
+                   class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm" />
+        </div>
+
+        <div>
+            <label asp-for="Input.Direction"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <select asp-for="Input.Direction"
+                    asp-items="Html.GetEnumSelectList<DecisionOS.Distribution.Domain.KpiDirection>()"
+                    class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm">
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div>
+                <label asp-for="Input.Target"
+                       class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+                <input asp-for="Input.Target"
+                       class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm" />
+            </div>
+
+            <div>
+                <label asp-for="Input.AlertPriority"
+                       class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+                <input asp-for="Input.AlertPriority"
+                       class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm" />
+            </div>
+
+        </div>
+
+        <div>
+            <label asp-for="Input.RecommendedAction"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <textarea asp-for="Input.RecommendedAction"
+                      rows="3"
+                      class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm"></textarea>
+        </div>
+
+        <div>
+            <label asp-for="Input.DiagnosticChecks"
+                   class="block text-[10px] font-bold uppercase text-on-surface-variant mb-1"></label>
+
+            <textarea asp-for="Input.DiagnosticChecks"
+                      rows="3"
+                      class="w-full px-4 py-2.5 rounded-xl bg-surface-container-low text-sm"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-4 pt-4">
+
+            <a href="/Admin/KpiDefinitions"
+               class="px-5 py-2 text-sm font-semibold text-on-surface-variant">
+                Cancel
+            </a>
+
+            <button type="submit"
+                    class="px-6 py-2 bg-gradient-to-br from-primary to-primary-dim text-white font-bold rounded-xl shadow">
+                Create KPI
+            </button>
+
+        </div>
+
+    </form>
+
+</div>
