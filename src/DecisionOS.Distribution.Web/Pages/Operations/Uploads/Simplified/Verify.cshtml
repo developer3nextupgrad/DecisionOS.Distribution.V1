@@ -2,7 +2,7 @@
 @model DecisionOS.Distribution.Web.Pages.Operations.Uploads.Simplified.VerifyModel
 @using DecisionOS.Distribution.Domain.Uploads
 @{
-    ViewData["Title"] = "Simplified Upload — Verify";
+    ViewData["Title"] = "Simplified Upload — Import Review";
     Layout = "_Layout";
 }
 
@@ -12,12 +12,12 @@
     return;
 }
 
-<div class="max-w-[1200px] mx-auto space-y-8">
+<div class="max-w-[1280px] mx-auto space-y-8">
     <div class="flex items-end justify-between">
         <div>
-            <h1 class="text-3xl font-headline font-bold">Verify &amp; import</h1>
+            <h1 class="text-3xl font-headline font-bold">Import review</h1>
             <p class="text-sm text-on-surface-variant mt-1">
-                @Model.Batch.Tenant.Name (@Model.Batch.Tenant.ClientId) · Simplified · @Model.Detection.FilteredPeriodEnds.Count period(s)
+                @Model.Batch.Tenant.Name (@Model.Batch.Tenant.ClientId) · @Model.Detection.FilteredPeriodEnds.Count period(s) to import
             </p>
         </div>
         <span class="text-xs font-mono px-2 py-1 rounded bg-surface-container-high">@Model.Batch.Status</span>
@@ -27,132 +27,243 @@
     {
         <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.ActionError</div>
     }
+    @if (!string.IsNullOrWhiteSpace(Model.ActionSuccess))
+    {
+        <div class="p-3 rounded-lg bg-green-500/10 text-green-800 text-sm font-semibold">@Model.ActionSuccess</div>
+    }
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 space-y-6">
-            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
-                <div class="text-xs uppercase text-on-surface-variant mb-2">Detected sheets</div>
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-on-surface-variant">
-                            <th class="pb-2">Sheet</th>
-                            <th class="pb-2">Kind</th>
-                            <th class="pb-2">Rows</th>
-                            <th class="pb-2">Conf.</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var s in Model.Detection.Sheets.OrderByDescending(x => x.Confidence))
-                        {
-                            <tr class="border-t border-surface-container-high">
-                                <td class="py-2 font-mono">@s.SheetName</td>
-                                <td class="py-2">@s.Kind @(s.ReportType is not null ? $"({s.ReportType})" : "")</td>
-                                <td class="py-2">@s.DataRowCount</td>
-                                <td class="py-2">@($"{s.Confidence:P0}")</td>
+    <form method="post" asp-page-handler="SaveReview" asp-route-id="@Model.Batch.Id" id="reviewForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="AnchorPeriodEnd" />
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2 space-y-6">
+
+                <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                    <div class="text-xs uppercase text-on-surface-variant mb-3">KPI coverage (before import)</div>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-on-surface-variant text-xs">
+                                <th class="pb-2">KPI</th>
+                                <th class="pb-2">Status</th>
+                                <th class="pb-2">Source</th>
                             </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
-                <div class="text-xs uppercase text-on-surface-variant">Periods in workbook</div>
-                <p class="text-sm">
-                    <span class="font-semibold">@(Model.Detection.RawPeriodEnds.Count)</span> date(s) detected;
-                    <span class="font-semibold">@(Model.Detection.FilteredPeriodEnds.Count)</span> to import (≥ anchor).
-                </p>
-                @if (Model.Detection.SuggestedAnchorPeriodEnd is not null)
-                {
-                    <p class="text-xs text-on-surface-variant">
-                        Earliest week in file: <span class="font-mono">@Model.Detection.SuggestedAnchorPeriodEnd.Value.ToString("yyyy-MM-dd")</span>
-                        @if (Model.Detection.AnchorAutoAdjusted)
-                        {
-                            <span class="text-amber-700 font-semibold"> — anchor was auto-adjusted on upload.</span>
-                        }
-                    </p>
-                }
-                <p class="text-sm font-mono break-all text-on-surface-variant">
-                    @string.Join(", ", Model.Detection.FilteredPeriodEnds.Select(d => d.ToString("yyyy-MM-dd")))
-                </p>
-                <form method="post" asp-page-handler="Reanalyze" asp-route-id="@Model.Batch.Id" class="flex flex-wrap gap-2 items-end pt-2 border-t border-surface-container-high">
-                    @Html.AntiForgeryToken()
-                    <div>
-                        <label class="text-xs font-semibold block mb-1">Anchor (first period to include)</label>
-                        <input asp-for="AnchorPeriodEnd" type="date" class="rounded-lg border-surface-container-high bg-white text-sm" />
-                    </div>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold bg-surface-container-high border">Re-detect periods</button>
-                </form>
-            </div>
-
-            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
-                <div class="text-xs uppercase text-on-surface-variant mb-2">Column mapping (auto-detected per tab)</div>
-                <div class="space-y-3 text-xs max-h-80 overflow-auto">
-                    @foreach (var s in Model.Detection.Sheets.Where(x => x.ColumnMappings.Count > 0).OrderBy(x => x.SheetName))
-                    {
-                        <div>
-                            <div class="font-mono font-bold text-sm">@s.SheetName <span class="text-on-surface-variant font-normal">(@s.Kind, header row @s.HeaderRowNumber)</span></div>
-                            <ul class="list-disc pl-5 mt-1 text-on-surface-variant">
-                                @foreach (var m in s.ColumnMappings.OrderBy(m => m.Value))
+                        </thead>
+                        <tbody>
+                            @foreach (var k in Model.KpiCoverage)
+                            {
+                                <tr class="border-t border-surface-container-high">
+                                    <td class="py-2 font-semibold">@k.DisplayName <span class="font-mono text-xs text-on-surface-variant">@k.KpiCode</span></td>
+                                    <td class="py-2 @VerifyModel.CoverageStatusClass(k.Status)">@VerifyModel.CoverageStatusLabel(k.Status)</td>
+                                    <td class="py-2 text-on-surface-variant text-xs">@k.SourceSummary</td>
+                                </tr>
+                                @if (!string.IsNullOrWhiteSpace(k.SuggestedFix))
                                 {
-                                    <li><span class="font-mono">@m.Key</span> → @m.Value</li>
+                                    <tr>
+                                        <td colspan="3" class="pb-2 text-xs text-amber-800 pl-2">→ @k.SuggestedFix</td>
+                                    </tr>
                                 }
-                            </ul>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                    <div class="text-xs uppercase text-on-surface-variant mb-2">Sheet roles (override classification)</div>
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-on-surface-variant text-xs">
+                                <th class="pb-2">Sheet</th>
+                                <th class="pb-2">Role</th>
+                                <th class="pb-2">Rows</th>
+                                <th class="pb-2"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (var si = 0; si < Model.ReviewSheets.Count; si++)
+                            {
+                                var row = Model.ReviewSheets[si];
+                                <tr class="border-t border-surface-container-high">
+                                    <td class="py-2 font-mono">
+                                        <input type="hidden" asp-for="ReviewSheets[si].SheetName" />
+                                        @row.SheetName
+                                    </td>
+                                    <td class="py-2">
+                                        <select asp-for="ReviewSheets[si].Kind" asp-items="Model.SheetKindOptions" class="text-sm rounded border-surface-container-high"></select>
+                                    </td>
+                                    <td class="py-2 text-on-surface-variant">
+                                        @(Model.Detection.Sheets.FirstOrDefault(s => s.SheetName == row.SheetName)?.DataRowCount ?? 0)
+                                    </td>
+                                    <td class="py-2 text-right">
+                                        <a href="?id=@Model.Batch.Id&editSheet=@Uri.EscapeDataString(row.SheetName)" class="text-primary text-xs font-semibold">Edit mappings</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (Model.MappingEditSheet is not null)
+                {
+                    var editIndex = Model.ReviewSheets.FindIndex(r => string.Equals(r.SheetName, Model.MappingEditSheet.SheetName, StringComparison.OrdinalIgnoreCase));
+                    if (editIndex >= 0)
+                    {
+                        <div class="bg-surface-container-lowest border border-primary/30 rounded-xl p-6">
+                            <div class="text-xs uppercase text-on-surface-variant mb-2">
+                                Column mapping — <span class="font-mono">@Model.MappingEditSheet.SheetName</span>
+                                <span class="normal-case text-on-surface-variant">(@Model.MappingEditSheet.Kind)</span>
+                            </div>
+                            @if (Model.MappingEditIsReferenceOnly)
+                            {
+                                <p class="text-sm text-on-surface-variant mb-3">
+                                    This tab is <strong>reference / expected outcomes</strong> from the DPOS pack (KPI names, R/Y/G notes, action text).
+                                    It is <strong>not</strong> loaded into sales, AR, inventory, or dashboard KPI tables — so there is nothing useful to map here.
+                                </p>
+                                <p class="text-sm font-semibold text-amber-800">
+                                    Set <strong>Role</strong> above to <strong>Skip</strong>, then map columns only on data tabs
+                                    (e.g. <span class="font-mono">Weekly_Financials</span>, <span class="font-mono">AR_Aging</span>, <span class="font-mono">AP_Aging</span>, <span class="font-mono">Vendor_Performance</span>).
+                                </p>
+                            }
+                            else
+                            {
+                                <p class="text-sm text-on-surface-variant mb-3">
+                                    Match each <strong>Excel header</strong> (left) to a <strong>system field</strong> (right). Use <strong>Ignore</strong> for columns not used in import.
+                                    Wrong maps (e.g. dollar bucket → percent field) cause bad KPI values.
+                                </p>
+                            }
+                            @if (!Model.MappingEditIsReferenceOnly)
+                            {
+                                <div class="space-y-2 max-h-96 overflow-auto">
+                                    @for (var mi = 0; mi < Model.ReviewSheets[editIndex].MappingKeys!.Count; mi++)
+                                    {
+                                        <div class="flex flex-wrap gap-2 items-center text-sm">
+                                            <input type="hidden" asp-for="ReviewSheets[editIndex].MappingKeys[mi]" />
+                                            <span class="font-mono w-48 truncate" title="@Model.ReviewSheets[editIndex].MappingKeys![mi]">@Model.ReviewSheets[editIndex].MappingKeys![mi]</span>
+                                            <span>→</span>
+                                            <select asp-for="ReviewSheets[editIndex].MappingValues[mi]" class="rounded border-surface-container-high text-sm flex-1 min-w-[160px]">
+                                                <option value="">— not mapped —</option>
+                                                <option value="Ignore">Ignore</option>
+                                                @foreach (var sf in Model.SystemFieldsForEdit.Where(f => !string.Equals(f, "Ignore", StringComparison.OrdinalIgnoreCase)))
+                                                {
+                                                    <option value="@sf">@sf</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                @for (var mi = 0; mi < Model.ReviewSheets[editIndex].MappingKeys!.Count; mi++)
+                                {
+                                    <input type="hidden" asp-for="ReviewSheets[editIndex].MappingKeys[mi]" />
+                                    <input type="hidden" asp-for="ReviewSheets[editIndex].MappingValues[mi]" value="Ignore" />
+                                }
+                            }
                         </div>
                     }
-                </div>
-            </div>
+                }
 
-            @if (Model.Detection.Warnings.Count > 0)
-            {
-                <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
-                    <div class="font-semibold mb-2">Detection warnings</div>
-                    <ul class="list-disc pl-5 space-y-1">
-                        @foreach (var w in Model.Detection.Warnings)
+                <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
+                    <div class="text-xs uppercase text-on-surface-variant">Periods to import</div>
+                    <p class="text-sm text-on-surface-variant">Uncheck a week to exclude it from import (anchor re-detect below still applies).</p>
+                    <div class="flex flex-wrap gap-3 text-sm font-mono">
+                        @foreach (var d in Model.Detection.FilteredPeriodEnds.OrderBy(x => x))
                         {
-                            <li>@w</li>
+                            var key = d.ToString("yyyy-MM-dd");
+                            var excluded = Model.ExcludedPeriodKeys.Contains(key);
+                            <label class="inline-flex items-center gap-1 px-2 py-1 rounded border border-surface-container-high">
+                                <input type="checkbox" name="ExcludedPeriodKeys" value="@key" checked="@excluded" />
+                                @key
+                            </label>
                         }
-                    </ul>
+                    </div>
+                    <p class="text-xs text-on-surface-variant">Checked = excluded from import.</p>
                 </div>
-            }
-        </div>
 
-        <div class="space-y-4">
-            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
-                <div>
-                    <div class="text-xs uppercase text-on-surface-variant">Readiness</div>
-                    <div class="font-bold">@(Model.Batch.ReadinessStatus ?? "—")</div>
-                </div>
-                <div class="text-xs text-on-surface-variant">@(Model.Batch.ValidationSummary ?? "Run validate before import.")</div>
+                @if (Model.Detection.Warnings.Count > 0)
+                {
+                    <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
+                        <div class="font-semibold mb-2">Detection warnings</div>
+                        <ul class="list-disc pl-5 space-y-1">
+                            @foreach (var w in Model.Detection.Warnings)
+                            {
+                                <li>@w</li>
+                            }
+                        </ul>
+                    </div>
+                }
 
-                <form method="post" asp-page-handler="Validate" asp-route-id="@Model.Batch.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="w-full px-4 py-2 rounded-xl font-bold bg-surface-container-high border">Validate package</button>
-                </form>
-                <form method="post" asp-page-handler="RunImport" asp-route-id="@Model.Batch.Id">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="w-full px-4 py-2 rounded-xl font-bold bg-primary text-white"
-                            @(string.Equals(Model.Batch.ReadinessStatus, "NotReadyYet", StringComparison.OrdinalIgnoreCase) ? "disabled" : null)>
-                        Import all periods
-                    </button>
-                </form>
+                <button type="submit" class="px-6 py-3 rounded-xl font-bold bg-primary text-white">Save review &amp; re-validate</button>
             </div>
 
-            @if (Model.Issues.Count > 0)
-            {
-                <div class="bg-surface-container-low p-4 rounded-lg border text-xs font-mono max-h-64 overflow-auto">
-                    @foreach (var i in Model.Issues)
-                    {
-                        <div class="mb-1"><span class="font-bold">@i.Severity</span> — @i.Message</div>
-                    }
+            <div class="space-y-4">
+                <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
+                    <div>
+                        <div class="text-xs uppercase text-on-surface-variant">Readiness</div>
+                        <div class="font-bold">@(Model.Batch.ReadinessStatus ?? "—")</div>
+                    </div>
+                    <div class="text-xs text-on-surface-variant">@(Model.Batch.ValidationSummary ?? "Save review, then validate.")</div>
                 </div>
-            }
 
-            @if (Model.Batch.Status == UploadBatchStatuses.Imported)
-            {
-                <a href="@Model.DashboardUrl" class="block text-center text-primary font-semibold">Open latest dashboard week →</a>
-            }
+                @if (Model.Issues.Count > 0)
+                {
+                    <div class="bg-surface-container-low p-4 rounded-lg border text-xs font-mono max-h-64 overflow-auto">
+                        @foreach (var i in Model.Issues)
+                        {
+                            <div class="mb-1"><span class="font-bold">@i.Severity</span> — @i.Message</div>
+                        }
+                    </div>
+                }
+            </div>
         </div>
+    </form>
+
+    <div class="flex flex-wrap gap-3 items-center border-t border-surface-container-high pt-6">
+        <form method="post" asp-page-handler="Reanalyze" asp-route-id="@Model.Batch.Id" class="flex flex-wrap gap-2 items-end">
+            @Html.AntiForgeryToken()
+            <div>
+                <label class="text-xs font-semibold block mb-1">Anchor (first period to include)</label>
+                <input asp-for="AnchorPeriodEnd" type="date" class="rounded-lg border-surface-container-high bg-white text-sm" />
+            </div>
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold bg-surface-container-high border">Re-detect periods</button>
+        </form>
+
+        <form method="post" asp-page-handler="Validate" asp-route-id="@Model.Batch.Id">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold bg-surface-container-high border">Validate package</button>
+        </form>
+
+        <form method="post" asp-page-handler="RunImport" asp-route-id="@Model.Batch.Id" id="importForm" class="flex items-center gap-2">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="AcknowledgeGrayKpis" id="ackGray" value="false" />
+            <button type="button" id="importBtn" class="px-6 py-3 rounded-xl font-bold bg-primary text-white"
+                    @(string.Equals(Model.Batch.ReadinessStatus, "NotReadyYet", StringComparison.OrdinalIgnoreCase) ? "disabled" : null)>
+                Import all periods
+            </button>
+        </form>
     </div>
 
     <a href="/Operations/Uploads/Simplified/Detect?id=@Model.Batch.Id" class="text-sm text-on-surface-variant hover:text-primary">← Re-upload workbook</a>
 </div>
+
+<script>
+    (function () {
+        const hasGray = @Model.HasGrayRisk.ToString().ToLowerInvariant();
+        const grayList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.GrayKpiList));
+        const importBtn = document.getElementById('importBtn');
+        const importForm = document.getElementById('importForm');
+        const ack = document.getElementById('ackGray');
+        if (!importBtn || !importForm) return;
+        importBtn.addEventListener('click', function () {
+            if (hasGray) {
+                const ok = confirm('Some KPIs will show as GRAY on the dashboard: ' + grayList + '. Continue import?');
+                if (!ok) return;
+                ack.value = 'true';
+            } else {
+                ack.value = 'true';
+            }
+            importForm.submit();
+        });
+    })();
+</script>

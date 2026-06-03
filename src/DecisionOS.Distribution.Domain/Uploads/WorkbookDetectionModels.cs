@@ -12,6 +12,8 @@ public sealed class WorkbookDetectionResult
     /// <summary>Anchor used after auto-adjustment (may match batch anchor or earliest period).</summary>
     public DateOnly? EffectiveAnchorPeriodEnd { get; set; }
     public bool AnchorAutoAdjusted { get; set; }
+    /// <summary>Operator-excluded week-ending dates (still detected but not imported).</summary>
+    public IReadOnlyList<DateOnly> ExcludedPeriodEnds { get; set; } = Array.Empty<DateOnly>();
 }
 
 public sealed class DetectedSheet

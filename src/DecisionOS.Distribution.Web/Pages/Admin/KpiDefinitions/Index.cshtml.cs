@@ -33,4 +33,17 @@ public class IndexModel : PageModel
             .ThenBy(k => k.Name)
             .ToListAsync();
     }
+
+    public async Task<IActionResult> OnPostDeleteAsync(int id)
+    {
+        var kpi = await _db.KpiDefinitions.FindAsync(id);
+
+        if (kpi != null)
+        {
+            _db.KpiDefinitions.Remove(kpi);
+            await _db.SaveChangesAsync();
+        }
+
+        return RedirectToPage(new { ProfileId });
+    }
 }

@@ -3,6 +3,7 @@ using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace DecisionOS.Distribution.Web.Pages.Admin.KpiDefinitions;
 
@@ -20,13 +21,13 @@ public class CreateModel : PageModel
 
     public class InputModel
     {
-        [Required]
+        [Required(ErrorMessage = "Code is required")]
         public string Code { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "Name is required")]
         public string Name { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "Unit is required")]
         public string Unit { get; set; } = "pct";
 
         public KpiDirection Direction { get; set; }
@@ -57,9 +58,28 @@ public class CreateModel : PageModel
         if (!ModelState.IsValid)
             return Page();
 
+        string normalizedCode = (Input.Code ?? string.Empty)
+            .Trim()
+            .ToUpperInvariant();
+
+        bool codeExists = await _db.KpiDefinitions
+            .AsNoTracking()
+            .AnyAsync(x =>
+                x.Code != null &&
+                x.Code.Trim().ToUpper() == normalizedCode);
+
+        if (codeExists)
+        {
+            ModelState.AddModelError(
+                "Input.Code",
+                $"A KPI with code '{normalizedCode}' already exists.");
+
+            return Page();
+        }
+
         var kpi = new KpiDefinition
         {
-            Code = Input.Code.Trim(),
+            Code = normalizedCode,
             Name = Input.Name.Trim(),
             Unit = Input.Unit.Trim(),
             Direction = Input.Direction,
@@ -69,8 +89,8 @@ public class CreateModel : PageModel
             AlertPriority = Input.AlertPriority,
             MinValue = Input.MinValue,
             MaxValue = Input.MaxValue,
-            RecommendedAction = Input.RecommendedAction.Trim(),
-            DiagnosticChecks = Input.DiagnosticChecks.Trim()
+            RecommendedAction = Input.RecommendedAction?.Trim() ?? "",
+            DiagnosticChecks = Input.DiagnosticChecks?.Trim() ?? ""
         };
 
         _db.KpiDefinitions.Add(kpi);

@@ -146,6 +146,7 @@ builder.Services.AddScoped<IDriverRankingService, DriverRankingService>();
 builder.Services.AddScoped<IWeeklyScoringService, WeeklyScoringService>();
 builder.Services.AddScoped<IWorkbookAnalyzer, WorkbookAnalyzer>();
 builder.Services.AddScoped<ISimplifiedWorkbookImportService, SimplifiedWorkbookImportService>();
+builder.Services.AddScoped<ISimplifiedWorkbookReviewService, SimplifiedWorkbookReviewService>();
 builder.Services.AddScoped<UploadBatchImportService>();
 builder.Services.AddScoped<DashboardContextService>();
 
