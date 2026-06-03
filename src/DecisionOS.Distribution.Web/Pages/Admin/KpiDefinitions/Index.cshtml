@@ -116,10 +116,20 @@
 
                                 <!-- ACTION -->
                                 <td class="px-6 py-4 text-right">
-                                    <a href="/Admin/KpiDefinitions/Edit?id=@k.Id"
-                                       class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg hover:bg-primary/10">
-                                        Edit
-                                    </a>
+                                    <div class="flex justify-end gap-2">
+
+                                        <a href="/Admin/KpiDefinitions/Edit?id=@k.Id"
+                                           class="px-3 py-1 text-xs font-semibold text-primary border border-primary/20 rounded-lg">
+                                            Edit
+                                        </a>
+
+                                        <button type="button"
+                                                onclick="showDeleteModal('@k.Id','@k.Code')"
+                                                class="px-3 py-1 text-xs font-semibold text-red-600 border border-red-300 rounded-lg">
+                                            Delete
+                                        </button>
+
+                                    </div>
                                 </td>
 
                             </tr>
@@ -138,5 +148,61 @@
         </div>
 
     </div>
+    <div id="deleteModal"
+         class="fixed inset-0 hidden z-50 items-center justify-center bg-black/40">
 
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 p-6">
+
+            <h3 class="text-lg font-bold mb-2">
+                Delete KPI
+            </h3>
+
+            <p class="text-sm text-gray-600 mb-6">
+                Are you sure you want to delete
+                <strong id="deleteCode"></strong>?
+            </p>
+
+            <form method="post" asp-page-handler="Delete">
+
+                <input type="hidden"
+                       id="deleteId"
+                       name="id" />
+
+                <div class="flex justify-end gap-2">
+
+                    <button type="button"
+                            onclick="hideDeleteModal()"
+                            class="px-4 py-2 border rounded-lg">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg">
+                        Delete
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <script>
+        function showDeleteModal(id, code) {
+            document.getElementById('deleteId').value = id;
+            document.getElementById('deleteCode').innerText = code;
+
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function hideDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+    </script>
 </div>
