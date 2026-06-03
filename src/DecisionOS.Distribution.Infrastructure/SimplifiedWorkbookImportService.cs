@@ -13,7 +13,6 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
     private readonly DecisionOsDbContext _db;
     private readonly IWorkbookAnalyzer _analyzer;
     private readonly IWeeklyScoringService _scoring;
-
     public SimplifiedWorkbookImportService(
         DecisionOsDbContext db,
         IWorkbookAnalyzer analyzer,
@@ -217,6 +216,8 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             .ToList();
         if (periods.Count == 0) return;
 
+        await WorkbookKpiDefinitionEnsurer.EnsureAsync(_db, detection, ct);
+
         var confidence = batch.ReadinessStatus switch
         {
             "ReadyToRun" => "High",
@@ -226,16 +227,14 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
 
         ClearNormalizedForBatch(batch.Id, ct);
 
-        var rollupSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.WeeklyRollup);
-        ParsedSheet? rollupParsed = null;
-        if (rollupSheet is not null && sheetByName.TryGetValue(rollupSheet.SheetName, out var rp))
-            rollupParsed = rp;
+        var rollupSheets = detection.Sheets.Where(s => s.Kind == WorkbookSheetKind.WeeklyRollup).ToList();
 
         var salesSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Sales);
         var invSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Inventory);
         var arSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.AccountsReceivable);
         var apSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.AccountsPayable);
         var customerSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Customer);
+        var vendorSheet = detection.Sheets.FirstOrDefault(s => s.Kind == WorkbookSheetKind.Vendor);
 
         var latestPeriod = ResolveLatestOperationalPeriod(detection, sheetByName, periods);
         var totalDrivers = 0;
@@ -247,10 +246,15 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
 
         foreach (var period in periods)
         {
-            var directKpis = ExtractDirectKpis(rollupParsed, rollupSheet?.ColumnMappings, period);
+            var directKpis = ExtractDirectKpisFromAllRollups(rollupSheets, sheetByName, period);
+            MergeVendorFillRate(directKpis, vendorSheet, sheetByName, period);
 
             if (salesSheet is not null && sheetByName.TryGetValue(salesSheet.SheetName, out var sp))
                 ImportSales(sp, salesSheet.ColumnMappings, tenant.Id, batch.Id, traceFileId, period, latestPeriod);
+
+            ImportRollupInventoryForPeriod(rollupSheets, sheetByName, tenant.Id, batch.Id, traceFileId, period);
+            ImportRollupSalesCogsForPeriod(rollupSheets, sheetByName, tenant.Id, batch.Id, traceFileId, period);
+            ImportRollupArApTotalsForPeriod(rollupSheets, sheetByName, tenant.Id, batch.Id, traceFileId, period);
 
             if (period == latestPeriod)
             {
@@ -322,6 +326,207 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
         _db.NormalizedApRows.RemoveRange(_db.NormalizedApRows.Where(r => r.UploadBatchId == batchId));
     }
 
+    private static Dictionary<string, decimal?> ExtractDirectKpisFromAllRollups(
+        IReadOnlyList<DetectedSheet> rollupSheets,
+        Dictionary<string, ParsedSheet> sheetByName,
+        DateOnly period)
+    {
+        var result = new Dictionary<string, decimal?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var det in rollupSheets)
+        {
+            if (!sheetByName.TryGetValue(det.SheetName, out var parsed)) continue;
+
+            if (WorkbookRollupKpiExtractor.SheetHasVendorRows(parsed.Headers))
+            {
+                var vendorRows = parsed.Rows
+                    .Where(r => ColumnSynonymMatcher.ResolveRowPeriod(r, det.ColumnMappings) == period)
+                    .ToList();
+                var apPct = WorkbookRollupKpiExtractor.AggregateApPastDuePercent(vendorRows);
+                if (apPct is not null)
+                    result["AP_PastDue31p%"] = apPct;
+                continue;
+            }
+
+            foreach (var kvp in ExtractDirectKpis(parsed, det.ColumnMappings, period))
+            {
+                if (kvp.Value is not null)
+                    result[kvp.Key] = kvp.Value;
+            }
+        }
+        return result;
+    }
+
+    private static void MergeVendorFillRate(
+        Dictionary<string, decimal?> directKpis,
+        DetectedSheet? vendorSheet,
+        Dictionary<string, ParsedSheet> sheetByName,
+        DateOnly period)
+    {
+        if (directKpis.ContainsKey("PerfectOrderRate")) return;
+        if (vendorSheet is null || !sheetByName.TryGetValue(vendorSheet.SheetName, out var sheet)) return;
+
+        var fillHeader = vendorSheet.ColumnMappings
+            .FirstOrDefault(m => m.Value.Contains("Fill", StringComparison.OrdinalIgnoreCase)).Key;
+        if (fillHeader is null)
+        {
+            fillHeader = sheet.Headers.FirstOrDefault(h =>
+                WorkbookParseHelper.NormalizeHeader(h).Contains("fillrate", StringComparison.Ordinal));
+        }
+        if (fillHeader is null) return;
+
+        var values = sheet.Rows
+            .Select(r => WorkbookParseHelper.ParseDecimal(r.TryGetValue(fillHeader, out var v) ? v : null))
+            .Where(v => v is not null)
+            .Select(v => v!.Value)
+            .ToList();
+        if (values.Count == 0) return;
+
+        var avg = values.Average();
+        if (avg > 1m) avg /= 100m;
+        directKpis["PerfectOrderRate"] = avg;
+    }
+
+    private void ImportRollupInventoryForPeriod(
+        IReadOnlyList<DetectedSheet> rollupSheets,
+        Dictionary<string, ParsedSheet> sheetByName,
+        Guid tenantId,
+        long batchId,
+        long uploadedFileId,
+        DateOnly period)
+    {
+        foreach (var det in rollupSheets)
+        {
+            if (!sheetByName.TryGetValue(det.SheetName, out var sheet)) continue;
+            if (!det.ColumnMappings.Values.Any(v =>
+                    string.Equals(v, "Inventory_Value", StringComparison.OrdinalIgnoreCase)))
+                continue;
+
+            foreach (var row in sheet.Rows)
+            {
+                var rowDate = WorkbookDateRules.TryParsePeriodDate(
+                    ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Period_End_Date"));
+                if (rowDate != period) continue;
+
+                var invVal = WorkbookParseHelper.ParseDecimal(
+                    ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Inventory_Value"));
+                if (invVal is null or <= 0) continue;
+
+                _db.NormalizedInventoryRows.Add(new NormalizedInventoryRow
+                {
+                    TenantId = tenantId,
+                    PeriodEnd = period,
+                    UploadBatchId = batchId,
+                    UploadedFileId = uploadedFileId,
+                    SourceRowNumber = 0,
+                    Status = RowStatus.Valid,
+                    RawJson = "{}",
+                    SnapshotDate = period,
+                    InventoryValue = invVal
+                });
+                return;
+            }
+        }
+    }
+
+    private void ImportRollupSalesCogsForPeriod(
+        IReadOnlyList<DetectedSheet> rollupSheets,
+        Dictionary<string, ParsedSheet> sheetByName,
+        Guid tenantId,
+        long batchId,
+        long uploadedFileId,
+        DateOnly period)
+    {
+        foreach (var det in rollupSheets)
+        {
+            if (WorkbookRollupKpiExtractor.SheetHasVendorRows(det.Headers)) continue;
+            if (!sheetByName.TryGetValue(det.SheetName, out var sheet)) continue;
+
+            foreach (var row in sheet.Rows)
+            {
+                var rowDate = WorkbookDateRules.TryParsePeriodDate(
+                    ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Period_End_Date"));
+                if (rowDate != period) continue;
+
+                var net = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Net_Sales"));
+                var cogs = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "COGS"));
+                if (net is null && cogs is null) continue;
+
+                _db.NormalizedSalesRows.Add(new NormalizedSalesRow
+                {
+                    TenantId = tenantId,
+                    PeriodEnd = period,
+                    UploadBatchId = batchId,
+                    UploadedFileId = uploadedFileId,
+                    SourceRowNumber = 0,
+                    Status = RowStatus.Valid,
+                    RawJson = "{}",
+                    TransactionDate = period,
+                    NetSales = net,
+                    Cogs = cogs
+                });
+                return;
+            }
+        }
+    }
+
+    private void ImportRollupArApTotalsForPeriod(
+        IReadOnlyList<DetectedSheet> rollupSheets,
+        Dictionary<string, ParsedSheet> sheetByName,
+        Guid tenantId,
+        long batchId,
+        long uploadedFileId,
+        DateOnly period)
+    {
+        foreach (var det in rollupSheets)
+        {
+            if (WorkbookRollupKpiExtractor.SheetHasVendorRows(det.Headers)) continue;
+            if (!sheetByName.TryGetValue(det.SheetName, out var sheet)) continue;
+
+            foreach (var row in sheet.Rows)
+            {
+                var rowDate = WorkbookDateRules.TryParsePeriodDate(
+                    ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Period_End_Date"));
+                if (rowDate != period) continue;
+
+                var arTotal = ParseByHeader(row, "artotal");
+                if (arTotal is > 0)
+                {
+                    _db.NormalizedArRows.Add(new NormalizedArRow
+                    {
+                        TenantId = tenantId,
+                        PeriodEnd = period,
+                        UploadBatchId = batchId,
+                        UploadedFileId = uploadedFileId,
+                        SourceRowNumber = 0,
+                        Status = RowStatus.Valid,
+                        RawJson = "{}",
+                        SnapshotDate = period,
+                        OpenBalance = arTotal
+                    });
+                }
+
+                var apTotal = ParseByHeader(row, "aptotal");
+                if (apTotal is > 0)
+                {
+                    _db.NormalizedApRows.Add(new NormalizedApRow
+                    {
+                        TenantId = tenantId,
+                        PeriodEnd = period,
+                        UploadBatchId = batchId,
+                        UploadedFileId = uploadedFileId,
+                        SourceRowNumber = 0,
+                        Status = RowStatus.Valid,
+                        RawJson = "{}",
+                        SnapshotDate = period,
+                        OpenBalance = apTotal
+                    });
+                }
+
+                return;
+            }
+        }
+    }
+
     private static Dictionary<string, decimal?> ExtractDirectKpis(
         ParsedSheet? sheet,
         IReadOnlyDictionary<string, string>? colMap,
@@ -335,36 +540,60 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             var rowDate = WorkbookDateRules.TryParsePeriodDate(ColumnSynonymMatcher.GetMapped(row, colMap, "Period_End_Date"));
             if (rowDate != period) continue;
 
-            void Set(string code, string field)
+            void SetRatio(string code, string field)
             {
                 var v = ColumnSynonymMatcher.GetMapped(row, colMap, field);
                 var d = WorkbookParseHelper.ParseDecimal(v);
-                if (d is not null)
-                {
-                    if (field.Contains("Margin", StringComparison.OrdinalIgnoreCase) ||
-                        field.Contains("Pct", StringComparison.OrdinalIgnoreCase) ||
-                        field.Contains("Rate", StringComparison.OrdinalIgnoreCase) ||
-                        field.Contains("AR_Over", StringComparison.OrdinalIgnoreCase) ||
-                        field.Contains("AP_Past", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (d > 1m) d /= 100m;
-                    }
-                    result[code] = d;
-                }
+                if (d is null) return;
+                var ratio = WorkbookRollupKpiExtractor.NormalizeRatio(d.Value);
+                if (ratio is not null)
+                    result[code] = ratio;
             }
 
-            Set("GrossMargin%", "Gross_Margin_Percent");
-            Set("AR_PastDue31p%", "AR_Over_60_Pct");
-            Set("AP_PastDue31p%", "AP_Past_Due_Pct");
-            Set("PerfectOrderRate", "Fill_Rate_Pct");
+            SetRatio("GrossMargin%", "Gross_Margin_Percent");
+            SetRatio("AR_PastDue31p%", "AR_Over_60_Pct");
+            SetRatio("AP_PastDue31p%", "AP_Past_Due_Pct");
+            SetRatio("PerfectOrderRate", "Fill_Rate_Pct");
+            SetRatio("NetProfit%", "Net_Profit_Percent");
 
             var net = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Net_Sales"));
             var cogs = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "COGS"));
             if (net is > 0 && cogs is > 0 && !result.ContainsKey("GrossMargin%"))
                 result["GrossMargin%"] = (net - cogs) / net;
+
+            var inv = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Inventory_Value"));
+            var doh = WorkbookRollupKpiExtractor.TryComputeDoh(inv, cogs);
+            if (doh is not null)
+                result["DOH"] = doh;
+
+            if (!result.ContainsKey("NetProfit%"))
+            {
+                var opProfit = ParseByHeader(row, "operatingprofit", "operating_profit");
+                var np = WorkbookRollupKpiExtractor.TryComputeNetProfitPercent(net, opProfit);
+                if (np is not null)
+                    result["NetProfit%"] = np;
+            }
+
+            if (!result.ContainsKey("AR_PastDue31p%"))
+            {
+                var arPct = WorkbookRollupKpiExtractor.TryComputeArPastDuePercent(row);
+                if (arPct is not null)
+                    result["AR_PastDue31p%"] = arPct;
+            }
         }
 
         return result;
+    }
+
+    private static decimal? ParseByHeader(IReadOnlyDictionary<string, string?> row, params string[] tokens)
+    {
+        foreach (var kvp in row)
+        {
+            var norm = WorkbookParseHelper.NormalizeHeader(kvp.Key);
+            if (!tokens.Any(t => norm.Contains(t, StringComparison.Ordinal))) continue;
+            return WorkbookParseHelper.ParseDecimal(kvp.Value);
+        }
+        return null;
     }
 
     private void ImportSales(

@@ -134,9 +134,11 @@ public static class ColumnSynonymMatcher
         foreach (var (orig, norm) in normalizedHeaders)
         {
             if (result.ContainsKey(orig)) continue;
-            if (norm.Contains("arover60", StringComparison.Ordinal) || norm.Contains("arpastdue31", StringComparison.Ordinal))
+            if (norm.Contains("arover60", StringComparison.Ordinal) || norm.Contains("arover90", StringComparison.Ordinal) ||
+                norm.Contains("arpastdue31", StringComparison.Ordinal) || norm.Contains("arpastdue", StringComparison.Ordinal))
                 result[orig] = "AR_Over_60_Pct";
-            else if (norm.Contains("appastdue", StringComparison.Ordinal))
+            else if (norm.Contains("apover60", StringComparison.Ordinal) || norm.Contains("apover90", StringComparison.Ordinal) ||
+                     norm.Contains("appastdue", StringComparison.Ordinal))
                 result[orig] = "AP_Past_Due_Pct";
             else if (norm.Contains("fillrate", StringComparison.Ordinal) || norm.Contains("perfectorder", StringComparison.Ordinal))
                 result[orig] = "Fill_Rate_Pct";

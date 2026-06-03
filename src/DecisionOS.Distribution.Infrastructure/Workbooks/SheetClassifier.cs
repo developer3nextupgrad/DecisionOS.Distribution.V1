@@ -21,6 +21,9 @@ public static class SheetClassifier
             name.Contains("import_map") || name.Contains("changelog"))
             return (WorkbookSheetKind.Skip, null, 1.0);
 
+        if (name.Contains("ar_aging") || name.Contains("ap_aging"))
+            return (WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.98);
+
         if (hasSkuColumn && (norms.Contains("netsales") || norms.Contains("quantitysold") ||
                              norms.Contains("weeknumber") || norms.Contains("weekenddate") ||
                              norms.Contains("cogs")) ||
@@ -30,9 +33,16 @@ public static class SheetClassifier
         if (!hasSkuColumn && (
                 name.Contains("weekly_financial") || name.Contains("weeklyfinancial") ||
                 name.Contains("weekly_rollup") || name.Contains("weeklyrollup") ||
+                name.Contains("ar_aging") || name.Contains("aragings") ||
+                name.Contains("ap_aging") || name.Contains("apagings") ||
                 (name.Contains("weekly") && norms.Contains("weekenddate")) ||
                 (name.Contains("financial") && (norms.Contains("netsales") || norms.Contains("grossmargin")))))
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.95));
+
+        if (!hasSkuColumn && norms.Contains("weekenddate") &&
+            (norms.Contains("artotal") || norms.Contains("arover90") || norms.Contains("arover60") ||
+             norms.Contains("apover60") || norms.Contains("apover90") || norms.Contains("aptotal")))
+            candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.88));
 
         if (!hasSkuColumn && Score("weekenddate", "netsales", "grossmargin", "cogs") >= 2)
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.9));
@@ -92,7 +102,7 @@ public static class SheetClassifier
         foreach (var ch in lower)
         {
             if (char.IsLetterOrDigit(ch)) sb.Append(ch);
-            else if (ch is ' ' or '-' or '.') sb.Append('_');
+            else if (ch is ' ' or '-' or '.' or '_') sb.Append('_');
         }
         return sb.ToString();
     }
