@@ -568,7 +568,16 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
 
             if (!result.ContainsKey("NetProfit%"))
             {
-                var opProfit = ParseByHeader(row, "operatingprofit", "operating_profit");
+                var netIncome = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Net_Income"));
+                var npFromIncome = WorkbookRollupKpiExtractor.TryComputeNetProfitPercent(net, netIncome);
+                if (npFromIncome is not null)
+                    result["NetProfit%"] = npFromIncome;
+            }
+
+            if (!result.ContainsKey("NetProfit%"))
+            {
+                var opProfit = WorkbookParseHelper.ParseDecimal(ColumnSynonymMatcher.GetMapped(row, colMap, "Operating_Profit"))
+                    ?? ParseByHeader(row, "operatingprofit", "operating_profit", "operatingincome");
                 var np = WorkbookRollupKpiExtractor.TryComputeNetProfitPercent(net, opProfit);
                 if (np is not null)
                     result["NetProfit%"] = np;

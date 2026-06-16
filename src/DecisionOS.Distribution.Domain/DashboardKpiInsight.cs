@@ -65,8 +65,9 @@ public sealed class DashboardKpiInsight
             ],
             ["NetProfit%"] =
             [
-                "Profitability feed or KPI row with Net Profit % for this week",
-                "Not computed from sales/AR alone in V1 web import"
+                "Weekly rollup with Net Profit % (ratio or percent), or",
+                "Net Income ($) or Operating Profit ($) on the same row as Net Sales",
+                "Mapped on Weekly_Financials (or rollup) with a week-ending date"
             ],
             ["PerfectOrderRate"] =
             [

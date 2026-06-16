@@ -20,7 +20,7 @@ public static class WorkbookKpiDefinitionEnsurer
             TryAdd(set, "AR_PastDue31p%", HasMapped(sheet, "AR_Over_60_Pct"));
             TryAdd(set, "AP_PastDue31p%", HasMapped(sheet, "AP_Past_Due_Pct"));
             TryAdd(set, "PerfectOrderRate", HasMapped(sheet, "Fill_Rate_Pct"));
-            TryAdd(set, "NetProfit%", HasMapped(sheet, "Net_Profit_Percent") || HasMapped(sheet, "Net_Income"));
+            TryAdd(set, "NetProfit%", HasMapped(sheet, "Net_Profit_Percent") || HasMapped(sheet, "Net_Income") || HasMapped(sheet, "Operating_Profit"));
         }
 
         await db.SaveChangesAsync(ct);

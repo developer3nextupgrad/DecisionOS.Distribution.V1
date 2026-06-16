@@ -494,6 +494,36 @@
 <div class="dashboard-wrapper">
     <partial name="Shared/_ContextSelector" model="Model.Selector" />
 
+    @if (!string.IsNullOrWhiteSpace(Model.PreviousPeriodEnd) || !string.IsNullOrWhiteSpace(Model.NextPeriodEnd))
+    {
+        <div class="flex flex-wrap gap-2 items-center mb-3 text-sm">
+            @if (!string.IsNullOrWhiteSpace(Model.PreviousPeriodEnd))
+            {
+                <a class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
+                   href="/Dashboard?clientId=@Model.ClientId&periodEnd=@Model.PreviousPeriodEnd@(string.IsNullOrWhiteSpace(Model.CustomerId) ? "" : $"&customerId={Uri.EscapeDataString(Model.CustomerId)}")">
+                    ← Older week (@Model.PreviousPeriodEnd)
+                </a>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.NextPeriodEnd))
+            {
+                <a class="px-3 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
+                   href="/Dashboard?clientId=@Model.ClientId&periodEnd=@Model.NextPeriodEnd@(string.IsNullOrWhiteSpace(Model.CustomerId) ? "" : $"&customerId={Uri.EscapeDataString(Model.CustomerId)}")">
+                    Newer week (@Model.NextPeriodEnd) →
+                </a>
+            }
+            <span class="text-xs text-slate-500">Multi-week uploads populate many weeks — pick one week at a time to review.</span>
+        </div>
+    }
+
+    @if (Model.HasPartialWeekData)
+    {
+        <div class="focus-banner" style="margin-bottom: 12px; border-left: 4px solid #64748b;">
+            <p style="margin:0; font-size:0.85rem;">
+                <strong>Partial data:</strong> Gray KPI tiles lack enough data for this week. Other pillars still display normally.
+            </p>
+        </div>
+    }
+
     @if (!string.IsNullOrWhiteSpace(Model.CustomerId))
     {
         <div class="focus-banner" style="margin-bottom: 12px;">
@@ -506,9 +536,11 @@
     @if (Model.Snapshots.Count == 0)
     {
         <div class="empty-panel">
-            <h2 style="margin-top:0; color:#1e293b;">No KPI data for this week</h2>
-            <p>Import snapshots for this period or pick another week.</p>
+            <h2 style="margin-top:0; color:#1e293b;">No imported data for this week yet</h2>
+            <p>Run a simplified or classic import for this distributor, then pick a reporting week. Missing KPIs show as gray once import completes — they do not block the dashboard.</p>
             <a href="/" style="color:#3b82f6; font-weight:600;">Change selection</a>
+            <span style="margin: 0 8px;">·</span>
+            <a href="/Operations/Uploads" style="color:#3b82f6; font-weight:600;">Go to uploads</a>
         </div>
     }
     else

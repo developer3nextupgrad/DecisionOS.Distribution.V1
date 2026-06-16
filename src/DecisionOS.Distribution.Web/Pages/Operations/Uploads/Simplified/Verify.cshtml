@@ -1,6 +1,7 @@
 @page
 @model DecisionOS.Distribution.Web.Pages.Operations.Uploads.Simplified.VerifyModel
 @using DecisionOS.Distribution.Domain.Uploads
+@using DecisionOS.Distribution.Infrastructure.Workbooks
 @{
     ViewData["Title"] = "Simplified Upload — Import Review";
     Layout = "_Layout";
@@ -126,9 +127,13 @@
                             }
                             else
                             {
+                                <p class="text-sm text-on-surface-variant mb-2">
+                                    Map each <strong>Excel column header</strong> (left) to a <strong>DecisionOS field</strong> (dropdown).
+                                    The dropdown is not another Excel tab — it tells the importer what kind of data that column holds.
+                                </p>
                                 <p class="text-sm text-on-surface-variant mb-3">
-                                    Match each <strong>Excel header</strong> (left) to a <strong>system field</strong> (right). Use <strong>Ignore</strong> for columns not used in import.
-                                    Wrong maps (e.g. dollar bucket → percent field) cause bad KPI values.
+                                    Use <strong>Ignore</strong> for unused columns. Dollar aging buckets (e.g. AR_Over_90) must not map to percent fields.
+                                    AR Total by week is a dollar column — leave unmapped; past-due % can be computed from buckets on rollup sheets.
                                 </p>
                             }
                             @if (!Model.MappingEditIsReferenceOnly)
@@ -136,18 +141,34 @@
                                 <div class="space-y-2 max-h-96 overflow-auto">
                                     @for (var mi = 0; mi < Model.ReviewSheets[editIndex].MappingKeys!.Count; mi++)
                                     {
-                                        <div class="flex flex-wrap gap-2 items-center text-sm">
+                                        var sourceHeader = Model.ReviewSheets[editIndex].MappingKeys![mi];
+                                        var mappedValue = Model.ReviewSheets[editIndex].MappingValues![mi];
+                                        var mappingWarning = SystemFieldDisplayCatalog.GetMappingWarning(sourceHeader, mappedValue);
+                                        <div class="flex flex-wrap gap-2 items-start text-sm border-b border-surface-container-high/60 pb-2">
                                             <input type="hidden" asp-for="ReviewSheets[editIndex].MappingKeys[mi]" />
-                                            <span class="font-mono w-48 truncate" title="@Model.ReviewSheets[editIndex].MappingKeys![mi]">@Model.ReviewSheets[editIndex].MappingKeys![mi]</span>
-                                            <span>→</span>
-                                            <select asp-for="ReviewSheets[editIndex].MappingValues[mi]" class="rounded border-surface-container-high text-sm flex-1 min-w-[160px]">
-                                                <option value="">— not mapped —</option>
-                                                <option value="Ignore">Ignore</option>
-                                                @foreach (var sf in Model.SystemFieldsForEdit.Where(f => !string.Equals(f, "Ignore", StringComparison.OrdinalIgnoreCase)))
+                                            <div class="w-48 shrink-0">
+                                                <div class="font-mono truncate" title="@sourceHeader">@sourceHeader</div>
+                                                <div class="text-[10px] text-on-surface-variant">Excel column</div>
+                                            </div>
+                                            <span class="pt-1">→</span>
+                                            <div class="flex-1 min-w-[200px]">
+                                                <select asp-for="ReviewSheets[editIndex].MappingValues[mi]" class="rounded border-surface-container-high text-sm w-full">
+                                                    <option value="">— not mapped —</option>
+                                                    <option value="Ignore">@SystemFieldDisplayCatalog.FormatOption("Ignore")</option>
+                                                    @foreach (var sf in Model.SystemFieldsForEdit.Where(f => !string.Equals(f, "Ignore", StringComparison.OrdinalIgnoreCase)))
+                                                    {
+                                                        <option value="@sf" title="@SystemFieldDisplayCatalog.GetHelp(sf)">@SystemFieldDisplayCatalog.FormatOption(sf)</option>
+                                                    }
+                                                </select>
+                                                @if (!string.IsNullOrWhiteSpace(mappedValue) && mappedValue != "Ignore")
                                                 {
-                                                    <option value="@sf">@sf</option>
+                                                    <div class="text-[11px] text-on-surface-variant mt-1">@SystemFieldDisplayCatalog.GetHelp(mappedValue)</div>
                                                 }
-                                            </select>
+                                                @if (!string.IsNullOrWhiteSpace(mappingWarning))
+                                                {
+                                                    <div class="text-[11px] text-amber-800 mt-1">⚠ @mappingWarning</div>
+                                                }
+                                            </div>
                                         </div>
                                     }
                                 </div>

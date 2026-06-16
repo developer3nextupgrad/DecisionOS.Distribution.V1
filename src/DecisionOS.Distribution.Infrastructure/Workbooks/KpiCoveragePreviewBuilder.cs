@@ -199,7 +199,7 @@ public static class KpiCoveragePreviewBuilder
 
     private static KpiCoverageLine BuildNetProfit(DetectedSheet? rollup, IReadOnlySet<string>? existing)
     {
-        if (rollup is not null && (HasMapped(rollup, "Net_Profit_Percent") || HasMapped(rollup, "Net_Income")))
+        if (rollup is not null && (HasMapped(rollup, "Net_Profit_Percent") || HasMapped(rollup, "Net_Income") || HasMapped(rollup, "Operating_Profit")))
             return Line("NetProfit%", KpiCoverageStatus.ReadyFromRollup,
                 $"Rollup '{rollup.SheetName}'", existing);
 

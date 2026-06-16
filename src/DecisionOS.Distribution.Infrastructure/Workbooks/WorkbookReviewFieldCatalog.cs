@@ -54,6 +54,6 @@ public static class WorkbookReviewFieldCatalog
     [
         "Period_End_Date", "Net_Sales", "COGS", "Gross_Margin_Percent", "Gross_Profit",
         "AR_Over_60_Pct", "AP_Past_Due_Pct", "Fill_Rate_Pct", "Cash_Balance", "Inventory_Value",
-        "Net_Income", "Net_Profit_Percent", "Revenue", "Ignore"
+        "Net_Income", "Net_Profit_Percent", "Operating_Profit", "Revenue", "Ignore"
     ];
 }

@@ -28,4 +28,24 @@ public class WorkbookRollupKpiExtractorTests
         Assert.Equal(0.3m, WorkbookRollupKpiExtractor.NormalizeRatio(0.3m));
         Assert.Equal(0.3m, WorkbookRollupKpiExtractor.NormalizeRatio(30m));
     }
+
+    [Fact]
+    public void TryComputeNetProfitPercent_FromOperatingProfitAndSales()
+    {
+        var result = WorkbookRollupKpiExtractor.TryComputeNetProfitPercent(1_000_000m, 60_000m);
+        Assert.Equal(0.06m, result);
+    }
+
+    [Fact]
+    public void TryComputeArPastDuePercent_FromOver90BucketOnly()
+    {
+        var row = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["AR_Total"] = "100000",
+            ["AR_Over_90"] = "25000"
+        };
+
+        var pct = WorkbookRollupKpiExtractor.TryComputeArPastDuePercent(row);
+        Assert.Equal(0.25m, pct);
+    }
 }
