@@ -32,6 +32,8 @@ public static class SystemFieldDisplayCatalog
         ["AP_Past_Due_Pct"] = new("AP past-due % (ratio)", "Past-due payables as ratio or percent — not dollar aging buckets.", MappingValueKind.Percent),
         ["Fill_Rate_Pct"] = new("Fill / perfect order %", "Vendor or order fill rate as ratio or percent.", MappingValueKind.Percent),
         ["Inventory_Value"] = new("Inventory value ($)", "Total inventory dollars at week end.", MappingValueKind.Dollars),
+        ["AR_Balance"] = new("AR ending balance ($)", "Total accounts receivable at week end (e.g. AR_Ending). Used for cash cycle.", MappingValueKind.Dollars),
+        ["AP_Balance"] = new("AP ending balance ($)", "Total accounts payable at week end (e.g. AP_Ending). Used for cash cycle.", MappingValueKind.Dollars),
         ["Cash_Balance"] = new("Cash balance ($)", "Ending cash for the week.", MappingValueKind.Dollars),
         ["Open_Balance"] = new("Open balance ($)", "Unpaid invoice or bill amount.", MappingValueKind.Dollars),
         ["Days_Past_Due"] = new("Days past due", "Age of receivable or payable in days."),

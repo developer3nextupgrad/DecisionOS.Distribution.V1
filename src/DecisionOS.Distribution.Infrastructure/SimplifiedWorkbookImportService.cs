@@ -488,7 +488,8 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                     ColumnSynonymMatcher.GetMapped(row, det.ColumnMappings, "Period_End_Date"));
                 if (rowDate != period) continue;
 
-                var arTotal = ParseByHeader(row, "artotal");
+                var arTotal = WorkbookRollupKpiExtractor.TryParseRollupBalance(
+                    row, det.ColumnMappings, "AR_Balance", "artotal", "arending", "arbalance");
                 if (arTotal is > 0)
                 {
                     _db.NormalizedArRows.Add(new NormalizedArRow
@@ -505,7 +506,8 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                     });
                 }
 
-                var apTotal = ParseByHeader(row, "aptotal");
+                var apTotal = WorkbookRollupKpiExtractor.TryParseRollupBalance(
+                    row, det.ColumnMappings, "AP_Balance", "aptotal", "apending", "apbalance");
                 if (apTotal is > 0)
                 {
                     _db.NormalizedApRows.Add(new NormalizedApRow
@@ -588,6 +590,17 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                 var arPct = WorkbookRollupKpiExtractor.TryComputeArPastDuePercent(row);
                 if (arPct is not null)
                     result["AR_PastDue31p%"] = arPct;
+            }
+
+            if (!result.ContainsKey("CCC"))
+            {
+                var arBal = WorkbookRollupKpiExtractor.TryParseRollupBalance(
+                    row, colMap, "AR_Balance", "artotal", "arending", "arbalance");
+                var apBal = WorkbookRollupKpiExtractor.TryParseRollupBalance(
+                    row, colMap, "AP_Balance", "aptotal", "apending", "apbalance");
+                var ccc = WorkbookRollupKpiExtractor.TryComputeCcc(net, cogs, inv, arBal, apBal);
+                if (ccc is not null)
+                    result["CCC"] = ccc;
             }
         }
 

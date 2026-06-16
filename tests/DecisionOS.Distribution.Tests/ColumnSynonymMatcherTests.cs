@@ -42,6 +42,23 @@ public class ColumnSynonymMatcherTests
         Assert.Equal("Inventory_Value", map["Inventory_Value_End"]);
     }
 
+    [Fact]
+    public void InferMappings_SteveRollupHeaders_MapsBalancesAndMargins()
+    {
+        var headers = new[]
+        {
+            "Week_End_Date", "Net_Sales", "COGS", "Gross_Margin_%", "Inventory_Value_End",
+            "Fill_Rate_%", "AR_Ending", "AR_Over_60_%", "AP_Ending", "AP_Past_Due_%"
+        };
+        var map = ColumnSynonymMatcher.InferMappings(headers, WorkbookSheetKind.WeeklyRollup);
+
+        Assert.Equal("AR_Balance", map["AR_Ending"]);
+        Assert.Equal("AP_Balance", map["AP_Ending"]);
+        Assert.Equal("Inventory_Value", map["Inventory_Value_End"]);
+        Assert.Equal("Fill_Rate_Pct", map["Fill_Rate_%"]);
+        Assert.Equal("AR_Over_60_Pct", map["AR_Over_60_%"]);
+    }
+
     [Theory]
     [InlineData("AR_Total", "AR_Over_60_Pct", true)]
     [InlineData("AR_Over_90", "AR_Over_60_Pct", true)]

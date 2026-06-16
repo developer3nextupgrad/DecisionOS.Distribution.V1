@@ -89,4 +89,58 @@ public class SimplifiedWorkbookImportServiceTests
         var imported = await db.UploadBatches.FirstAsync(b => b.Id == batch.Id);
         Assert.Equal(UploadBatchStatuses.Imported, imported.Status);
     }
+
+    [Fact]
+    public async Task RunSimplifiedImport_SteveWorkbook_DerivesSixKpis_NetProfitGray()
+    {
+        var path = ResolveFixture();
+        if (path is null) return;
+
+        var root = Path.Combine(Path.GetTempPath(), "decisionos-simplified", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+
+        await using var db = MakeDb(nameof(RunSimplifiedImport_SteveWorkbook_DerivesSixKpis_NetProfitGray));
+        var tenant = new Tenant { Id = Guid.NewGuid(), ClientId = "DIST-STEVE", Name = "Steve Test" };
+        db.Tenants.Add(tenant);
+        SeedKpis(db);
+
+        var anchor = new DateOnly(2025, 11, 22);
+        var batch = new UploadBatch
+        {
+            TenantId = tenant.Id,
+            PeriodEnd = anchor,
+            AnchorPeriodEnd = anchor,
+            Cadence = UploadCadence.Weekly,
+            ImportMode = UploadImportMode.Simplified,
+            CreatedAt = DateTimeOffset.UtcNow,
+            Status = UploadBatchStatuses.Draft
+        };
+        db.UploadBatches.Add(batch);
+        await db.SaveChangesAsync();
+
+        var analyzer = new WorkbookAnalyzer();
+        var scoring = new WeeklyScoringService(db, new KpiStatusService(), new AlertService(), new WeeklyFocusService());
+        var sut = new SimplifiedWorkbookImportService(db, analyzer, scoring);
+
+        var bytes = await File.ReadAllBytesAsync(path);
+        await sut.DetectAndPersistAsync(batch.Id, bytes, Path.GetFileName(path), root);
+        await sut.ValidateSimplifiedAsync(batch.Id);
+        await sut.RunSimplifiedImportAsync(batch.Id, root);
+
+        var weekSnapshots = await db.KpiSnapshots
+            .Include(s => s.KpiDefinition)
+            .Where(s => s.TenantId == tenant.Id && s.PeriodEnd == anchor)
+            .ToListAsync();
+
+        Assert.Equal(7, weekSnapshots.Count);
+
+        var byCode = weekSnapshots.ToDictionary(s => s.KpiDefinition.Code, StringComparer.OrdinalIgnoreCase);
+        Assert.Equal("GRAY", byCode["NetProfit%"].Status);
+        Assert.NotEqual("GRAY", byCode["GrossMargin%"].Status);
+        Assert.NotEqual("GRAY", byCode["AR_PastDue31p%"].Status);
+        Assert.NotEqual("GRAY", byCode["AP_PastDue31p%"].Status);
+        Assert.NotEqual("GRAY", byCode["DOH"].Status);
+        Assert.NotEqual("GRAY", byCode["CCC"].Status);
+        Assert.NotEqual("GRAY", byCode["PerfectOrderRate"].Status);
+    }
 }

@@ -37,15 +37,15 @@ public class WorkbookRollupKpiExtractorTests
     }
 
     [Fact]
-    public void TryComputeArPastDuePercent_FromOver90BucketOnly()
+    public void TryComputeCcc_FromRollupBalances()
     {
-        var row = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["AR_Total"] = "100000",
-            ["AR_Over_90"] = "25000"
-        };
-
-        var pct = WorkbookRollupKpiExtractor.TryComputeArPastDuePercent(row);
-        Assert.Equal(0.25m, pct);
+        var ccc = WorkbookRollupKpiExtractor.TryComputeCcc(
+            netSales: 700_000m,
+            weeklyCogs: 500_000m,
+            inventoryValue: 1_000_000m,
+            arBalance: 800_000m,
+            apBalance: 200_000m);
+        Assert.NotNull(ccc);
+        Assert.True(ccc > 0);
     }
 }

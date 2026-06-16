@@ -44,6 +44,8 @@ public static class ColumnSynonymMatcher
         ["AP_Past_Due_Pct"] = ["appastdue", "ap_past_due", "ap_past_due_", "appastduepercent"],
         ["Fill_Rate_Pct"] = ["fillrate", "fill_rate", "fill_rate_", "perfectorder", "perfectorderrate"],
         ["Cash_Balance"] = ["cashending", "cash_ending", "cashbalance", "endingcash"],
+        ["AR_Balance"] = ["arending", "ar_ending", "artotal", "ar_total", "arbalance"],
+        ["AP_Balance"] = ["apending", "ap_ending", "aptotal", "ap_total", "apbalance"],
         ["Revenue"] = ["netsales", "net_sales", "revenue"],
         ["Period_End_Date"] = ["weekenddate", "week_end_date", "periodenddate", "period_end", "weekending"],
         ["Net_Income"] = ["netincome", "net_income", "netincomeamount", "netprofitdollars"],
@@ -150,6 +152,12 @@ public static class ColumnSynonymMatcher
                 result[orig] = "Period_End_Date";
             else if (norm.Contains("inventoryvalue", StringComparison.Ordinal))
                 result[orig] = "Inventory_Value";
+            else if (norm is "arending" or "artotal" or "arbalance" ||
+                     (norm.StartsWith("ar", StringComparison.Ordinal) && norm.EndsWith("ending", StringComparison.Ordinal)))
+                result[orig] = "AR_Balance";
+            else if (norm is "apending" or "aptotal" or "apbalance" ||
+                     (norm.StartsWith("ap", StringComparison.Ordinal) && norm.EndsWith("ending", StringComparison.Ordinal)))
+                result[orig] = "AP_Balance";
             else if (norm.Contains("netprofit", StringComparison.Ordinal) || norm.Contains("netincome", StringComparison.Ordinal) ||
                      norm.Contains("operatingprofit", StringComparison.Ordinal) || norm.Contains("operatingincome", StringComparison.Ordinal))
                 result[orig] = InferProfitabilityField(norm);
@@ -208,6 +216,7 @@ public static class ColumnSynonymMatcher
         {
             "Period_End_Date", "Net_Sales", "COGS", "Gross_Margin_Percent", "Gross_Profit",
             "AR_Over_60_Pct", "AP_Past_Due_Pct", "Fill_Rate_Pct", "Cash_Balance", "Inventory_Value",
+            "AR_Balance", "AP_Balance",
             "Net_Income", "Net_Profit_Percent", "Operating_Profit", "Revenue"
         },
         WorkbookSheetKind.Holdover => new[] { "Customer_ID", "Customer_Name" },
