@@ -46,6 +46,18 @@
         </div>
 
         <div id="simplified-fields" class="space-y-4 hidden">
+            <div class="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+                <div class="text-sm font-semibold">Simplified workbook template</div>
+                <p class="text-xs text-on-surface-variant">
+                    Multi-tab Excel with every column needed for all seven dashboard KPIs (including Net Profit %).
+                    Fill in your distributor data, keep column headers unchanged, then upload on the next screen.
+                </p>
+                <a href="/downloads/DecisionOS_Simplified_Workbook_Template.xlsx"
+                   download="DecisionOS_Simplified_Workbook_Template.xlsx"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90">
+                    Download workbook template (.xlsx)
+                </a>
+            </div>
             <div>
                 <label class="block text-sm font-semibold mb-2">Anchor date (first period to include)</label>
                 <input asp-for="AnchorPeriodEnd" type="date" class="w-full rounded-lg border-surface-container-high bg-white" />
