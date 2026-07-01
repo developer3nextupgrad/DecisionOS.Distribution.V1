@@ -147,10 +147,14 @@ public static class KpiCoveragePreviewBuilder
                 $"Inventory '{inv.SheetName}' + sales COGS", existing);
 
         if (rollup is not null && HasMapped(rollup, "Inventory_Value") &&
-            (sales is not null && HasMapped(sales, "COGS") ||
-             rollup is not null && HasMapped(rollup, "COGS")))
+            HasMapped(rollup, "COGS"))
             return Line("DOH", KpiCoverageStatus.ReadyFromRollup,
-                $"Rollup inventory value + COGS path", existing);
+                $"Rollup '{rollup.SheetName}' (inventory + COGS)", existing);
+
+        if (rollup is not null && HasMapped(rollup, "Inventory_Value") &&
+            sales is not null && HasMapped(sales, "COGS"))
+            return Line("DOH", KpiCoverageStatus.ReadyFromRollup,
+                $"Rollup inventory + sales COGS", existing);
 
         if (inv is not null && HasMapped(inv, "Inventory_Value"))
             return Line("DOH", KpiCoverageStatus.DependsOnOther,
@@ -182,7 +186,7 @@ public static class KpiCoveragePreviewBuilder
                 KpiCode = "CCC",
                 DisplayName = DisplayNames["CCC"],
                 Status = KpiCoverageStatus.ReadyFromDetail,
-                SourceSummary = "Computed from sales, AR, AP, and DOH inputs",
+                SourceSummary = "Computed from sales, AR/AP balances, and inventory (rollup or detail sheets)",
                 ExistsInDatabase = true
             };
 
@@ -191,22 +195,22 @@ public static class KpiCoveragePreviewBuilder
             KpiCode = "CCC",
             DisplayName = DisplayNames["CCC"],
             Status = KpiCoverageStatus.DependsOnOther,
-            SourceSummary = "Requires Gross Margin path, AR, AP, and DOH data",
-            SuggestedFix = "Resolve missing pillars above before CCC can score.",
+            SourceSummary = "Requires sales/COGS, AR balance, AP balance, and inventory for the week",
+            SuggestedFix = "Map AR_Ending and AP_Ending on weekly rollup, or provide AR/AP detail with open balances.",
             ExistsInDatabase = true
         };
     }
 
     private static KpiCoverageLine BuildNetProfit(DetectedSheet? rollup, IReadOnlySet<string>? existing)
     {
-        if (rollup is not null && (HasMapped(rollup, "Net_Profit_Percent") || HasMapped(rollup, "Net_Income")))
+        if (rollup is not null && (HasMapped(rollup, "Net_Profit_Percent") || HasMapped(rollup, "Net_Income") || HasMapped(rollup, "Operating_Profit")))
             return Line("NetProfit%", KpiCoverageStatus.ReadyFromRollup,
                 $"Rollup '{rollup.SheetName}'", existing);
 
         return Line("NetProfit%", KpiCoverageStatus.MissingExpectGray,
-            "No net profit % or net income on rollup",
+            "No net profit / net income / operating profit on rollup",
             existing,
-            "Map Net_Profit_% or Net_Income on weekly financials rollup.");
+            "Cannot derive from Gross Profit or sales alone — add Net_Profit_%, Net_Income ($), or Operating_Profit ($) on weekly financials.");
     }
 
     private static KpiCoverageLine BuildPerfectOrder(

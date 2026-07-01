@@ -14,6 +14,11 @@ namespace DecisionOS.Distribution.Web.Pages;
 [Authorize(Policy = "AnyDistributionRole")]
 public class DashboardModel : PageModel
 {
+    private static readonly string[] SevenPillarCodes =
+    [
+        "GrossMargin%", "AR_PastDue31p%", "AP_PastDue31p%", "DOH", "CCC", "NetProfit%", "PerfectOrderRate"
+    ];
+
     private readonly DecisionOsDbContext _db;
     private readonly DashboardContextService _context;
 
@@ -46,6 +51,10 @@ public class DashboardModel : PageModel
 
     public Dictionary<int, DashboardKpiInsight> KpiInsightsBySnapshotId { get; private set; } = new();
     public string KpiInsightsJson { get; private set; } = "{}";
+
+    public bool HasPartialWeekData { get; private set; }
+    public string? PreviousPeriodEnd { get; private set; }
+    public string? NextPeriodEnd { get; private set; }
 
     public DateOnly NextReviewDate => ParsedPeriodEnd.AddDays(7);
 
@@ -100,6 +109,23 @@ public class DashboardModel : PageModel
 
         if (Snapshots.Count == 0)
         {
+            var latestWithData = await _db.KpiSnapshots.AsNoTracking()
+                .Where(s => s.TenantId == Tenant.Id)
+                .Select(s => s.PeriodEnd)
+                .Distinct()
+                .OrderByDescending(p => p)
+                .FirstOrDefaultAsync();
+
+            if (latestWithData != default && latestWithData != periodEnd)
+            {
+                return RedirectToPage(new
+                {
+                    clientId = ClientId,
+                    periodEnd = latestWithData.ToString("yyyy-MM-dd"),
+                    customerId = CustomerId
+                });
+            }
+
             var weeks = await _context.GetWeeksAsync(Tenant.Id, CustomerId);
             if (weeks.Count > 0 && weeks[0] != periodEnd)
             {
@@ -111,6 +137,14 @@ public class DashboardModel : PageModel
                 });
             }
         }
+
+        var resolvedDefs = kpiDefs
+            .GroupBy(d => d.Code, StringComparer.OrdinalIgnoreCase)
+            .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
+            .ToList();
+
+        Snapshots = EnsureSevenPillarDisplay(Snapshots, resolvedDefs, Tenant.Id, periodEnd);
+        HasPartialWeekData = Snapshots.Any(s => s.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase));
 
         TopAlert = await _db.Alerts
             .Include(a => a.KpiDefinition)
@@ -165,6 +199,14 @@ public class DashboardModel : PageModel
 
         await BuildSelectorAsync(periodEnd);
 
+        var availableWeeks = await _context.GetWeeksAsync(Tenant.Id, CustomerId);
+        var weekList = availableWeeks.ToList();
+        var weekIndex = weekList.FindIndex(w => w == periodEnd);
+        if (weekIndex >= 0 && weekIndex < weekList.Count - 1)
+            PreviousPeriodEnd = weekList[weekIndex + 1].ToString("yyyy-MM-dd");
+        if (weekIndex > 0)
+            NextPeriodEnd = weekList[weekIndex - 1].ToString("yyyy-MM-dd");
+
         Focus = await _db.WeeklyFocuses
             .Include(w => w.KpiDefinition)
             .FirstOrDefaultAsync(w => w.TenantId == Tenant.Id && w.PeriodEnd == periodEnd);
@@ -181,6 +223,48 @@ public class DashboardModel : PageModel
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
         return Page();
+    }
+
+    private static List<KpiSnapshot> EnsureSevenPillarDisplay(
+        List<KpiSnapshot> existing,
+        IReadOnlyList<KpiDefinition> defs,
+        Guid tenantId,
+        DateOnly periodEnd)
+    {
+        var byCode = existing.ToDictionary(s => s.KpiDefinition.Code, StringComparer.OrdinalIgnoreCase);
+        var defsByCode = defs.ToDictionary(d => d.Code, StringComparer.OrdinalIgnoreCase);
+        var result = new List<KpiSnapshot>(existing);
+        var tempId = -1;
+
+        foreach (var code in SevenPillarCodes)
+        {
+            if (byCode.ContainsKey(code)) continue;
+            if (!defsByCode.TryGetValue(code, out var def)) continue;
+
+            var missingItems = DashboardKpiInsight.MissingDataByCode.TryGetValue(code, out var items)
+                ? items
+                : Array.Empty<string>();
+
+            result.Add(new KpiSnapshot
+            {
+                Id = tempId--,
+                TenantId = tenantId,
+                PeriodEnd = periodEnd,
+                KpiDefinitionId = def.Id,
+                KpiDefinition = def,
+                Value = 0m,
+                Status = "GRAY",
+                DataConfidence = "Low",
+                CardDetailLine1 = missingItems.Length > 0 ? missingItems[0] : "Insufficient data for this KPI.",
+                CardDetailLine2 = "Other KPIs for this week still display when data is available."
+            });
+        }
+
+        return result
+            .OrderByDescending(s => s.Status == "RED")
+            .ThenByDescending(s => s.Status == "YELLOW")
+            .ThenBy(s => s.KpiDefinition.Name)
+            .ToList();
     }
 
     private async Task BuildSelectorAsync(DateOnly periodEnd)

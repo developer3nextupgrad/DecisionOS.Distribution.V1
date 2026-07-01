@@ -39,6 +39,9 @@ public static class SheetClassifier
                 (name.Contains("financial") && (norms.Contains("netsales") || norms.Contains("grossmargin")))))
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.95));
 
+        if (!hasSkuColumn && (name.Contains("net_profit") || name.Contains("netprofit") || name.Contains("profitability")))
+            candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.9));
+
         if (!hasSkuColumn && norms.Contains("weekenddate") &&
             (norms.Contains("artotal") || norms.Contains("arover90") || norms.Contains("arover60") ||
              norms.Contains("apover60") || norms.Contains("apover90") || norms.Contains("aptotal")))

@@ -68,6 +68,46 @@ public static class WorkbookRollupKpiExtractor
         return operatingProfit / netSales;
     }
 
+    /// <summary>DSO + DIO − DPO from weekly rollup balances (same formula as WeeklyScoringService.CCC).</summary>
+    public static decimal? TryComputeCcc(
+        decimal? netSales,
+        decimal? weeklyCogs,
+        decimal? inventoryValue,
+        decimal? arBalance,
+        decimal? apBalance)
+    {
+        if (netSales is null or <= 0 || weeklyCogs is null or <= 0) return null;
+        if (arBalance is null || apBalance is null) return null;
+
+        var dio = TryComputeDoh(inventoryValue, weeklyCogs);
+        if (dio is null) return null;
+
+        var dso = arBalance.Value / (netSales.Value / 7m);
+        var dpo = apBalance.Value / (weeklyCogs.Value / 7m);
+        return dso + dio.Value - dpo;
+    }
+
+    public static decimal? TryParseRollupBalance(
+        IReadOnlyDictionary<string, string?> row,
+        IReadOnlyDictionary<string, string> colMap,
+        string systemField,
+        params string[] headerTokens)
+    {
+        var mapped = ColumnSynonymMatcher.GetMapped(row, colMap, systemField);
+        var fromMap = WorkbookParseHelper.ParseDecimal(mapped);
+        if (fromMap is not null) return fromMap;
+
+        foreach (var kvp in row)
+        {
+            var norm = WorkbookParseHelper.NormalizeHeader(kvp.Key);
+            if (!headerTokens.Any(t => norm.Contains(t, StringComparison.Ordinal))) continue;
+            var d = WorkbookParseHelper.ParseDecimal(kvp.Value);
+            if (d is not null) return d;
+        }
+
+        return null;
+    }
+
     private static decimal? TryRatioFromColumn(IReadOnlyDictionary<string, string?> row, params string[] headerTokens)
     {
         foreach (var kvp in row)

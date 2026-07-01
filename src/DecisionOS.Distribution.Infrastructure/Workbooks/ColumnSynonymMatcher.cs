@@ -20,7 +20,7 @@ public static class ColumnSynonymMatcher
         ["Product_Description"] = ["description", "productdescription", "product_description", "itemdescription"],
         ["Snapshot_Date"] = ["snapshotdate", "snapshot_date", "weekenddate", "week_end_date", "asofdate", "inventorydate"],
         ["Quantity_On_Hand"] = ["quantityonhand", "onhandunits", "on_hand_units", "quantity_on_hand", "qoh", "qtyonhand"],
-        ["Inventory_Value"] = ["inventoryvalue", "inventory_value", "invvalue", "totalinventoryvalue"],
+        ["Inventory_Value"] = ["inventoryvalue", "inventory_value", "invvalue", "totalinventoryvalue", "inventoryvalueend", "inventory_value_end"],
         ["Invoice_ID"] = ["invoiceid", "invoice_id", "invno", "invoiceno"],
         ["Invoice_Date"] = ["invoicedate", "invoice_date"],
         ["Due_Date"] = ["duedate", "due_date"],
@@ -44,10 +44,13 @@ public static class ColumnSynonymMatcher
         ["AP_Past_Due_Pct"] = ["appastdue", "ap_past_due", "ap_past_due_", "appastduepercent"],
         ["Fill_Rate_Pct"] = ["fillrate", "fill_rate", "fill_rate_", "perfectorder", "perfectorderrate"],
         ["Cash_Balance"] = ["cashending", "cash_ending", "cashbalance", "endingcash"],
+        ["AR_Balance"] = ["arending", "ar_ending", "artotal", "ar_total", "arbalance"],
+        ["AP_Balance"] = ["apending", "ap_ending", "aptotal", "ap_total", "apbalance"],
         ["Revenue"] = ["netsales", "net_sales", "revenue"],
         ["Period_End_Date"] = ["weekenddate", "week_end_date", "periodenddate", "period_end", "weekending"],
-        ["Net_Income"] = ["netincome", "net_income", "netprofit"],
-        ["Net_Profit_Percent"] = ["netprofit", "net_profit", "netprofitpercent", "netmargin"],
+        ["Net_Income"] = ["netincome", "net_income", "netincomeamount", "netprofitdollars"],
+        ["Net_Profit_Percent"] = ["netprofitpercent", "net_profit_percent", "netprofitpct", "netmargin", "netmarginpercent", "net_profit_"],
+        ["Operating_Profit"] = ["operatingprofit", "operating_profit", "operatingincome", "operating_income", "ebit"],
         ["Operating_Expenses"] = ["operatingexpenses", "opex", "operating_expenses"],
     };
 
@@ -104,6 +107,7 @@ public static class ColumnSynonymMatcher
         }
 
         ApplyRollupExtras(normalizedHeaders, result);
+        ApplyProfitabilityDisambiguation(normalizedHeaders, result);
         return result;
     }
 
@@ -146,7 +150,56 @@ public static class ColumnSynonymMatcher
                 result[orig] = "Cash_Balance";
             else if (norm.Contains("weekend", StringComparison.Ordinal) || norm.Contains("periodend", StringComparison.Ordinal))
                 result[orig] = "Period_End_Date";
+            else if (norm.Contains("inventoryvalue", StringComparison.Ordinal))
+                result[orig] = "Inventory_Value";
+            else if (norm is "arending" or "artotal" or "arbalance" ||
+                     (norm.StartsWith("ar", StringComparison.Ordinal) && norm.EndsWith("ending", StringComparison.Ordinal)))
+                result[orig] = "AR_Balance";
+            else if (norm is "apending" or "aptotal" or "apbalance" ||
+                     (norm.StartsWith("ap", StringComparison.Ordinal) && norm.EndsWith("ending", StringComparison.Ordinal)))
+                result[orig] = "AP_Balance";
+            else if (norm.Contains("netprofit", StringComparison.Ordinal) || norm.Contains("netincome", StringComparison.Ordinal) ||
+                     norm.Contains("operatingprofit", StringComparison.Ordinal) || norm.Contains("operatingincome", StringComparison.Ordinal))
+                result[orig] = InferProfitabilityField(norm);
         }
+    }
+
+    private static void ApplyProfitabilityDisambiguation(
+        List<(string Original, string Norm)> normalizedHeaders,
+        Dictionary<string, string> result)
+    {
+        foreach (var (orig, norm) in normalizedHeaders)
+        {
+            if (!result.TryGetValue(orig, out var mapped)) continue;
+            if (!mapped.Equals("Net_Income", StringComparison.OrdinalIgnoreCase) &&
+                !mapped.Equals("Net_Profit_Percent", StringComparison.OrdinalIgnoreCase) &&
+                !mapped.Equals("Operating_Profit", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            result[orig] = InferProfitabilityField(norm);
+        }
+    }
+
+    private static string InferProfitabilityField(string norm)
+    {
+        var looksPercent = norm.Contains("percent", StringComparison.Ordinal) ||
+                           norm.Contains("pct", StringComparison.Ordinal) ||
+                           norm.Contains("margin", StringComparison.Ordinal);
+
+        if (norm.Contains("operating", StringComparison.Ordinal))
+            return looksPercent ? "Net_Profit_Percent" : "Operating_Profit";
+
+        if (norm.Contains("netincome", StringComparison.Ordinal))
+            return looksPercent ? "Net_Profit_Percent" : "Net_Income";
+
+        if (norm.Contains("netprofit", StringComparison.Ordinal))
+        {
+            if (norm.Contains("dollar", StringComparison.Ordinal) || norm.Contains("amount", StringComparison.Ordinal))
+                return "Net_Income";
+            return "Net_Profit_Percent";
+        }
+
+        return "Net_Profit_Percent";
     }
 
     private static IReadOnlyList<string> SystemFieldsForKind(WorkbookSheetKind kind) => kind switch
@@ -163,7 +216,8 @@ public static class ColumnSynonymMatcher
         {
             "Period_End_Date", "Net_Sales", "COGS", "Gross_Margin_Percent", "Gross_Profit",
             "AR_Over_60_Pct", "AP_Past_Due_Pct", "Fill_Rate_Pct", "Cash_Balance", "Inventory_Value",
-            "Net_Income", "Net_Profit_Percent", "Revenue"
+            "AR_Balance", "AP_Balance",
+            "Net_Income", "Net_Profit_Percent", "Operating_Profit", "Revenue"
         },
         WorkbookSheetKind.Holdover => new[] { "Customer_ID", "Customer_Name" },
         _ => SystemFields.Generic

@@ -25,6 +25,19 @@
         <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.Error</div>
     }
 
+    <div class="rounded-xl border border-surface-container-high bg-surface-container-lowest p-5 space-y-3">
+        <div class="text-sm font-semibold">Need a starter file?</div>
+        <p class="text-xs text-on-surface-variant">
+            Download the official multi-tab template (Weekly_Financials, Sales, AR, AP, Inventory, Customers, Vendors, Holdovers).
+            Includes <span class="font-mono">Net_Profit_%</span>, <span class="font-mono">AR_Ending</span>, and other fields for full dashboard coverage.
+        </p>
+        <a href="/downloads/DecisionOS_Simplified_Workbook_Template.xlsx"
+           download="DecisionOS_Simplified_Workbook_Template.xlsx"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-bold hover:bg-primary/5">
+            Download workbook template (.xlsx)
+        </a>
+    </div>
+
     <form method="post" asp-page-handler="Upload" asp-route-id="@Model.Batch.Id" enctype="multipart/form-data"
           class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-4">
         @Html.AntiForgeryToken()

@@ -35,6 +35,24 @@ public class IndexModel : PageModel
     {
         await BuildSelectorAsync();
 
+        if (!string.IsNullOrEmpty(SelectedClientId) && string.IsNullOrEmpty(SelectedPeriodEnd))
+        {
+            var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.ClientId == SelectedClientId);
+            if (tenant is not null)
+            {
+                var weeks = await _context.GetWeeksAsync(tenant.Id, SelectedCustomerId);
+                if (weeks.Count > 0)
+                {
+                    return RedirectToPage("Dashboard", new
+                    {
+                        clientId = SelectedClientId,
+                        periodEnd = weeks[0].ToString("yyyy-MM-dd"),
+                        customerId = SelectedCustomerId
+                    });
+                }
+            }
+        }
+
         if (!string.IsNullOrEmpty(SelectedClientId) && !string.IsNullOrEmpty(SelectedPeriodEnd))
         {
             return RedirectToPage("Dashboard", new
