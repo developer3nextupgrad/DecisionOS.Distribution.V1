@@ -1,8 +1,17 @@
 using DecisionOS.Distribution.Domain;
+using DecisionOS.Distribution.Domain.Catalog;
+using DecisionOS.Distribution.Domain.Routing;
+using DecisionOS.Distribution.Domain.Scoring;
 using DecisionOS.Distribution.Domain.Security;
 using DecisionOS.Distribution.Domain.Uploads;
+using DecisionOS.Distribution.Domain.Workflow;
 using DecisionOS.Distribution.Infrastructure;
+using DecisionOS.Distribution.Infrastructure.Catalog;
+using DecisionOS.Distribution.Infrastructure.Routing;
+using DecisionOS.Distribution.Infrastructure.Scoring;
+using DecisionOS.Distribution.Infrastructure.Scoring.Calculators;
 using DecisionOS.Distribution.Infrastructure.Workbooks;
+using DecisionOS.Distribution.Infrastructure.Workflow;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -135,15 +144,37 @@ builder.Services.AddRazorPages(options =>
     options.Conventions.AllowAnonymousToPage("/Account/AccessDenied");
     options.Conventions.AuthorizePage("/Index", "AnyDistributionRole");
     options.Conventions.AuthorizePage("/Dashboard", "AnyDistributionRole");
+    options.Conventions.AuthorizePage("/Dashboard/KpiReview", "AnyDistributionRole");
+    options.Conventions.AuthorizePage("/Notifications", "AnyDistributionRole");
     options.Conventions.AuthorizeFolder("/Admin", "AdminOnly");
     options.Conventions.AuthorizeFolder("/Operations", "OpsPolicy");
 });
+
+builder.Services.Configure<DecisionOsFeatureOptions>(
+    builder.Configuration.GetSection(DecisionOsFeatureOptions.SectionName));
 
 builder.Services.AddScoped<IKpiStatusService, KpiStatusService>();
 builder.Services.AddScoped<IAlertService, AlertService>();
 builder.Services.AddScoped<IWeeklyFocusService, WeeklyFocusService>();
 builder.Services.AddScoped<IDriverRankingService, DriverRankingService>();
-builder.Services.AddScoped<IWeeklyScoringService, WeeklyScoringService>();
+builder.Services.AddScoped<WeeklyScoringService>();
+builder.Services.AddScoped<IKpiCalculator, GrossMarginKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, ArPastDueKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, ApPastDueKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, DohKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, CccKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, NetProfitKpiCalculator>();
+builder.Services.AddScoped<IKpiCalculator, PerfectOrderRateKpiCalculator>();
+builder.Services.AddScoped<IPriorityRankingService, PriorityRankingService>();
+builder.Services.AddScoped<IDriverEvaluationService, DriverEvaluationService>();
+builder.Services.AddScoped<IInfluencerEvidenceService, InfluencerEvidenceService>();
+builder.Services.AddScoped<IModuleRoutingService, ModuleRoutingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IHoldoverWorkflowService, HoldoverWorkflowService>();
+builder.Services.AddScoped<IKpiCalculationOrchestrator, KpiCalculationOrchestrator>();
+builder.Services.AddScoped<IWeeklyScoringService>(sp => sp.GetRequiredService<IKpiCalculationOrchestrator>());
+builder.Services.AddScoped<ICatalogImportService, CatalogImportService>();
+builder.Services.AddScoped<ICatalogKpiDefinitionSyncService, CatalogKpiDefinitionSyncService>();
 builder.Services.AddScoped<IWorkbookAnalyzer, WorkbookAnalyzer>();
 builder.Services.AddScoped<ISimplifiedWorkbookImportService, SimplifiedWorkbookImportService>();
 builder.Services.AddScoped<ISimplifiedWorkbookReviewService, SimplifiedWorkbookReviewService>();
@@ -164,6 +195,9 @@ await using (var scope = app.Services.CreateAsyncScope())
         {
             await db.Database.MigrateAsync();
             await ReferenceDataSeeder.SeedDefaultsIfNeededAsync(db, app.Logger);
+
+            var catalogSync = scope.ServiceProvider.GetRequiredService<ICatalogKpiDefinitionSyncService>();
+            await CatalogReferenceSeeder.SeedIfEmptyAsync(db, catalogSync, app.Logger);
 
             if (builder.Configuration.GetValue("DemoSeed:Enabled", false))
             {
@@ -321,7 +355,7 @@ api.MapGet("/tenants/{clientId}/weeks/{periodEnd}", async (HttpRequest req, stri
     });
 });
 
-api.MapPost("/tenants/{clientId}/actions/{actionId:long}/status", async (string clientId, long actionId, string status, DecisionOsDbContext db) =>
+api.MapPost("/tenants/{clientId}/actions/{actionId:long}/status", async (string clientId, long actionId, ActionStatusUpdate body, DecisionOsDbContext db) =>
 {
     var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
     if (tenant is null) return Results.NotFound();
@@ -329,6 +363,7 @@ api.MapPost("/tenants/{clientId}/actions/{actionId:long}/status", async (string 
     var action = await db.ActionItems.FirstOrDefaultAsync(a => a.Id == actionId && a.TenantId == tenant.Id);
     if (action is null) return Results.NotFound();
 
+    var status = body.Status ?? "";
     var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         ActionStatuses.NotStarted,
@@ -350,6 +385,156 @@ api.MapPost("/tenants/{clientId}/actions/{actionId:long}/status", async (string 
     await db.SaveChangesAsync();
     return Results.Ok(new { action.Id, action.Status, action.UpdatedAt, action.CompletedAt });
 });
+
+api.MapPost("/tenants/{clientId}/actions/{actionId:long}/owner", async (string clientId, long actionId, ActionOwnerUpdate body, DecisionOsDbContext db) =>
+{
+    var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var action = await db.ActionItems.FirstOrDefaultAsync(a => a.Id == actionId && a.TenantId == tenant.Id);
+    if (action is null) return Results.NotFound();
+
+    action.Owner = string.IsNullOrWhiteSpace(body.Owner) ? "Unassigned" : body.Owner.Trim();
+    action.UpdatedAt = DateTimeOffset.UtcNow;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { action.Id, action.Owner, action.UpdatedAt });
+});
+
+api.MapPost("/tenants/{clientId}/actions/{actionId:long}/notes", async (string clientId, long actionId, ActionNotesUpdate body, DecisionOsDbContext db) =>
+{
+    var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var action = await db.ActionItems.FirstOrDefaultAsync(a => a.Id == actionId && a.TenantId == tenant.Id);
+    if (action is null) return Results.NotFound();
+
+    action.Notes = body.Notes;
+    action.UpdatedAt = DateTimeOffset.UtcNow;
+    await db.SaveChangesAsync();
+    return Results.Ok(new { action.Id, action.UpdatedAt });
+});
+
+api.MapPost("/tenants/{clientId}/drivers/{driverId:int}/owner", async (string clientId, int driverId, DriverOwnerUpdate body, DecisionOsDbContext db) =>
+{
+    var tenant = await db.Tenants.FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var driver = await db.DriverValues.FirstOrDefaultAsync(d => d.Id == driverId && d.TenantId == tenant.Id);
+    if (driver is null) return Results.NotFound();
+
+    driver.Owner = string.IsNullOrWhiteSpace(body.Owner) ? null : body.Owner.Trim();
+    await db.SaveChangesAsync();
+    return Results.Ok(new { driver.Id, driver.Owner });
+});
+
+api.MapGet("/tenants/{clientId}/drivers/{driverId:int}/workflow", async (
+    string clientId,
+    int driverId,
+    HttpContext http,
+    DecisionOsDbContext db,
+    IHoldoverWorkflowService workflow) =>
+{
+    var tenant = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var userId = GetCurrentUserId(http);
+    if (userId is null) return Results.Unauthorized();
+
+    var thread = await workflow.GetDriverWorkflowAsync(tenant.Id, driverId, userId.Value);
+    return thread is null ? Results.NotFound() : Results.Ok(thread);
+});
+
+api.MapPost("/tenants/{clientId}/drivers/{driverId:int}/assign", async (
+    string clientId,
+    int driverId,
+    DriverAssignRequest body,
+    HttpContext http,
+    DecisionOsDbContext db,
+    IHoldoverWorkflowService workflow) =>
+{
+    var tenant = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var userId = GetCurrentUserId(http);
+    if (userId is null) return Results.Unauthorized();
+    if (body.AssigneeUserId == Guid.Empty) return Results.BadRequest(new { error = "Assignee is required." });
+
+    var driver = await db.DriverValues.AsNoTracking()
+        .FirstOrDefaultAsync(d => d.Id == driverId && d.TenantId == tenant.Id);
+    if (driver is null) return Results.NotFound();
+
+    try
+    {
+        var result = await workflow.AssignDriverAsync(
+            tenant.Id,
+            clientId,
+            driver.PeriodEnd,
+            driverId,
+            body.AssigneeUserId,
+            userId.Value);
+        return Results.Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+api.MapPost("/tenants/{clientId}/drivers/{driverId:int}/comments", async (
+    string clientId,
+    int driverId,
+    HoldoverCommentRequest body,
+    HttpContext http,
+    DecisionOsDbContext db,
+    IHoldoverWorkflowService workflow) =>
+{
+    var tenant = await db.Tenants.AsNoTracking().FirstOrDefaultAsync(t => t.ClientId == clientId);
+    if (tenant is null) return Results.NotFound();
+
+    var userId = GetCurrentUserId(http);
+    if (userId is null) return Results.Unauthorized();
+
+    var driver = await db.DriverValues.AsNoTracking()
+        .FirstOrDefaultAsync(d => d.Id == driverId && d.TenantId == tenant.Id);
+    if (driver is null) return Results.NotFound();
+
+    try
+    {
+        var comment = await workflow.AddCommentAsync(
+            tenant.Id,
+            clientId,
+            driver.PeriodEnd,
+            driverId,
+            userId.Value,
+            body.Body ?? "");
+        return Results.Ok(comment);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
+api.MapGet("/users/assignable", async (IHoldoverWorkflowService workflow) =>
+    Results.Ok(await workflow.GetAssignableUsersAsync()));
+
+api.MapGet("/notifications/unread-count", async (HttpContext http, INotificationService notifications) =>
+{
+    var userId = GetCurrentUserId(http);
+    if (userId is null) return Results.Unauthorized();
+    var count = await notifications.GetUnreadCountAsync(userId.Value);
+    return Results.Ok(new { count });
+});
+
+static Guid? GetCurrentUserId(HttpContext http)
+{
+    var raw = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    return Guid.TryParse(raw, out var id) ? id : null;
+}
 
 api.MapGet("/tenants", async (DecisionOsDbContext db) =>
 {
@@ -380,3 +565,10 @@ api.MapGet("/tenants/{clientId}/customers", async (string clientId, DashboardCon
 
 app.MapRazorPages();
 app.Run();
+
+file sealed record ActionStatusUpdate(string? Status);
+file sealed record ActionOwnerUpdate(string? Owner);
+file sealed record ActionNotesUpdate(string? Notes);
+file sealed record DriverOwnerUpdate(string? Owner);
+file sealed record DriverAssignRequest(Guid AssigneeUserId);
+file sealed record HoldoverCommentRequest(string? Body);

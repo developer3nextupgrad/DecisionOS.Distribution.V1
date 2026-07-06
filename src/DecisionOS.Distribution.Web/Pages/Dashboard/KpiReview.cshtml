@@ -1,0 +1,141 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Dashboard.KpiReviewModel
+@{
+    ViewData["Title"] = "KPI catalog review";
+}
+
+<style>
+    .kpi-review-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+    .kpi-review-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    .kpi-review-table th, .kpi-review-table td { border-bottom: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; vertical-align: top; }
+    .kpi-review-table th { background: #f8fafc; font-weight: 700; }
+    .status-red { color: #b91c1c; font-weight: 700; }
+    .status-yellow { color: #b45309; font-weight: 700; }
+    .status-green { color: #047857; font-weight: 700; }
+    .status-gray { color: #64748b; }
+    .top7-badge { background: #dbeafe; color: #1d4ed8; font-size: 0.7rem; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+    .banner { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 14px 16px; margin-bottom: 16px; font-size: 0.9rem; }
+    .banner a { color: #2563eb; font-weight: 600; }
+</style>
+
+<div class="kpi-review-wrap">
+    <h1 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px;">KPI catalog review</h1>
+    <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 16px;">
+        All @Model.Rows.Count catalog KPIs for <strong>@(Model.Tenant?.Name)</strong> — week ending @Model.ParsedPeriodEnd.ToString("yyyy-MM-dd").
+        The dashboard shows the <strong>top 7</strong> by Excel-style priority scoring (severity, cash, financial, urgency, actionability, confidence).
+    </p>
+
+    <div class="banner">
+        <a href="/Dashboard?clientId=@Model.ClientId&periodEnd=@Model.PeriodEnd&customerId=@Model.CustomerId">← Back to dashboard</a>
+        @if (Model.CatalogModeEnabled)
+        {
+            <span style="margin: 0 8px;">·</span>
+            <span>Catalog engine is <strong>on</strong> — pin KPIs to keep them in contention, or exclude KPIs from top-7 ranking.</span>
+        }
+        else
+        {
+            <span style="margin: 0 8px;">·</span>
+            <span>Catalog engine is off — enable <code>DecisionOs:Catalog:Enabled</code> and <code>UseCatalogEngine</code> for auto top-7 selection.</span>
+        }
+    </div>
+
+    @if (Model.StatusMessage == "saved")
+    {
+        <p style="color: #047857; font-size: 0.85rem; margin-bottom: 12px;">Selection saved. Re-import or re-score the week to refresh dashboard tiles.</p>
+    }
+
+    @if (Model.Rows.Count == 0)
+    {
+        <p>No catalog KPIs found. An admin can import the catalog under <a href="/Admin/Catalog/Import">Admin → Catalog import</a>.</p>
+    }
+    else
+    {
+        <div style="overflow-x: auto;">
+            <table class="kpi-review-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>ID</th>
+                        <th>KPI</th>
+                        <th>Status</th>
+                        <th>Value</th>
+                        <th>Score</th>
+                        <th>Dashboard</th>
+                        @if (Model.CanManageSelection)
+                        {
+                            <th>Pin</th>
+                            <th>Exclude</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows.OrderBy(r => r.Rank ?? 999).ThenBy(r => r.CatalogKpiId))
+                    {
+                        var statusClass = row.Status.ToUpperInvariant() switch
+                        {
+                            "RED" => "status-red",
+                            "YELLOW" => "status-yellow",
+                            "GREEN" => "status-green",
+                            _ => "status-gray"
+                        };
+                        <tr>
+                            <td>@(row.Rank?.ToString() ?? "—")</td>
+                            <td style="font-family: monospace; font-size: 0.75rem;">@row.CatalogKpiId</td>
+                            <td>
+                                <div style="font-weight: 600;">@row.Name</div>
+                                @if (!string.IsNullOrWhiteSpace(row.LegacyCode))
+                                {
+                                    <div style="font-size: 0.75rem; color: #64748b;">@row.LegacyCode</div>
+                                }
+                                @if (row.Status == "GRAY" && !string.IsNullOrWhiteSpace(row.DataNeeds))
+                                {
+                                    <div style="font-size: 0.75rem; color: #64748b; margin-top: 4px;">@row.DataNeeds</div>
+                                }
+                            </td>
+                            <td class="@statusClass">@KpiReviewModel.PlainStatus(row.Status)</td>
+                            <td>@row.ValueDisplay</td>
+                            <td>@(row.FinalScore?.ToString("F1") ?? "—")</td>
+                            <td>
+                                @if (row.IsTop7)
+                                {
+                                    <span class="top7-badge">Top 7</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </td>
+                            @if (Model.CanManageSelection)
+                            {
+                                <td>
+                                    <form method="post" asp-page-handler="Toggle">
+                                        <input type="hidden" asp-for="ClientId" />
+                                        <input type="hidden" asp-for="PeriodEnd" />
+                                        <input type="hidden" asp-for="CustomerId" />
+                                        <input type="hidden" name="catalogKpiId" value="@row.CatalogKpiId" />
+                                        <input type="hidden" name="action" value="pin" />
+                                        <button type="submit" style="color: #2563eb; font-weight: 600; background: none; border: none; cursor: pointer;">
+                                            @(row.IsPinned ? "Unpin" : "Pin")
+                                        </button>
+                                    </form>
+                                </td>
+                                <td>
+                                    <form method="post" asp-page-handler="Toggle">
+                                        <input type="hidden" asp-for="ClientId" />
+                                        <input type="hidden" asp-for="PeriodEnd" />
+                                        <input type="hidden" asp-for="CustomerId" />
+                                        <input type="hidden" name="catalogKpiId" value="@row.CatalogKpiId" />
+                                        <input type="hidden" name="action" value="exclude" />
+                                        <button type="submit" style="color: #2563eb; font-weight: 600; background: none; border: none; cursor: pointer;">
+                                            @(row.IsExcluded ? "Include" : "Exclude")
+                                        </button>
+                                    </form>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

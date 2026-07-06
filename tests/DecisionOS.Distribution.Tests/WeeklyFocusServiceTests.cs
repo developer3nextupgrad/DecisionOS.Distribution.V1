@@ -52,7 +52,7 @@ public class WeeklyFocusServiceTests
         Assert.NotNull(result);
         Assert.Equal("Will we address Revenue this week?", result.DecisionQuestion);
         Assert.Equal("Increase Revenue pipeline", result.RecommendedAction);
-        Assert.Equal("Revenue is RED. Review Revenue dashboard", result.WhyNow);
+        Assert.Equal("Revenue needs your attention (urgent). Review Revenue dashboard", result.WhyNow);
         Assert.Equal("Operations", result.Owner);
         Assert.Equal("Weekly", result.Cadence);
     }
@@ -80,6 +80,6 @@ public class WeeklyFocusServiceTests
         Assert.Equal(2, result.KpiDefinitionId);
         Assert.Equal("Will we address Margin this week?", result.DecisionQuestion);
         Assert.Equal("Increase Margin pipeline", result.RecommendedAction);
-        Assert.Equal("Margin is YELLOW. Review Margin dashboard", result.WhyNow);
+        Assert.Equal("Margin needs your attention (needs attention). Review Margin dashboard", result.WhyNow);
     }
 }

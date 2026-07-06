@@ -28,6 +28,8 @@ Manual weekly import → validate/map → compute **7 KPIs** → top **Alert** +
 | Classic upload | `UploadBatchImportService`, `Pages/Operations/Uploads/Details`, `Map` |
 | Simplified upload | `SimplifiedWorkbookImportService`, `Pages/Operations/Uploads/Simplified/*` |
 | Scoring | `WeeklyScoringService`, `KpiStatusService`, `AlertService`, `WeeklyFocusService` |
+| Owner-language KPI modal | `OwnerLanguage.cs`, `DashboardKpiInsightBuilder`, `Dashboard.cshtml` |
+| Holdover assign + chat | `IHoldoverWorkflowService`, holdover modal on `Dashboard.cshtml`, `/Notifications` |
 | CLI import | `DecisionOS.Distribution.Import/Program.cs` |
 | DB migrate | `dotnet ef database update` — Infrastructure + Web startup |
 
@@ -47,4 +49,5 @@ dotnet ef database update --project src/DecisionOS.Distribution.Infrastructure -
 
 - Operator flows: `_client_docs/DecisionOS_Distribution_User_Guide.md`
 - Architecture: `docs/Solution-Linkage-and-Import-Analysis.md`
+- **Catalog engine implementation:** `docs/Catalog-Engine-Implementation-Plan.md`
 - Agent prompts: [AGENTS.md](../../../AGENTS.md)

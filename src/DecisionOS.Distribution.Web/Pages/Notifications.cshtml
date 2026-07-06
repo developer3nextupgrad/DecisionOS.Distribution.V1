@@ -1,0 +1,45 @@
+@page
+@model NotificationsModel
+@{
+    ViewData["Title"] = "Notifications";
+    Layout = "_Layout";
+}
+
+<div class="max-w-3xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-extrabold font-headline mb-2">Notifications</h1>
+    <p class="text-sm text-on-surface-variant mb-6">@Model.UnreadCount unread</p>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="text-sm text-on-surface-variant">No notifications yet.</p>
+    }
+    else
+    {
+        <ul class="space-y-3">
+            @foreach (var n in Model.Items)
+            {
+                <li class="p-4 rounded-xl border @(n.IsRead ? "opacity-70" : "bg-surface-container-lowest")">
+                    <div class="font-semibold text-sm">@n.Title</div>
+                    @if (!string.IsNullOrWhiteSpace(n.Body))
+                    {
+                        <p class="text-sm text-on-surface-variant mt-1">@n.Body</p>
+                    }
+                    <div class="flex items-center gap-4 mt-2 text-xs text-on-surface-variant">
+                        <span>@n.CreatedAt.ToLocalTime().ToString("g")</span>
+                        @if (!string.IsNullOrWhiteSpace(n.LinkUrl))
+                        {
+                            <a href="@n.LinkUrl" class="text-primary font-semibold">Open</a>
+                        }
+                        @if (!n.IsRead)
+                        {
+                            <form method="post" asp-page-handler="MarkRead" class="inline">
+                                <input type="hidden" name="id" value="@n.Id" />
+                                <button type="submit" class="text-primary font-semibold">Mark read</button>
+                            </form>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>

@@ -1,6 +1,7 @@
 using DecisionOS.Distribution.Domain;
 using DecisionOS.Distribution.Domain.Uploads;
 using Microsoft.EntityFrameworkCore;
+using DecisionOS.Distribution.Infrastructure.Scoring;
 
 namespace DecisionOS.Distribution.Infrastructure;
 
@@ -28,8 +29,10 @@ public sealed class WeeklyScoringService : IWeeklyScoringService
         var tenant = await _db.Tenants.FirstOrDefaultAsync(t => t.Id == request.TenantId, ct);
         if (tenant is null) return new WeeklyScoringResult();
 
-        var kpiDefs = await _db.KpiDefinitions.AsNoTracking().ToListAsync(ct);
-        var defsByCode = kpiDefs.ToDictionary(d => d.Code, StringComparer.OrdinalIgnoreCase);
+        var resolver = new DefinitionResolver(_db);
+        var resolvedDefs = await resolver.ResolveKpiDefinitionsAsync(tenant, ct);
+        var kpiDefs = resolvedDefs.Values.ToList();
+        var defsByCode = resolvedDefs;
 
         var batchId = request.UploadBatchId;
         var period = request.PeriodEnd;
@@ -189,17 +192,5 @@ public sealed class WeeklyScoringService : IWeeklyScoringService
         await _db.SaveChangesAsync(ct);
 
         return new WeeklyScoringResult { SnapshotsWritten = snapshots.Count };
-    }
-}
-
-internal static class ScoringHelpers
-{
-    public static bool IsPastDue31(int? daysPastDue, string? bucket)
-    {
-        if (daysPastDue is >= 31) return true;
-        if (string.IsNullOrWhiteSpace(bucket)) return false;
-        var b = bucket.Trim().ToLowerInvariant();
-        return b.Contains("31") || b.Contains("60") || b.Contains("90") ||
-               b.Contains("past due") || b.Contains("over");
     }
 }

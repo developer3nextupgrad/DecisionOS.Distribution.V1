@@ -1,0 +1,36 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Catalog";
+    Layout = "_IndexLayout";
+}
+
+<div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-6 max-w-[1440px] mx-auto">
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold font-headline">KPI / Driver / Influencer Catalog</h1>
+            <p class="text-sm text-on-surface-variant mt-1">Imported catalog rows (read-only summary).</p>
+        </div>
+        <a href="/Admin/Catalog/Import" class="px-4 py-2 rounded-xl bg-primary text-on-primary text-sm font-semibold">
+            Import catalog workbook
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        @foreach (var item in new[] {
+            ("KPIs", Model.KpiCount),
+            ("Drivers", Model.DriverCount),
+            ("Influencers", Model.InfluencerCount),
+            ("KPI→Driver maps", Model.KpiDriverMapCount),
+            ("Driver→Influencer maps", Model.DriverInfluencerMapCount),
+            ("Score components", Model.ScoreComponentCount),
+            ("Modules", Model.ModuleCount)
+        })
+        {
+            <div class="bg-surface-container-lowest rounded-xl p-5 border border-surface-container-high">
+                <div class="text-xs uppercase text-on-surface-variant font-bold">@item.Item1</div>
+                <div class="text-3xl font-extrabold mt-2">@item.Item2</div>
+            </div>
+        }
+    </div>
+</div>

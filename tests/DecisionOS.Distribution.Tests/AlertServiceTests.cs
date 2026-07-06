@@ -128,7 +128,7 @@ public class AlertServiceTests
 
         Assert.NotNull(result);
         Assert.Equal("RED", result.Severity);
-        Assert.Equal("Revenue is RED at 80.00 (target: 100.00)", result.ReasonSummary);
+        Assert.Equal("Revenue is urgent at 80.00 (goal: 100.00)", result.ReasonSummary);
         Assert.Equal(TenantId, result.TenantId);
         Assert.Equal(PeriodEnd, result.PeriodEnd);
     }

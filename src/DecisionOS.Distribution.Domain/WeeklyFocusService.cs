@@ -17,8 +17,8 @@ public class WeeklyFocusService : IWeeklyFocusService
             PeriodEnd = periodEnd,
             KpiDefinitionId = definition.Id,
             DecisionQuestion = $"Will we address {definition.Name} this week?",
-            RecommendedAction = definition.RecommendedAction,
-            WhyNow = $"{definition.Name} is {topAlert.Severity}. {definition.DiagnosticChecks}",
+            RecommendedAction = OwnerLanguage.ExpandFinanceAbbreviations(definition.RecommendedAction),
+            WhyNow = $"{definition.Name} needs your attention ({OwnerLanguage.PlainStatusLabel(topAlert.Severity).ToLowerInvariant()}). {OwnerLanguage.ExpandFinanceAbbreviations(definition.DiagnosticChecks)}",
             Owner = "Operations",
             Cadence = "Weekly"
         };

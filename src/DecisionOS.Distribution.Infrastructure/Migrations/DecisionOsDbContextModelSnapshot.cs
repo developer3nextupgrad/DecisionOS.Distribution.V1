@@ -163,6 +163,227 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.ToTable("BusinessProfiles");
                 });
 
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogDriver", b =>
+                {
+                    b.Property<string>("DriverId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EvidenceFields")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryModules")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RelatedKpis")
+                        .HasColumnType("text");
+
+                    b.HasKey("DriverId");
+
+                    b.ToTable("CatalogDrivers");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogDriverInfluencerMap", b =>
+                {
+                    b.Property<string>("DriverId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("InfluencerId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal?>("DefaultWeight")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("RelationshipType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RuleNotes")
+                        .HasColumnType("text");
+
+                    b.HasKey("DriverId", "InfluencerId");
+
+                    b.HasIndex("InfluencerId");
+
+                    b.ToTable("CatalogDriverInfluencerMaps");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogInfluencer", b =>
+                {
+                    b.Property<string>("InfluencerId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultSeverity")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("EvidenceFields")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryModules")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RelatedKpis")
+                        .HasColumnType("text");
+
+                    b.HasKey("InfluencerId");
+
+                    b.ToTable("CatalogInfluencers");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogKpi", b =>
+                {
+                    b.Property<string>("KpiId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Cadence")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultStatusModel")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Definition")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("DeveloperNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityScope")
+                        .HasColumnType("text");
+
+                    b.Property<string>("LegacyCode")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("MgmtLayerCandidate")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryDataNeeds")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryModules")
+                        .HasColumnType("text");
+
+                    b.HasKey("KpiId");
+
+                    b.ToTable("CatalogKpis");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogKpiDriverMap", b =>
+                {
+                    b.Property<string>("KpiId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DriverId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("MapType")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryModules")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RuleNotes")
+                        .HasColumnType("text");
+
+                    b.HasKey("KpiId", "DriverId");
+
+                    b.HasIndex("DriverId");
+
+                    b.ToTable("CatalogKpiDriverMaps");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogModule", b =>
+                {
+                    b.Property<string>("ModuleCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("DefaultOutput")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PrimaryKpis")
+                        .HasColumnType("text");
+
+                    b.HasKey("ModuleCode");
+
+                    b.ToTable("CatalogModules");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogOutputArea", b =>
+                {
+                    b.Property<string>("OutputAreaCode")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RoutingNotes")
+                        .HasColumnType("text");
+
+                    b.HasKey("OutputAreaCode");
+
+                    b.ToTable("CatalogOutputAreas");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogScoreComponent", b =>
+                {
+                    b.Property<string>("Component")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImplementationNotes")
+                        .HasColumnType("text");
+
+                    b.Property<string>("RequirementLevel")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ValueRange")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("WeightPercent")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Component");
+
+                    b.ToTable("CatalogScoreComponents");
+                });
+
             modelBuilder.Entity("DecisionOS.Distribution.Domain.DriverDefinition", b =>
                 {
                     b.Property<int>("Id")
@@ -212,6 +433,9 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("AssignedSummary")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CatalogDriverId")
                         .HasColumnType("text");
 
                     b.Property<string>("Context")
@@ -785,6 +1009,185 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.ToTable("NormalizedSalesRows");
                 });
 
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Routing.RoutingQueueItem", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("CatalogDriverId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CatalogKpiId")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("FinalScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("ModuleCode")
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<string>("QueueType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Severity")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "PeriodEnd", "QueueType");
+
+                    b.ToTable("RoutingQueueItems");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.InfluencerEvidence", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Confidence")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DriverValueId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("EvidenceSummary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("InfluencerId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Severity")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Weight")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverValueId");
+
+                    b.HasIndex("InfluencerId");
+
+                    b.HasIndex("TenantId", "PeriodEnd", "DriverValueId");
+
+                    b.ToTable("InfluencerEvidences");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.IssuePriorityScore", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<decimal>("ActionabilityScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("CashScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("CatalogKpiId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("ConfidenceScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FinalScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("FinancialScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<int?>("KpiDefinitionId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<int>("Rank")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SeverityScore")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("UrgencyScore")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatalogKpiId");
+
+                    b.HasIndex("KpiDefinitionId");
+
+                    b.HasIndex("TenantId", "PeriodEnd", "CatalogKpiId");
+
+                    b.HasIndex("TenantId", "PeriodEnd", "KpiDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("IssuePriorityScores");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.TenantKpiSelection", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CatalogKpiId")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsExcluded")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPinned")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("TenantId", "CatalogKpiId");
+
+                    b.HasIndex("CatalogKpiId");
+
+                    b.ToTable("TenantKpiSelections");
+                });
+
             modelBuilder.Entity("DecisionOS.Distribution.Domain.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1214,6 +1617,136 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.ToTable("WeeklyFocuses");
                 });
 
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.HoldoverComment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AuthorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("DriverValueId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverValueId");
+
+                    b.ToTable("HoldoverComments");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.HoldoverStatusHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DriverValueId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FixProgressPercent")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DriverValueId");
+
+                    b.ToTable("HoldoverStatusHistories");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.UserNotification", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LinkUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserNotifications");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.WorkAssignment", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("AssignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("AssignedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AssigneeUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "PeriodEnd", "TargetType", "TargetId");
+
+                    b.ToTable("WorkAssignments");
+                });
+
             modelBuilder.Entity("DecisionOS.Distribution.Infrastructure.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1457,6 +1990,44 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                     b.Navigation("VerticalLibrary");
                 });
 
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogDriverInfluencerMap", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogDriver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogInfluencer", "Influencer")
+                        .WithMany()
+                        .HasForeignKey("InfluencerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Influencer");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Catalog.CatalogKpiDriverMap", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogDriver", "Driver")
+                        .WithMany()
+                        .HasForeignKey("DriverId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogKpi", "Kpi")
+                        .WithMany()
+                        .HasForeignKey("KpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Driver");
+
+                    b.Navigation("Kpi");
+                });
+
             modelBuilder.Entity("DecisionOS.Distribution.Domain.DriverDefinition", b =>
                 {
                     b.HasOne("DecisionOS.Distribution.Domain.BusinessProfile", "BusinessProfile")
@@ -1532,6 +2103,88 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("KpiDefinition");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Routing.RoutingQueueItem", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.InfluencerEvidence", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.DriverValue", "DriverValue")
+                        .WithMany()
+                        .HasForeignKey("DriverValueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogInfluencer", "Influencer")
+                        .WithMany()
+                        .HasForeignKey("InfluencerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DriverValue");
+
+                    b.Navigation("Influencer");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.IssuePriorityScore", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogKpi", "CatalogKpi")
+                        .WithMany()
+                        .HasForeignKey("CatalogKpiId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DecisionOS.Distribution.Domain.KpiDefinition", "KpiDefinition")
+                        .WithMany()
+                        .HasForeignKey("KpiDefinitionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CatalogKpi");
+
+                    b.Navigation("KpiDefinition");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Scoring.TenantKpiSelection", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Catalog.CatalogKpi", "CatalogKpi")
+                        .WithMany()
+                        .HasForeignKey("CatalogKpiId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CatalogKpi");
 
                     b.Navigation("Tenant");
                 });
@@ -1660,6 +2313,39 @@ namespace DecisionOS.Distribution.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("KpiDefinition");
+
+                    b.Navigation("Tenant");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.HoldoverComment", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.DriverValue", "DriverValue")
+                        .WithMany()
+                        .HasForeignKey("DriverValueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DriverValue");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.HoldoverStatusHistory", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.DriverValue", "DriverValue")
+                        .WithMany()
+                        .HasForeignKey("DriverValueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DriverValue");
+                });
+
+            modelBuilder.Entity("DecisionOS.Distribution.Domain.Workflow.WorkAssignment", b =>
+                {
+                    b.HasOne("DecisionOS.Distribution.Domain.Tenant", "Tenant")
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Tenant");
                 });

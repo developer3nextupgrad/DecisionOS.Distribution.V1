@@ -3,9 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Options;
 using DecisionOS.Distribution.Domain;
+using DecisionOS.Distribution.Domain.Security;
 using DecisionOS.Distribution.Infrastructure;
 using DecisionOS.Distribution.Infrastructure.Workbooks;
+using DecisionOS.Distribution.Domain.Workflow;
 using DecisionOS.Distribution.Web.Pages.Shared;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,16 +24,26 @@ public class DashboardModel : PageModel
 
     private readonly DecisionOsDbContext _db;
     private readonly DashboardContextService _context;
+    private readonly DecisionOsFeatureOptions _features;
+    private readonly IHoldoverWorkflowService _workflow;
 
-    public DashboardModel(DecisionOsDbContext db, DashboardContextService context)
+    public DashboardModel(
+        DecisionOsDbContext db,
+        DashboardContextService context,
+        IOptions<DecisionOsFeatureOptions> features,
+        IHoldoverWorkflowService workflow)
     {
         _db = db;
         _context = context;
+        _features = features.Value;
+        _workflow = workflow;
     }
 
     [BindProperty(SupportsGet = true)] public string ClientId { get; set; } = null!;
     [BindProperty(SupportsGet = true)] public string PeriodEnd { get; set; } = null!;
     [BindProperty(SupportsGet = true)] public string? CustomerId { get; set; }
+    [BindProperty(SupportsGet = true)] public string? View { get; set; }
+    [BindProperty(SupportsGet = true)] public int? DriverId { get; set; }
 
     public Tenant? Tenant { get; set; }
     public string? CustomerDisplayName { get; set; }
@@ -39,6 +52,7 @@ public class DashboardModel : PageModel
     public List<KpiSnapshot> Snapshots { get; set; } = new();
     public Alert? TopAlert { get; set; }
     public List<DriverValue> Drivers { get; set; } = new();
+    public List<ActionItem> ActionItems { get; set; } = new();
     public bool HoldoverCarriedForward { get; set; }
     public DateOnly? HoldoverSourcePeriod { get; set; }
     public WeeklyFocus? Focus { get; set; }
@@ -46,12 +60,21 @@ public class DashboardModel : PageModel
     public int YellowCount { get; set; }
     public int RedCount { get; set; }
     public int GrayCount { get; set; }
+    public IReadOnlyList<Domain.Routing.RoutingQueueItem> WatchlistItems { get; private set; } =
+        Array.Empty<Domain.Routing.RoutingQueueItem>();
     public IReadOnlyDictionary<string, string> PillarDisplayNames { get; private set; } =
         new Dictionary<string, string>();
 
     public Dictionary<int, DashboardKpiInsight> KpiInsightsBySnapshotId { get; private set; } = new();
     public string KpiInsightsJson { get; private set; } = "{}";
+    public string HoldoverInsightsJson { get; private set; } = "{}";
+    public string AssignableUsersJson { get; private set; } = "[]";
+    public bool WorkflowEnabled { get; private set; }
+    public int? DeepLinkDriverId { get; private set; }
 
+    public bool CatalogModeEnabled { get; private set; }
+    public int TotalCatalogKpiCount { get; private set; }
+    public bool CanManageKpiSelection { get; private set; }
     public bool HasPartialWeekData { get; private set; }
     public string? PreviousPeriodEnd { get; private set; }
     public string? NextPeriodEnd { get; private set; }
@@ -143,8 +166,26 @@ public class DashboardModel : PageModel
             .Select(g => g.OrderByDescending(x => x.BusinessProfileId == profileId).First())
             .ToList();
 
-        Snapshots = EnsureSevenPillarDisplay(Snapshots, resolvedDefs, Tenant.Id, periodEnd);
-        HasPartialWeekData = Snapshots.Any(s => s.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase));
+        CatalogModeEnabled = _features.Catalog.Enabled && _features.Scoring.UseCatalogEngine;
+        TotalCatalogKpiCount = CatalogModeEnabled
+            ? await _db.CatalogKpis.CountAsync()
+            : 0;
+        CanManageKpiSelection = User.IsInRole(AppRoles.Admin)
+            || User.IsInRole(AppRoles.Operator)
+            || User.IsInRole(AppRoles.Developer);
+
+        var weekSnapshots = await _db.KpiSnapshots.AsNoTracking()
+            .Where(s => s.TenantId == Tenant.Id && s.PeriodEnd == periodEnd)
+            .ToListAsync();
+
+        GreenCount = weekSnapshots.Count(s => s.Status == "GREEN");
+        YellowCount = weekSnapshots.Count(s => s.Status == "YELLOW");
+        RedCount = weekSnapshots.Count(s => s.Status == "RED");
+        GrayCount = weekSnapshots.Count(s => s.Status == "GRAY");
+
+        Snapshots = await LoadDashboardSnapshotsAsync(Tenant.Id, periodEnd, resolvedDefs);
+        HasPartialWeekData = weekSnapshots.Any(s => s.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase))
+            || Snapshots.Any(s => s.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase));
 
         TopAlert = await _db.Alerts
             .Include(a => a.KpiDefinition)
@@ -211,10 +252,15 @@ public class DashboardModel : PageModel
             .Include(w => w.KpiDefinition)
             .FirstOrDefaultAsync(w => w.TenantId == Tenant.Id && w.PeriodEnd == periodEnd);
 
-        GreenCount = Snapshots.Count(s => s.Status == "GREEN");
-        YellowCount = Snapshots.Count(s => s.Status == "YELLOW");
-        RedCount = Snapshots.Count(s => s.Status == "RED");
-        GrayCount = Snapshots.Count(s => s.Status == "GRAY");
+        ActionItems = await _db.ActionItems
+            .AsNoTracking()
+            .Include(a => a.KpiDefinition)
+            .Where(a => a.TenantId == Tenant.Id &&
+                        (a.PeriodEnd == periodEnd || a.Status != ActionStatuses.Completed))
+            .OrderByDescending(a => a.PeriodEnd)
+            .ThenBy(a => a.Priority)
+            .Take(20)
+            .ToListAsync();
 
         KpiInsightsBySnapshotId = DashboardKpiInsightBuilder.Build(
             Snapshots, Drivers, TopAlert, Focus, FormatValue, FormatTarget, FormatWoW);
@@ -222,7 +268,111 @@ public class DashboardModel : PageModel
             KpiInsightsBySnapshotId,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
+        WorkflowEnabled = _features.Workflow.AssignmentsEnabled;
+        DeepLinkDriverId = DriverId;
+
+        IReadOnlyDictionary<int, Guid?> assignees = new Dictionary<int, Guid?>();
+        if (WorkflowEnabled && Drivers.Count > 0)
+        {
+            assignees = await _workflow.GetAssigneeIdsForDriversAsync(
+                Tenant.Id,
+                Drivers.Select(d => d.Id).ToList());
+            var users = await _workflow.GetAssignableUsersAsync();
+            AssignableUsersJson = JsonSerializer.Serialize(
+                users,
+                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        }
+
+        var holdoverInsights = Drivers.ToDictionary(
+            d => d.Id,
+            d => new
+            {
+                d.Id,
+                pillarCode = d.PillarCode,
+                pillarLabel = PillarLabel(d.PillarCode),
+                d.DriverName,
+                dimension1 = d.Dimension1,
+                dimension2 = d.Dimension2,
+                owner = d.Owner ?? "",
+                assigneeUserId = assignees.TryGetValue(d.Id, out var uid) ? uid : null,
+                assignedSummary = d.AssignedSummary ?? "",
+                targetSummary = d.TargetSummary ?? "",
+                currentSummary = d.CurrentSummary ?? "",
+                status = d.Status,
+                statusLabel = OwnerLanguage.PlainStatusLabel(d.Status),
+                fixProgressPercent = FixProgressDisplayPercent(d),
+                whyItMatters = OwnerLanguage.ExpandFinanceAbbreviations(d.WhyItMatters) ?? "",
+                context = d.Context ?? "",
+                metrics = FormatHoldoverMetrics(d)
+            });
+        HoldoverInsightsJson = JsonSerializer.Serialize(
+            holdoverInsights,
+            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+        if (_features.Routing.Enabled)
+        {
+            WatchlistItems = await _db.RoutingQueueItems.AsNoTracking()
+                .Where(q => q.TenantId == Tenant.Id && q.PeriodEnd == periodEnd
+                    && q.QueueType == Domain.Routing.RoutingQueueTypes.Watchlist)
+                .OrderByDescending(q => q.FinalScore)
+                .Take(10)
+                .ToListAsync();
+        }
+
         return Page();
+    }
+
+    private async Task<List<KpiSnapshot>> LoadDashboardSnapshotsAsync(
+        Guid tenantId,
+        DateOnly periodEnd,
+        IReadOnlyList<KpiDefinition> resolvedDefs)
+    {
+        var all = await _db.KpiSnapshots
+            .Include(s => s.KpiDefinition)
+            .Where(s => s.TenantId == tenantId && s.PeriodEnd == periodEnd)
+            .ToListAsync();
+
+        var catalogMode = _features.Catalog.Enabled && _features.Scoring.UseCatalogEngine;
+        var useTop7 = _features.Scoring.UseDynamicTop7 || catalogMode;
+
+        if (useTop7)
+        {
+            var topRanks = await _db.IssuePriorityScores.AsNoTracking()
+                .Where(s => s.TenantId == tenantId && s.PeriodEnd == periodEnd && s.Rank <= 7)
+                .OrderBy(s => s.Rank)
+                .ToListAsync();
+
+            if (topRanks.Count > 0)
+            {
+                var byDefId = all.ToDictionary(s => s.KpiDefinitionId);
+                var ordered = new List<KpiSnapshot>();
+                foreach (var rank in topRanks)
+                {
+                    if (rank.KpiDefinitionId is not null && byDefId.TryGetValue(rank.KpiDefinitionId.Value, out var snap))
+                        ordered.Add(snap);
+                }
+                if (ordered.Count > 0)
+                    return catalogMode ? ordered.Take(7).ToList() : EnsureSevenPillarDisplay(ordered, resolvedDefs, tenantId, periodEnd);
+            }
+
+            if (catalogMode && all.Count > 0)
+            {
+                return all
+                    .OrderByDescending(s => s.Status == "RED")
+                    .ThenByDescending(s => s.Status == "YELLOW")
+                    .ThenByDescending(s => s.Status == "GREEN")
+                    .ThenBy(s => s.KpiDefinition.Name)
+                    .Take(7)
+                    .ToList();
+            }
+        }
+
+        var display = all
+            .OrderByDescending(s => s.Status == "RED")
+            .ThenByDescending(s => s.Status == "YELLOW")
+            .ThenBy(s => s.KpiDefinition.Name)
+            .ToList();
+        return catalogMode ? display.Take(7).ToList() : EnsureSevenPillarDisplay(display, resolvedDefs, tenantId, periodEnd);
     }
 
     private static List<KpiSnapshot> EnsureSevenPillarDisplay(
@@ -390,4 +540,25 @@ public class DashboardModel : PageModel
             _ => 0
         };
     }
+
+    public static string FormatActionStatus(string status) => status switch
+    {
+        ActionStatuses.NotStarted => "Not started",
+        ActionStatuses.InProgress => "In progress",
+        ActionStatuses.AtRisk => "At risk",
+        ActionStatuses.Completed => "Completed",
+        ActionStatuses.Deferred => "Deferred",
+        ActionStatuses.Blocked => "Blocked",
+        _ => status
+    };
+
+    public static IReadOnlyList<string> ActionStatusOptions { get; } =
+    [
+        ActionStatuses.NotStarted,
+        ActionStatuses.InProgress,
+        ActionStatuses.AtRisk,
+        ActionStatuses.Completed,
+        ActionStatuses.Deferred,
+        ActionStatuses.Blocked
+    ];
 }

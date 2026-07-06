@@ -9,6 +9,8 @@ public class DriverValue
     public string PillarCode { get; set; } = null!;
     /// <summary>Optional; validated against <see cref="DriverDefinition"/> when catalog is present.</summary>
     public string? DriverCode { get; set; }
+    /// <summary>Catalog driver key (e.g. DRV-001) when catalog engine is enabled.</summary>
+    public string? CatalogDriverId { get; set; }
     public string DriverName { get; set; } = null!;
     public string? Dimension1 { get; set; }
     public string? Dimension2 { get; set; }

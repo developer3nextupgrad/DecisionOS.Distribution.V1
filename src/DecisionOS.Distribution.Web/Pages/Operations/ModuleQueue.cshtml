@@ -1,0 +1,46 @@
+@page
+@model ModuleQueueModel
+@{
+    ViewData["Title"] = "Module Action Queue";
+    Layout = "_IndexLayout";
+}
+
+<div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-6 max-w-[1440px] mx-auto">
+    <h1 class="text-2xl font-extrabold font-headline mb-2">Module action queue</h1>
+    <p class="text-sm text-on-surface-variant mb-6">Open module-routed issues (requires <code>Routing:Enabled</code>).</p>
+
+  @if (Model.Items.Count == 0)
+  {
+      <p class="text-sm text-on-surface-variant">No module action items.</p>
+  }
+  else
+  {
+      <div class="overflow-x-auto rounded-xl border">
+          <table class="w-full text-sm">
+              <thead class="bg-surface-container-low text-left">
+                  <tr>
+                      <th class="px-4 py-3">Period</th>
+                      <th class="px-4 py-3">Module</th>
+                      <th class="px-4 py-3">Title</th>
+                      <th class="px-4 py-3">Severity</th>
+                      <th class="px-4 py-3">Score</th>
+                      <th class="px-4 py-3">Status</th>
+                  </tr>
+              </thead>
+              <tbody>
+                  @foreach (var item in Model.Items)
+                  {
+                      <tr class="border-t">
+                          <td class="px-4 py-3">@item.PeriodEnd.ToString("yyyy-MM-dd")</td>
+                          <td class="px-4 py-3">@(item.ModuleCode ?? "—")</td>
+                          <td class="px-4 py-3">@item.Title</td>
+                          <td class="px-4 py-3">@item.Severity</td>
+                          <td class="px-4 py-3">@(item.FinalScore?.ToString("F1") ?? "—")</td>
+                          <td class="px-4 py-3">@item.Status</td>
+                      </tr>
+                  }
+              </tbody>
+          </table>
+      </div>
+  }
+</div>

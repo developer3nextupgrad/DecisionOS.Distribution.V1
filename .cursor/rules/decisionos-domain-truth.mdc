@@ -45,6 +45,22 @@ Services: `UploadBatchImportService` (classic), `IWeeklyScoringService` / `Weekl
 - No **Customer CRUD** Razor pages
 - **`Customer_Master` sheet** is detected in simplified import; **not** a dedicated master table yet (rows used via sales/AR linkage)
 - Do not claim **all** `ReportType` values are imported in classic `RunImport` — only **Sales, Inventory, AccountsReceivable, AccountsPayable** are normalized in web batch import
+- No **email** notifications for holdover assignment (in-app bell only)
+
+## Holdover workflow (execution layer)
+
+Imported **holdover** rows are `DriverValue` (workbook `Holdover_Actions` + scoring). **Not** the same as `ActionItem` import rows.
+
+| Capability | Where | Notes |
+|------------|-------|-------|
+| **Assign follow-up** | Dashboard holdover modal → **Assigned to** | Identity user from **Admin → Users**; `WorkAssignment` + `DriverValue.Owner` |
+| **Activity / comments** | Same modal → **Activity and comments** | `HoldoverComment` per driver — **not** Action Items table notes |
+| **In-app notifications** | Bell → `/Notifications` | `UserNotification`; assignment + new messages |
+| **Plain-language UI** | `OwnerLanguage.cs` | KPI modal, alerts, holdover copy (no jargon) |
+
+**Flags:** `DecisionOs:Workflow:AssignmentsEnabled`, `NotificationsEnabled` (default **true** in `appsettings.json`). When off → free-text owner only.
+
+**APIs:** `GET/POST /api/tenants/{clientId}/drivers/{id}/workflow|assign|comments`, `GET /api/users/assignable`, `GET /api/notifications/unread-count`.
 
 ## Config layers
 

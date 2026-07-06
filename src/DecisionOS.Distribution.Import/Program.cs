@@ -534,7 +534,7 @@ static async Task SeedKpiDefinitionsIfNeeded(DecisionOsDbContext db)
             RedThreshold = 70m,
             AlertPriority = 10,
             RecommendedAction = "Tighten cash cycle: accelerate collections, reduce slow inventory, and protect payables terms.",
-            DiagnosticChecks = "Check DSO, DIO, DPO; focus on the biggest mover vs last week."
+            DiagnosticChecks = OwnerLanguage.CccDiagnosticChecks
         },
         new KpiDefinition
         {

@@ -12,7 +12,9 @@ public sealed class DashboardKpiInsight
     public string FormattedTarget { get; init; } = "";
     public string FormattedWow { get; init; } = "";
     public string Status { get; init; } = "";
+    public string StatusLabel { get; init; } = "";
     public string? DataConfidence { get; init; }
+    public string? DataConfidenceLabel { get; init; }
     public string StatusHeadline { get; init; } = "";
     public string GapSummary { get; init; } = "";
     public string ThresholdSummary { get; init; } = "";
@@ -33,47 +35,13 @@ public sealed class DashboardKpiInsight
     public static IReadOnlyDictionary<string, string[]> MissingDataByCode { get; } =
         new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
         {
-            ["GrossMargin%"] =
-            [
-                "Sales export with Net_Sales (or equivalent) populated",
-                "Sales export with COGS populated",
-                "Positive net sales for the week"
-            ],
-            ["AR_PastDue31p%"] =
-            [
-                "Accounts receivable aging with Open_Balance",
-                "Days_Past_Due or aging bucket (31+, 60+, 90+)",
-                "Positive total AR balance for the week"
-            ],
-            ["AP_PastDue31p%"] =
-            [
-                "Accounts payable aging with Open_Balance",
-                "Days_Past_Due or aging bucket for past-due detection",
-                "Positive total AP balance for the week"
-            ],
-            ["DOH"] =
-            [
-                "Inventory snapshot with Inventory_Value",
-                "Sales COGS for the same week (used as daily burn rate)",
-                "Positive inventory and COGS totals"
-            ],
-            ["CCC"] =
-            [
-                "Sales: Net_Sales and COGS",
-                "AR and AP open balances for the week",
-                "Inventory value (for days-in-inventory component)"
-            ],
-            ["NetProfit%"] =
-            [
-                "Weekly rollup with Net Profit % (ratio or percent), or",
-                "Net Income ($) or Operating Profit ($) on the same row as Net Sales",
-                "Mapped on Weekly_Financials (or rollup) with a week-ending date"
-            ],
-            ["PerfectOrderRate"] =
-            [
-                "Fulfillment / service metrics feed for the week",
-                "Not computed from sales/AR alone in V1 web import"
-            ]
+            ["GrossMargin%"] = OwnerLanguage.PlainMissingDataItems("GrossMargin%").ToArray(),
+            ["AR_PastDue31p%"] = OwnerLanguage.PlainMissingDataItems("AR_PastDue31p%").ToArray(),
+            ["AP_PastDue31p%"] = OwnerLanguage.PlainMissingDataItems("AP_PastDue31p%").ToArray(),
+            ["DOH"] = OwnerLanguage.PlainMissingDataItems("DOH").ToArray(),
+            ["CCC"] = OwnerLanguage.PlainMissingDataItems("CCC").ToArray(),
+            ["NetProfit%"] = OwnerLanguage.PlainMissingDataItems("NetProfit%").ToArray(),
+            ["PerfectOrderRate"] = OwnerLanguage.PlainMissingDataItems("PerfectOrderRate").ToArray()
         };
 }
 
@@ -81,6 +49,7 @@ public sealed class DashboardKpiDriverInsight
 {
     public string DriverName { get; init; } = "";
     public string Status { get; init; } = "";
+    public string StatusLabel { get; init; } = "";
     public string? Owner { get; init; }
     public int FixProgressPercent { get; init; }
     public string? WhyItMatters { get; init; }
@@ -109,9 +78,12 @@ public static class DashboardKpiInsightBuilder
                 {
                     DriverName = d.DriverName,
                     Status = d.Status,
+                    StatusLabel = OwnerLanguage.PlainStatusLabel(d.Status),
                     Owner = string.IsNullOrWhiteSpace(d.Owner) ? null : d.Owner.Trim(),
                     FixProgressPercent = FixProgressPercent(d),
-                    WhyItMatters = string.IsNullOrWhiteSpace(d.WhyItMatters) ? null : d.WhyItMatters.Trim()
+                    WhyItMatters = string.IsNullOrWhiteSpace(d.WhyItMatters)
+                        ? null
+                        : OwnerLanguage.ExpandFinanceAbbreviations(d.WhyItMatters.Trim())
                 })
                 .ToList();
 
@@ -128,21 +100,23 @@ public static class DashboardKpiInsightBuilder
                 FormattedTarget = formatTarget(def),
                 FormattedWow = formatWow(snapshot),
                 Status = snapshot.Status,
+                StatusLabel = OwnerLanguage.PlainStatusLabel(snapshot.Status),
                 DataConfidence = snapshot.DataConfidence,
-                StatusHeadline = BuildStatusHeadline(def, snapshot),
+                DataConfidenceLabel = OwnerLanguage.PlainDataConfidence(snapshot.DataConfidence),
+                StatusHeadline = OwnerLanguage.PlainStatusHeadline(def, snapshot),
                 GapSummary = BuildGapSummary(def, snapshot, formatTarget),
-                ThresholdSummary = KpiThresholdLegend.DescribeBands(def),
-                ColorCodingNote = KpiThresholdLegend.DescribeForSnapshot(def, snapshot.Status),
-                CardDetailLine1 = snapshot.CardDetailLine1,
-                CardDetailLine2 = snapshot.CardDetailLine2,
-                RecommendedAction = def.RecommendedAction,
-                DiagnosticChecks = def.DiagnosticChecks,
+                ThresholdSummary = OwnerLanguage.PlainThresholdBands(def),
+                ColorCodingNote = OwnerLanguage.PlainColorCodingNote(def, snapshot.Status),
+                CardDetailLine1 = OwnerLanguage.ExpandFinanceAbbreviations(snapshot.CardDetailLine1),
+                CardDetailLine2 = OwnerLanguage.ExpandFinanceAbbreviations(snapshot.CardDetailLine2),
+                RecommendedAction = OwnerLanguage.ExpandFinanceAbbreviations(def.RecommendedAction),
+                DiagnosticChecks = OwnerLanguage.ExpandFinanceAbbreviations(def.DiagnosticChecks),
                 MissingDataItems = ResolveMissingItems(def.Code, snapshot.Status),
-                MissingDataSummary = BuildMissingSummary(def.Code, snapshot.Status),
+                MissingDataSummary = OwnerLanguage.PlainMissingDataSummary(def.Code, snapshot.Status),
                 IsTopAlert = isTopAlert,
-                AlertReason = isTopAlert ? topAlert?.ReasonSummary : null,
+                AlertReason = isTopAlert ? OwnerLanguage.ExpandFinanceAbbreviations(topAlert?.ReasonSummary) : null,
                 IsWeeklyFocusKpi = isFocus,
-                WeeklyFocusAction = isFocus ? focus?.RecommendedAction : null,
+                WeeklyFocusAction = isFocus ? OwnerLanguage.ExpandFinanceAbbreviations(focus?.RecommendedAction) : null,
                 RelatedDrivers = related
             };
         }
@@ -155,39 +129,7 @@ public static class DashboardKpiInsightBuilder
         if (!status.Equals("GRAY", StringComparison.OrdinalIgnoreCase))
             return Array.Empty<string>();
 
-        return DashboardKpiInsight.MissingDataByCode.TryGetValue(code, out var items)
-            ? items
-            : ["Upload package for this week is incomplete for this KPI."];
-    }
-
-    private static string? BuildMissingSummary(string code, string status)
-    {
-        if (!status.Equals("GRAY", StringComparison.OrdinalIgnoreCase))
-            return null;
-
-        return DashboardKpiInsight.MissingDataByCode.ContainsKey(code)
-            ? "This KPI could not be scored from the current upload. Add or fix the items below, then re-import."
-            : "Insufficient source data for this KPI in the uploaded package.";
-    }
-
-    private static string BuildStatusHeadline(KpiDefinition def, KpiSnapshot snapshot)
-    {
-        if (snapshot.Status.Equals("GRAY", StringComparison.OrdinalIgnoreCase))
-            return "Insufficient data — upload more source files or columns to score this KPI.";
-
-        return snapshot.Status.ToUpperInvariant() switch
-        {
-            "GREEN" => def.Direction == KpiDirection.HigherIsBetter
-                ? "On target — at or above goal."
-                : "On target — at or below goal.",
-            "YELLOW" => def.Direction == KpiDirection.HigherIsBetter
-                ? "Attention — below target but above the red band."
-                : "Attention — above target but not yet in the red band.",
-            "RED" => def.Direction == KpiDirection.HigherIsBetter
-                ? "Critical — below the red threshold."
-                : "Critical — above the red threshold.",
-            _ => "Status unknown for this week."
-        };
+        return OwnerLanguage.PlainMissingDataItems(code).ToList();
     }
 
     private static string BuildGapSummary(KpiDefinition def, KpiSnapshot snapshot, Func<KpiDefinition, string> formatTarget)
@@ -197,28 +139,18 @@ public static class DashboardKpiInsightBuilder
 
         var value = snapshot.Value;
         var target = def.Target;
+        var goal = formatTarget(def);
 
         if (def.Direction == KpiDirection.HigherIsBetter)
         {
             if (value >= target)
-                return $"At or above target ({formatTarget(def)}).";
-            var gap = target - value;
-            return FormatGap(def, gap, "below target", formatTarget(def));
+                return $"At or above your goal ({goal}).";
+            return OwnerLanguage.FormatGap(def, target - value, "below", goal);
         }
 
         if (value <= target)
-            return $"At or below target ({formatTarget(def)}).";
-        var over = value - target;
-        return FormatGap(def, over, "above target", formatTarget(def));
-    }
-
-    private static string FormatGap(KpiDefinition def, decimal gap, string direction, string targetLabel)
-    {
-        if (def.Unit == "pct")
-            return $"{(gap * 100m):F1} pp {direction} (target {targetLabel}).";
-        if (def.Unit == "days")
-            return $"{gap:F0} days {direction} (target {targetLabel}).";
-        return $"{gap:F2} {direction} (target {targetLabel}).";
+            return $"At or below your goal ({goal}).";
+        return OwnerLanguage.FormatGap(def, value - target, "above", goal);
     }
 
     private static int FixProgressPercent(DriverValue d)

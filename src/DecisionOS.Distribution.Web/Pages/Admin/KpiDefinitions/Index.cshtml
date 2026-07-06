@@ -68,6 +68,15 @@
 
         </form>
 
+        @if (Model.ShowProfileEmptyHint && Model.ProfileId is not null)
+        {
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+                This profile has no KPI rows yet.
+                <a href="/Admin/Profiles/ApplyDefaults?id=@Model.ProfileId" class="font-semibold underline">Apply Defaults</a>
+                to copy the global seven-KPI template, or add KPIs manually.
+            </div>
+        }
+
         <!-- TABLE -->
         <div class="bg-surface-container-lowest rounded-xl shadow overflow-hidden">
 

@@ -12,7 +12,9 @@ public class SimplifiedWorkbookImportServiceTests
     {
         var fixture = Path.Combine(AppContext.BaseDirectory, "Fixtures", "Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx");
         if (File.Exists(fixture)) return fixture;
-        var alt = @"c:\Users\emran\Downloads\Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx";
+        var alt = @"c:\Users\emran\Downloads\Re_ bulk excel Import\Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx";
+        if (File.Exists(alt)) return alt;
+        alt = @"c:\Users\emran\Downloads\Steves_Bowling_Supply_DPOS_Distribution_Test_Data.xlsx";
         return File.Exists(alt) ? alt : null;
     }
 

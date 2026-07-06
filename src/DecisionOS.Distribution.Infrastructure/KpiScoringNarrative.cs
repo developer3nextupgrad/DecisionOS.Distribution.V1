@@ -6,14 +6,14 @@ internal static class KpiScoringNarrative
 {
     public static string MissingDataHeadline(string code) => code switch
     {
-        "GrossMargin%" => "Missing sales net revenue and/or COGS.",
-        "AR_PastDue31p%" => "Missing AR aging balances or past-due signals.",
-        "AP_PastDue31p%" => "Missing AP aging balances or past-due signals.",
-        "DOH" => "Missing inventory value and/or weekly COGS.",
-        "CCC" => "Missing sales, AR, AP, and/or inventory for cash cycle.",
-        "NetProfit%" => "Net Profit % not supplied in this upload.",
-        "PerfectOrderRate" => "Perfect Order rate not supplied in this upload.",
-        _ => "Insufficient data from uploaded package."
+        "GrossMargin%" => "Missing sales total and/or product cost.",
+        "AR_PastDue31p%" => "Missing customer aging or past-due balances.",
+        "AP_PastDue31p%" => "Missing vendor aging or past-due balances.",
+        "DOH" => "Missing inventory value and/or weekly product cost.",
+        "CCC" => "Missing sales, customer balances, vendor balances, and/or inventory.",
+        "NetProfit%" => "Net profit percent not supplied in this upload.",
+        "PerfectOrderRate" => "On-time delivery rate not supplied in this upload.",
+        _ => "Not enough information in the uploaded files."
     };
 
     public static (string Line1, string Line2) ForScoredKpi(KpiDefinition def, decimal value, string status)
@@ -21,36 +21,33 @@ internal static class KpiScoringNarrative
         var gap = DescribeGap(def, value);
         var line1 = status switch
         {
-            "GREEN" => "On target this week.",
-            "YELLOW" => $"Attention: {gap}",
-            "RED" => $"Critical: {gap}",
+            "GREEN" => "On track this week.",
+            "YELLOW" => $"Needs attention: {gap}",
+            "RED" => $"Urgent: {gap}",
             _ => gap
         };
 
-        var action = def.RecommendedAction.Trim();
-        var line2 = action.Length <= 90 ? action : action[..87] + "...";
-        return (line1, line2);
+        return (line1, OwnerLanguage.ExpandFinanceAbbreviations(def.RecommendedAction.Trim()));
     }
 
     private static string DescribeGap(KpiDefinition def, decimal value)
     {
         if (def.Direction == KpiDirection.HigherIsBetter)
         {
-            if (value >= def.Target) return "at or above target.";
+            if (value >= def.Target) return "at or above your goal.";
             var gap = def.Target - value;
-            return def.Unit == "pct"
-                ? $"{gap * 100m:F1} pp below target"
-                : def.Unit == "days"
-                    ? $"{gap:F0} days below target"
-                    : $"{gap:F2} below target";
+            return OwnerLanguage.FormatGap(def, gap, "below", FormatGoal(def));
         }
 
-        if (value <= def.Target) return "at or below target.";
+        if (value <= def.Target) return "at or below your goal.";
         var over = value - def.Target;
-        return def.Unit == "pct"
-            ? $"{over * 100m:F1} pp above target"
-            : def.Unit == "days"
-                ? $"{over:F0} days above target"
-                : $"{over:F2} above target";
+        return OwnerLanguage.FormatGap(def, over, "above", FormatGoal(def));
     }
+
+    private static string FormatGoal(KpiDefinition def) => def.Unit switch
+    {
+        "pct" => (def.Target * 100m).ToString("F1") + "%",
+        "days" => def.Target.ToString("F0") + " days",
+        _ => def.Target.ToString("F2")
+    };
 }

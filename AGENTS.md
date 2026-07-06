@@ -8,10 +8,11 @@ Instructions for AI agents (Cursor, Copilot, etc.) working in this repository.
 2. [.cursor/rules/decisionos-anti-hallucination.mdc](.cursor/rules/decisionos-anti-hallucination.mdc) — verify in repo before claiming
 3. [.cursor/rules/decisionos-distribution.mdc](.cursor/rules/decisionos-distribution.mdc) — stack, layers, auth
 4. Skill: [.cursor/skills/decisionos-distribution/SKILL.md](.cursor/skills/decisionos-distribution/SKILL.md) + [reference.md](.cursor/skills/decisionos-distribution/reference.md)
+5. **Catalog engine (post–client-test):** [docs/Catalog-Engine-Implementation-Plan.md](docs/Catalog-Engine-Implementation-Plan.md) — phased spec for 24-KPI catalog, dynamic top-7, influencers, routing queues
 
 ## Project in one paragraph
 
-**DecisionOS Distribution** is a .NET 8 web app for **distributor** companies: operators upload weekly files (CSV/Excel), data is validated and mapped, the system computes health **KPIs** (red/yellow/green), selects a top **alert**, ranks **drivers**, and shows a **dashboard** per **tenant** and **week ending date**. V1 is **manual upload only** (no live ERP). Each **tenant** is one distributor; **end customers** (buyers) appear only inside import data, not as separate tenants.
+**DecisionOS Distribution** is a .NET 8 web app for **distributor** companies: operators upload weekly files (CSV/Excel), data is validated and mapped, the system computes health **KPIs** (red/yellow/green), selects a top **alert**, ranks **drivers**, and shows a **dashboard** per **tenant** and **week ending date**. Owners can **assign holdover follow-ups** to system users, track **comments** on each item, and receive **in-app notifications** (no email). V1 is **manual upload only** (no live ERP). Each **tenant** is one distributor; **end customers** (buyers) appear only inside import data, not as separate tenants.
 
 ## Starter prompts (copy for users or agents)
 
@@ -56,6 +57,25 @@ Before fixing: read the code path (Razor page → service → DbContext). State 
 Need EF migration for [entity/field].
 
 Use DecisionOsDbContext in Infrastructure, connection string DecisionOs. dotnet ef migrations add [Name] --project src/DecisionOS.Distribution.Infrastructure --startup-project src/DecisionOS.Distribution.Web. Do not hardcode passwords.
+```
+
+### Holdover workflow (assign, comment, notify)
+
+```
+Task: [describe change to holdover assignment, comments, or notifications]
+
+Before editing: read IHoldoverWorkflowService, HoldoverWorkflowService, Dashboard.cshtml holdover modal, Program.cs /api routes.
+Comments belong on HoldoverComment (DriverValue), NOT ActionItem.Notes unless explicitly asked.
+Feature flags: DecisionOs:Workflow:AssignmentsEnabled, NotificationsEnabled.
+Add tests in HoldoverWorkflowServiceTests. dotnet build && dotnet test
+```
+
+### Catalog engine (24 KPI, dynamic top-7, influencers, routing)
+
+```
+Read docs/Catalog-Engine-Implementation-Plan.md.
+Implement Phase [N] only. Feature flags default OFF (except Workflow defaults ON in appsettings.json). Do not change WeeklyScoringService fallback path until Phase 2 parity tests pass.
+dotnet build && dotnet test
 ```
 
 ### Run and test locally

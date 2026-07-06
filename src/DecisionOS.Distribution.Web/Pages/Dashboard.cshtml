@@ -120,6 +120,62 @@
         font-size: 0.82rem;
     }
 
+    .holdover-chat-thread {
+        max-height: 260px;
+        overflow-y: auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        background: #f8fafc;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .holdover-chat-empty {
+        font-size: 0.82rem;
+        color: #64748b;
+        text-align: center;
+        padding: 16px 8px;
+    }
+
+    .holdover-chat-bubble {
+        max-width: 92%;
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-size: 0.84rem;
+        line-height: 1.45;
+    }
+
+    .holdover-chat-bubble.mine {
+        margin-left: auto;
+        background: #dbeafe;
+        border: 1px solid #bfdbfe;
+    }
+
+    .holdover-chat-bubble.theirs {
+        margin-right: auto;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+    }
+
+    .holdover-chat-meta {
+        font-size: 0.72rem;
+        color: #64748b;
+        margin-bottom: 4px;
+        font-weight: 600;
+    }
+
+    .holdover-comment-input {
+        width: 100%;
+        min-height: 72px;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 0.88rem;
+        resize: vertical;
+        font-family: inherit;
+    }
+
     .modal-code-chip {
         display: inline-block;
         font-size: 0.7rem;
@@ -405,6 +461,16 @@
         opacity: 0.95;
         line-height: 1.35;
         margin-top: 6px;
+        word-wrap: break-word;
+        max-width: 100%;
+    }
+
+    .holdover-row-clickable {
+        cursor: pointer;
+    }
+
+    .holdover-row-clickable:hover td {
+        background: #f8fafc;
     }
 
     .empty-panel {
@@ -475,6 +541,8 @@
 </style>
 
 <script id="kpi-insights-json" type="application/json">@Html.Raw(Model.KpiInsightsJson)</script>
+<script id="holdover-insights-json" type="application/json">@Html.Raw(Model.HoldoverInsightsJson)</script>
+<script id="assignable-users-json" type="application/json">@Html.Raw(Model.AssignableUsersJson)</script>
 
 <div class="header-bar">
     Decision OS &ndash; Distribution
@@ -550,7 +618,25 @@
             <span class="insight-chip" style="border-color:#f59e0b; color:#b45309;">Attention: @Model.YellowCount</span>
             <span class="insight-chip" style="border-color:#ef4444; color:#b91c1c;">Critical: @Model.RedCount</span>
             <span class="insight-chip" style="border-color:#64748b; color:#334155;">Insufficient data: @Model.GrayCount</span>
+            @if (Model.CatalogModeEnabled && Model.TotalCatalogKpiCount > 0)
+            {
+                <a href="/Dashboard/KpiReview?clientId=@Model.ClientId&periodEnd=@Model.PeriodEnd&customerId=@Model.CustomerId"
+                   class="insight-chip"
+                   style="border-color:#3b82f6; color:#1d4ed8; text-decoration:none;">
+                    Review all @Model.TotalCatalogKpiCount KPIs →
+                </a>
+            }
         </div>
+
+        @if (Model.CatalogModeEnabled && Model.TotalCatalogKpiCount > 7)
+        {
+            <div class="focus-banner" style="margin-bottom: 12px; border-left: 4px solid #3b82f6;">
+                <p style="margin:0; font-size:0.85rem;">
+                    <strong>Top 7 this week</strong> — selected by catalog priority scoring.
+                    <a href="/Dashboard/KpiReview?clientId=@Model.ClientId&periodEnd=@Model.PeriodEnd&customerId=@Model.CustomerId" style="color:#2563eb; font-weight:600;">Review or pin KPIs</a>
+                </p>
+            </div>
+        }
 
         @if (Model.TopAlert is not null)
         {
@@ -650,7 +736,11 @@
                     var tone = Model.ProgressToneClass(pillarSt);
                     var pct = Model.FixProgressDisplayPercent(driver);
                     var fillColor = tone == "red" ? "#ef4444" : tone == "amber" ? "#f59e0b" : tone == "green" ? "#10b981" : "#6366f1";
-                    <tr>
+                    <tr class="holdover-row-clickable"
+                        role="button"
+                        tabindex="0"
+                        data-driver-id="@driver.Id"
+                        aria-label="View holdover details for @driver.DriverName">
                         <td>
                             <span class="label-pill bg-@tone">@Model.PillarLabel(driver.PillarCode)</span>
                         </td>
@@ -680,6 +770,68 @@
             </tbody>
         </table>
 
+        @if (Model.Drivers.Count == 0)
+        {
+            <p style="text-align:center; font-size:0.85rem; color:#64748b; padding: 12px 0;">No holdover items for this week. Import a workbook with a Holdover_Actions sheet to populate this table.</p>
+        }
+
+        @if (Model.ActionItems.Count > 0)
+        {
+            <div style="margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
+                <div class="panel-title" style="font-size: 1rem; margin-bottom: 12px;">Action items</div>
+                <p style="font-size:0.78rem; color:#64748b; margin: -4px 0 12px; text-align:center;">Operational follow-ups from import. Update owner, status, or notes below.</p>
+                <table class="imp-table">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Pillar</th>
+                            <th>Owner</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var action in Model.ActionItems)
+                        {
+                            <tr data-action-id="@action.Id">
+                                <td>
+                                    <div style="font-weight:700;">@action.Title</div>
+                                    @if (!string.IsNullOrWhiteSpace(action.Description))
+                                    {
+                                        <div style="font-size:0.75rem; color:#64748b;">@action.Description</div>
+                                    }
+                                </td>
+                                <td>@(action.KpiDefinition?.Name ?? "—")</td>
+                                <td>
+                                    <input type="text"
+                                           class="action-owner-input"
+                                           data-action-id="@action.Id"
+                                           value="@action.Owner"
+                                           style="width:100%; max-width:140px; font-size:0.82rem; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px;" />
+                                </td>
+                                <td>
+                                    <select class="action-status-select"
+                                            data-action-id="@action.Id"
+                                            style="font-size:0.82rem; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px;">
+                                        @foreach (var st in DashboardModel.ActionStatusOptions)
+                                        {
+                                            <option value="@st" selected="@(string.Equals(action.Status, st, StringComparison.OrdinalIgnoreCase))">@DashboardModel.FormatActionStatus(st)</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td>
+                                    <textarea class="action-notes-input"
+                                              data-action-id="@action.Id"
+                                              rows="2"
+                                              style="width:100%; min-width:160px; font-size:0.82rem; padding:4px 8px; border:1px solid #cbd5e1; border-radius:6px;">@action.Notes</textarea>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
         <p style="font-size:0.78rem; color:#475569; margin: 20px 0 8px; text-align:center;">
             Note: implemented improvements will roll off Holdover once the driver is back on target (GREEN) and fix progress reaches 100%.
         </p>
@@ -698,6 +850,69 @@
     </div>
         }
 
+    <div id="holdoverModal" class="modal-overlay" onclick="closeHoldoverModal(event)" role="dialog" aria-modal="true" aria-labelledby="holdoverModalTitle">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <span class="close-btn" onclick="closeHoldoverModal(null, true)" aria-label="Close">&times;</span>
+            <div class="modal-inner">
+                <h2 id="holdoverModalTitle" class="modal-title"></h2>
+                <div id="holdoverModalSubtitle" style="font-size:0.8rem; color:#64748b; margin-bottom:12px;"></div>
+                <div class="modal-grid">
+                    <div class="modal-item">
+                        <span class="label">Pillar</span>
+                        <span id="holdoverPillar" class="value" style="font-size:0.95rem;"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Status</span>
+                        <span id="holdoverStatus" class="value badge" style="font-size:0.75rem;"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Fix progress</span>
+                        <span id="holdoverProgress" class="value" style="font-size:0.95rem;"></span>
+                    </div>
+                    <div class="modal-item">
+                        <span class="label">Assigned / Target / Current</span>
+                        <span id="holdoverMetrics" class="value" style="font-size:0.82rem;"></span>
+                    </div>
+                </div>
+                <div class="modal-section-block" id="holdoverAssignSection">
+                    <h4>Assigned to</h4>
+                    @if (Model.WorkflowEnabled)
+                    {
+                        <p style="font-size:0.78rem; color:#64748b; margin:0 0 8px;">Choose a team member from your organization. They will be notified in the system.</p>
+                        <select id="holdoverAssigneeSelect" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem;">
+                            <option value="">— Select person —</option>
+                        </select>
+                        <button type="button" id="holdoverAssignSave" style="margin-top:10px; padding:8px 14px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Assign</button>
+                    }
+                    else
+                    {
+                        <input type="text" id="holdoverOwnerInput" style="width:100%; padding:8px 10px; border:1px solid #cbd5e1; border-radius:8px; font-size:0.88rem;" />
+                        <button type="button" id="holdoverOwnerSave" style="margin-top:10px; padding:8px 14px; background:#3b82f6; color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Save owner</button>
+                    }
+                    <span id="holdoverAssignMsg" style="margin-left:10px; font-size:0.78rem; color:#64748b;"></span>
+                </div>
+                <div class="modal-section-block" id="holdoverChatSection" style="@(Model.WorkflowEnabled ? "" : "display:none;")">
+                    <h4>Activity and comments</h4>
+                    <p style="font-size:0.78rem; color:#64748b; margin:0 0 8px;">Track progress, ask questions, and note what was done. Everyone on this follow-up can see the thread here.</p>
+                    <div id="holdoverChatThread" class="holdover-chat-thread">
+                        <div class="holdover-chat-empty">No messages yet. Start the conversation below.</div>
+                    </div>
+                    <textarea id="holdoverCommentInput" class="holdover-comment-input" placeholder="Add an update, question, or note what you did…"></textarea>
+                    <button type="button" id="holdoverCommentSend" style="margin-top:10px; padding:8px 14px; background:#006e2f; color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer;">Send message</button>
+                    <span id="holdoverCommentMsg" style="margin-left:10px; font-size:0.78rem; color:#64748b;"></span>
+                </div>
+                <div class="modal-section-block">
+                    <h4>Why it matters</h4>
+                    <p id="holdoverWhy"></p>
+                </div>
+                <div id="holdoverContextSection" class="modal-section-block" style="display:none;">
+                    <h4>Context</h4>
+                    <p id="holdoverContext"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="kpiModal" class="modal-overlay" onclick="closeKpiModal(event)" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div id="modalStatusBar" class="modal-status-bar"></div>
@@ -715,11 +930,11 @@
                         <span id="modalValue" class="value"></span>
                     </div>
                     <div class="modal-item">
-                        <span class="label">Target</span>
+                        <span class="label">Your goal</span>
                         <span id="modalTarget" class="value"></span>
                     </div>
                     <div class="modal-item">
-                        <span class="label">Gap vs target</span>
+                        <span class="label">How far from your goal</span>
                         <span id="modalGap" class="value" style="font-size:0.95rem;"></span>
                     </div>
                     <div class="modal-item">
@@ -737,14 +952,14 @@
                 </div>
 
                 <div id="modalColorCoding" class="modal-section-block" style="margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
-                    <h4>Color coding</h4>
+                    <h4>What the colors mean</h4>
                     <p id="modalColorNote" style="font-size:0.85rem; margin:0 0 8px;"></p>
                     <p id="modalThresholds" style="font-size:0.78rem; color:#475569; margin:0;"></p>
                     <div class="color-band-legend" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; font-size:0.72rem; font-weight:600;">
-                        <span style="padding:3px 10px; border-radius:999px; background:#10b981; color:#fff;">Green</span>
-                        <span style="padding:3px 10px; border-radius:999px; background:#f59e0b; color:#1a1a1a;">Yellow</span>
-                        <span style="padding:3px 10px; border-radius:999px; background:#ef4444; color:#fff;">Red</span>
-                        <span style="padding:3px 10px; border-radius:999px; background:#64748b; color:#fff;">Gray = not scored</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#10b981; color:#fff;">On track</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#f59e0b; color:#1a1a1a;">Needs attention</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#ef4444; color:#fff;">Urgent</span>
+                        <span style="padding:3px 10px; border-radius:999px; background:#64748b; color:#fff;">Not enough data</span>
                     </div>
                 </div>
 
@@ -755,22 +970,22 @@
                 </div>
 
                 <div class="modal-section-block">
-                    <h4>How to improve this KPI</h4>
+                    <h4>What to do this week</h4>
                     <p id="modalRecommended"></p>
                 </div>
 
                 <div class="modal-section-block">
-                    <h4>Diagnostic checks</h4>
+                    <h4>What to look at this week</h4>
                     <p id="modalDiagnostics"></p>
                 </div>
 
                 <div id="modalDriversSection" class="modal-section-block" style="display:none;">
-                    <h4>Related drivers (holdover)</h4>
+                    <h4>Open follow-ups</h4>
                     <div id="modalDrivers"></div>
                 </div>
 
                 <div id="modalContextSection" class="modal-section-block" style="display:none;">
-                    <h4>Import notes</h4>
+                    <h4>Notes from your upload</h4>
                     <div id="modalContext"></div>
                 </div>
             </div>
@@ -811,9 +1026,7 @@
 
         const status = insight.status || "";
         document.getElementById("modalTitle").innerText = insight.name || "-";
-        document.getElementById("modalSubtitle").innerHTML =
-            "Executive KPI" +
-            (insight.code ? ' <span class="modal-code-chip">' + escapeHtml(insight.code) + "</span>" : "");
+        document.getElementById("modalSubtitle").innerText = insight.statusHeadline || "";
 
         const bar = document.getElementById("modalStatusBar");
         bar.className = "modal-status-bar " + statusBarClass(status);
@@ -822,23 +1035,21 @@
         document.getElementById("modalTarget").innerText = insight.formattedTarget || "—";
         document.getElementById("modalGap").innerText = insight.gapSummary || "—";
         document.getElementById("modalWoW").innerText = insight.formattedWow || "—";
-        document.getElementById("modalConfidence").innerText = insight.dataConfidence || "—";
+        document.getElementById("modalConfidence").innerText = insight.dataConfidenceLabel || insight.dataConfidence || "—";
 
         const statusEl = document.getElementById("modalStatus");
-        statusEl.innerText = status || "—";
+        statusEl.innerText = insight.statusLabel || status || "—";
         statusEl.className = "value badge " + statusBadgeClass(status);
 
         document.getElementById("modalColorNote").innerText = insight.colorCodingNote || insight.thresholdSummary || "";
-        document.getElementById("modalThresholds").innerText = insight.thresholdSummary
-            ? "Bands: " + insight.thresholdSummary
-            : "";
+        document.getElementById("modalThresholds").innerText = insight.thresholdSummary || "";
 
-        let banners = '<div class="modal-accent status-accent"><strong>Summary</strong><br>' + escapeHtml(insight.statusHeadline || "") + "</div>";
+        let banners = '<div class="modal-accent status-accent"><strong>This week</strong><br>' + escapeHtml(insight.statusHeadline || "") + "</div>";
         if (insight.isTopAlert && insight.alertReason) {
-            banners += '<div class="modal-accent alert-accent"><strong>Top alert this week</strong><br>' + escapeHtml(insight.alertReason) + "</div>";
+            banners += '<div class="modal-accent alert-accent"><strong>Top priority this week</strong><br>' + escapeHtml(insight.alertReason) + "</div>";
         }
         if (insight.isWeeklyFocusKpi && insight.weeklyFocusAction) {
-            banners += '<div class="modal-accent focus-accent"><strong>Weekly focus action</strong><br>' + escapeHtml(insight.weeklyFocusAction) + "</div>";
+            banners += '<div class="modal-accent focus-accent"><strong>Your focus action</strong><br>' + escapeHtml(insight.weeklyFocusAction) + "</div>";
         }
         document.getElementById("modalBanners").innerHTML = banners;
 
@@ -846,7 +1057,7 @@
         const missingItems = insight.missingDataItems || [];
         if (missingItems.length > 0) {
             missingSection.style.display = "block";
-            document.getElementById("modalMissingIntro").innerText = insight.missingDataSummary || "Add the following to enable scoring:";
+            document.getElementById("modalMissingIntro").innerText = insight.missingDataSummary || "Add the following, then import again:";
             const list = document.getElementById("modalMissingList");
             list.innerHTML = missingItems.map(i => "<li>" + escapeHtml(i) + "</li>").join("");
         } else {
@@ -862,8 +1073,8 @@
             driversSection.style.display = "block";
             document.getElementById("modalDrivers").innerHTML = drivers.map(d =>
                 '<div class="modal-driver-row">' +
-                '<strong>' + escapeHtml(d.driverName) + '</strong> · ' + escapeHtml(d.status) +
-                ' · Fix ' + (d.fixProgressPercent ?? 0) + '%' +
+                '<strong>' + escapeHtml(d.driverName) + '</strong> · ' + escapeHtml(d.statusLabel || d.status) +
+                ' · Progress ' + (d.fixProgressPercent ?? 0) + '%' +
                 (d.owner ? ' · Owner: ' + escapeHtml(d.owner) : '') +
                 (d.whyItMatters ? '<div style="margin-top:4px;color:#64748b;">' + escapeHtml(d.whyItMatters) + '</div>' : '') +
                 '</div>'
@@ -907,7 +1118,253 @@
     });
 
     document.addEventListener("keydown", ev => {
-        if (ev.key === "Escape") closeKpiModal(null, true);
+        if (ev.key === "Escape") {
+            closeKpiModal(null, true);
+            closeHoldoverModal(null, true);
+        }
+    });
+
+    const dashboardClientId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ClientId));
+    const workflowEnabled = @(Model.WorkflowEnabled ? "true" : "false");
+    const deepLinkDriverId = @(Model.DeepLinkDriverId.HasValue ? Model.DeepLinkDriverId.Value.ToString() : "null");
+    const holdoverInsightsRaw = document.getElementById("holdover-insights-json");
+    const holdoverInsightsById = holdoverInsightsRaw ? JSON.parse(holdoverInsightsRaw.textContent || "{}") : {};
+    const assignableUsersRaw = document.getElementById("assignable-users-json");
+    const assignableUsers = assignableUsersRaw ? JSON.parse(assignableUsersRaw.textContent || "[]") : [];
+    let activeHoldoverId = null;
+
+    function populateAssigneeSelect(selectedId) {
+        const sel = document.getElementById("holdoverAssigneeSelect");
+        if (!sel) return;
+        sel.innerHTML = '<option value="">— Select person —</option>' +
+            assignableUsers.map(u =>
+                '<option value="' + escapeHtml(u.userId) + '"' +
+                (selectedId && u.userId === selectedId ? ' selected' : '') + '>' +
+                escapeHtml(u.displayName || u.email) + '</option>'
+            ).join("");
+    }
+
+    function renderHoldoverChat(comments) {
+        const thread = document.getElementById("holdoverChatThread");
+        if (!thread) return;
+        if (!comments || comments.length === 0) {
+            thread.innerHTML = '<div class="holdover-chat-empty">No messages yet. Start the conversation below.</div>';
+            return;
+        }
+        thread.innerHTML = comments.map(c => {
+            const when = c.createdAt ? new Date(c.createdAt).toLocaleString() : "";
+            const cls = c.isMine ? "mine" : "theirs";
+            return '<div class="holdover-chat-bubble ' + cls + '">' +
+                '<div class="holdover-chat-meta">' + escapeHtml(c.authorName || "User") + (when ? ' · ' + when : '') + '</div>' +
+                escapeHtml(c.body || "") + '</div>';
+        }).join("");
+        thread.scrollTop = thread.scrollHeight;
+    }
+
+    async function loadHoldoverWorkflow(driverId) {
+        if (!workflowEnabled) return;
+        try {
+            const res = await fetch(`/api/tenants/${encodeURIComponent(dashboardClientId)}/drivers/${driverId}/workflow`, {
+                credentials: "same-origin"
+            });
+            if (!res.ok) return;
+            const data = await res.json();
+            populateAssigneeSelect(data.assigneeUserId || "");
+            renderHoldoverChat(data.comments || []);
+        } catch {
+            /* keep modal usable if thread load fails */
+        }
+    }
+
+    function openHoldoverModal(driverId) {
+        const insight = holdoverInsightsById[String(driverId)] || holdoverInsightsById[driverId];
+        if (!insight) return;
+        activeHoldoverId = driverId;
+
+        document.getElementById("holdoverModalTitle").innerText = insight.driverName || "Follow-up item";
+        let sub = insight.pillarLabel || insight.pillarCode || "";
+        if (insight.dimension1) sub += (sub ? " · " : "") + insight.dimension1;
+        document.getElementById("holdoverModalSubtitle").innerText = sub;
+
+        document.getElementById("holdoverPillar").innerText = insight.pillarLabel || insight.pillarCode || "—";
+        const statusEl = document.getElementById("holdoverStatus");
+        statusEl.innerText = insight.statusLabel || insight.status || "—";
+        statusEl.className = "value badge " + statusBadgeClass(insight.status);
+        document.getElementById("holdoverProgress").innerText = (insight.fixProgressPercent ?? 0) + "%";
+        document.getElementById("holdoverMetrics").innerText = insight.metrics || "—";
+
+        const assignMsg = document.getElementById("holdoverAssignMsg");
+        if (assignMsg) assignMsg.innerText = "";
+
+        if (workflowEnabled) {
+            populateAssigneeSelect(insight.assigneeUserId || "");
+            loadHoldoverWorkflow(driverId);
+            const commentInput = document.getElementById("holdoverCommentInput");
+            if (commentInput) commentInput.value = "";
+            const commentMsg = document.getElementById("holdoverCommentMsg");
+            if (commentMsg) commentMsg.innerText = "";
+        } else {
+            const ownerInput = document.getElementById("holdoverOwnerInput");
+            if (ownerInput) ownerInput.value = insight.owner || "";
+        }
+
+        document.getElementById("holdoverWhy").innerText = insight.whyItMatters || "—";
+
+        const ctxSection = document.getElementById("holdoverContextSection");
+        if (insight.context) {
+            ctxSection.style.display = "block";
+            document.getElementById("holdoverContext").innerText = insight.context;
+        } else {
+            ctxSection.style.display = "none";
+        }
+
+        document.getElementById("holdoverModal").style.display = "flex";
+        document.body.style.overflow = "hidden";
+    }
+
+    function closeHoldoverModal(e, forceClose) {
+        const modal = document.getElementById("holdoverModal");
+        if (forceClose === true || (e && e.target.id === "holdoverModal")) {
+            modal.style.display = "none";
+            document.body.style.overflow = "";
+            activeHoldoverId = null;
+        }
+    }
+
+    document.querySelectorAll("[data-driver-id]").forEach(el => {
+        el.addEventListener("click", () => openHoldoverModal(el.getAttribute("data-driver-id")));
+        el.addEventListener("keydown", ev => {
+            if (ev.key === "Enter" || ev.key === " ") {
+                ev.preventDefault();
+                openHoldoverModal(el.getAttribute("data-driver-id"));
+            }
+        });
+    });
+
+    document.getElementById("holdoverOwnerSave")?.addEventListener("click", async () => {
+        if (!activeHoldoverId) return;
+        const owner = document.getElementById("holdoverOwnerInput").value.trim();
+        const msg = document.getElementById("holdoverAssignMsg");
+        msg.innerText = "Saving…";
+        try {
+            const res = await fetch(`/api/tenants/${encodeURIComponent(dashboardClientId)}/drivers/${activeHoldoverId}/owner`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ owner })
+            });
+            if (!res.ok) throw new Error("Save failed");
+            msg.innerText = "Saved.";
+            const insight = holdoverInsightsById[String(activeHoldoverId)];
+            if (insight) insight.owner = owner;
+        } catch {
+            msg.innerText = "Could not save.";
+        }
+    });
+
+    document.getElementById("holdoverAssignSave")?.addEventListener("click", async () => {
+        if (!activeHoldoverId) return;
+        const sel = document.getElementById("holdoverAssigneeSelect");
+        const assigneeUserId = sel?.value || "";
+        const msg = document.getElementById("holdoverAssignMsg");
+        if (!assigneeUserId) {
+            msg.innerText = "Please select a person.";
+            return;
+        }
+        msg.innerText = "Assigning…";
+        try {
+            const res = await fetch(`/api/tenants/${encodeURIComponent(dashboardClientId)}/drivers/${activeHoldoverId}/assign`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ assigneeUserId })
+            });
+            if (!res.ok) throw new Error("Assign failed");
+            const data = await res.json();
+            msg.innerText = "Assigned. They have been notified.";
+            const insight = holdoverInsightsById[String(activeHoldoverId)];
+            if (insight) {
+                insight.assigneeUserId = data.assigneeUserId;
+                insight.owner = data.assigneeName || insight.owner;
+            }
+            renderHoldoverChat(data.comments || []);
+            populateAssigneeSelect(data.assigneeUserId || "");
+        } catch {
+            msg.innerText = "Could not assign.";
+        }
+    });
+
+    document.getElementById("holdoverCommentSend")?.addEventListener("click", async () => {
+        if (!activeHoldoverId) return;
+        const input = document.getElementById("holdoverCommentInput");
+        const body = (input?.value || "").trim();
+        const msg = document.getElementById("holdoverCommentMsg");
+        if (!body) {
+            msg.innerText = "Please enter a message.";
+            return;
+        }
+        msg.innerText = "Sending…";
+        try {
+            const res = await fetch(`/api/tenants/${encodeURIComponent(dashboardClientId)}/drivers/${activeHoldoverId}/comments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "same-origin",
+                body: JSON.stringify({ body })
+            });
+            if (!res.ok) throw new Error("Send failed");
+            input.value = "";
+            msg.innerText = "Sent.";
+            await loadHoldoverWorkflow(activeHoldoverId);
+        } catch {
+            msg.innerText = "Could not send.";
+        }
+    });
+
+    if (deepLinkDriverId) {
+        setTimeout(() => openHoldoverModal(deepLinkDriverId), 300);
+    }
+
+    async function postActionUpdate(actionId, path, body) {
+        const res = await fetch(`/api/tenants/${encodeURIComponent(dashboardClientId)}/actions/${actionId}/${path}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error("Update failed");
+    }
+
+    document.querySelectorAll(".action-status-select").forEach(sel => {
+        sel.addEventListener("change", async () => {
+            const id = sel.getAttribute("data-action-id");
+            try {
+                await postActionUpdate(id, "status", { status: sel.value });
+            } catch {
+                alert("Could not update status.");
+            }
+        });
+    });
+
+    document.querySelectorAll(".action-owner-input").forEach(inp => {
+        inp.addEventListener("change", async () => {
+            const id = inp.getAttribute("data-action-id");
+            try {
+                await postActionUpdate(id, "owner", { owner: inp.value.trim() });
+            } catch {
+                alert("Could not update owner.");
+            }
+        });
+    });
+
+    document.querySelectorAll(".action-notes-input").forEach(inp => {
+        inp.addEventListener("change", async () => {
+            const id = inp.getAttribute("data-action-id");
+            try {
+                await postActionUpdate(id, "notes", { notes: inp.value });
+            } catch {
+                alert("Could not save notes.");
+            }
+        });
     });
 </script>
 <script src="~/js/dashboard-context.js" asp-append-version="true"></script>

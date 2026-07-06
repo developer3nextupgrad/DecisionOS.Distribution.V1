@@ -1,6 +1,10 @@
 using DecisionOS.Distribution.Domain;
+using DecisionOS.Distribution.Domain.Catalog;
 using DecisionOS.Distribution.Domain.Normalized;
+using DecisionOS.Distribution.Domain.Routing;
+using DecisionOS.Distribution.Domain.Scoring;
 using DecisionOS.Distribution.Domain.Uploads;
+using DecisionOS.Distribution.Domain.Workflow;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -39,6 +43,24 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
     public DbSet<NormalizedInventoryRow> NormalizedInventoryRows => Set<NormalizedInventoryRow>();
     public DbSet<NormalizedArRow> NormalizedArRows => Set<NormalizedArRow>();
     public DbSet<NormalizedApRow> NormalizedApRows => Set<NormalizedApRow>();
+
+    public DbSet<CatalogKpi> CatalogKpis => Set<CatalogKpi>();
+    public DbSet<CatalogDriver> CatalogDrivers => Set<CatalogDriver>();
+    public DbSet<CatalogInfluencer> CatalogInfluencers => Set<CatalogInfluencer>();
+    public DbSet<CatalogKpiDriverMap> CatalogKpiDriverMaps => Set<CatalogKpiDriverMap>();
+    public DbSet<CatalogDriverInfluencerMap> CatalogDriverInfluencerMaps => Set<CatalogDriverInfluencerMap>();
+    public DbSet<CatalogScoreComponent> CatalogScoreComponents => Set<CatalogScoreComponent>();
+    public DbSet<CatalogModule> CatalogModules => Set<CatalogModule>();
+    public DbSet<CatalogOutputArea> CatalogOutputAreas => Set<CatalogOutputArea>();
+
+    public DbSet<IssuePriorityScore> IssuePriorityScores => Set<IssuePriorityScore>();
+    public DbSet<TenantKpiSelection> TenantKpiSelections => Set<TenantKpiSelection>();
+    public DbSet<InfluencerEvidence> InfluencerEvidences => Set<InfluencerEvidence>();
+    public DbSet<RoutingQueueItem> RoutingQueueItems => Set<RoutingQueueItem>();
+    public DbSet<HoldoverComment> HoldoverComments => Set<HoldoverComment>();
+    public DbSet<HoldoverStatusHistory> HoldoverStatusHistories => Set<HoldoverStatusHistory>();
+    public DbSet<WorkAssignment> WorkAssignments => Set<WorkAssignment>();
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -174,6 +196,70 @@ public class DecisionOsDbContext : IdentityDbContext<ApplicationUser, IdentityRo
         {
             entity.HasIndex(x => new { x.UploadBatchId, x.UploadedFileId });
             entity.HasIndex(x => new { x.TenantId, x.PeriodEnd });
+        });
+
+        modelBuilder.Entity<CatalogKpi>(entity => entity.HasKey(x => x.KpiId));
+        modelBuilder.Entity<CatalogDriver>(entity => entity.HasKey(x => x.DriverId));
+        modelBuilder.Entity<CatalogInfluencer>(entity => entity.HasKey(x => x.InfluencerId));
+        modelBuilder.Entity<CatalogScoreComponent>(entity => entity.HasKey(x => x.Component));
+        modelBuilder.Entity<CatalogModule>(entity => entity.HasKey(x => x.ModuleCode));
+        modelBuilder.Entity<CatalogOutputArea>(entity => entity.HasKey(x => x.OutputAreaCode));
+
+        modelBuilder.Entity<CatalogKpiDriverMap>(entity =>
+        {
+            entity.HasKey(x => new { x.KpiId, x.DriverId });
+            entity.HasOne(x => x.Kpi).WithMany().HasForeignKey(x => x.KpiId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CatalogDriverInfluencerMap>(entity =>
+        {
+            entity.HasKey(x => new { x.DriverId, x.InfluencerId });
+            entity.HasOne(x => x.Driver).WithMany().HasForeignKey(x => x.DriverId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Influencer).WithMany().HasForeignKey(x => x.InfluencerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IssuePriorityScore>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.PeriodEnd, x.KpiDefinitionId }).IsUnique();
+            entity.HasIndex(x => new { x.TenantId, x.PeriodEnd, x.CatalogKpiId });
+            entity.HasOne(x => x.KpiDefinition).WithMany().HasForeignKey(x => x.KpiDefinitionId).OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(x => x.CatalogKpi).WithMany().HasForeignKey(x => x.CatalogKpiId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<TenantKpiSelection>(entity =>
+        {
+            entity.HasKey(x => new { x.TenantId, x.CatalogKpiId });
+            entity.HasOne(x => x.CatalogKpi).WithMany().HasForeignKey(x => x.CatalogKpiId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<InfluencerEvidence>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.PeriodEnd, x.DriverValueId });
+            entity.HasOne(x => x.DriverValue).WithMany().HasForeignKey(x => x.DriverValueId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.Influencer).WithMany().HasForeignKey(x => x.InfluencerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RoutingQueueItem>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.PeriodEnd, x.QueueType });
+        });
+
+        modelBuilder.Entity<HoldoverComment>(entity =>
+        {
+            entity.HasIndex(x => x.DriverValueId);
+            entity.HasOne(x => x.DriverValue).WithMany().HasForeignKey(x => x.DriverValueId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<HoldoverStatusHistory>(entity =>
+        {
+            entity.HasIndex(x => x.DriverValueId);
+            entity.HasOne(x => x.DriverValue).WithMany().HasForeignKey(x => x.DriverValueId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkAssignment>(entity =>
+        {
+            entity.HasIndex(x => new { x.TenantId, x.PeriodEnd, x.TargetType, x.TargetId });
         });
     }
 }

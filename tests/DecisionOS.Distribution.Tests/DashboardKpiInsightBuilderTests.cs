@@ -80,7 +80,8 @@ public class DashboardKpiInsightBuilderTests
             d => (d.Target * 100m).ToString("F1") + "%",
             _ => "—");
 
-        Assert.Contains("below target", insights[20].GapSummary, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("Critical", insights[20].StatusHeadline, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("below your goal", insights[20].GapSummary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Urgent", insights[20].StatusHeadline, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("Urgent", insights[20].StatusLabel);
     }
 }

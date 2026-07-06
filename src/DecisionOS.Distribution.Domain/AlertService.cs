@@ -28,7 +28,7 @@ public class AlertService : IAlertService
             KpiDefinitionId = winner.KpiDefinitionId,
             Severity = winner.Status,
             ReasonSummary =
-                $"{definition.Name} is {winner.Status} at {FormatKpiValue(definition, winner.Value)} (target: {FormatKpiValue(definition, definition.Target)})"
+                $"{definition.Name} is {OwnerLanguage.PlainStatusLabel(winner.Status).ToLowerInvariant()} at {FormatKpiValue(definition, winner.Value)} (goal: {FormatKpiValue(definition, definition.Target)})"
         };
     }
 

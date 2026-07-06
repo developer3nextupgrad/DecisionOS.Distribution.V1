@@ -1,0 +1,62 @@
+@page
+@model CatalogKpisModel
+@{
+    ViewData["Title"] = "Catalog KPI selection";
+    Layout = "_IndexLayout";
+}
+
+<div class="flex-1 w-full px-4 sm:px-6 md:px-8 py-6 max-w-4xl mx-auto">
+    <h1 class="text-2xl font-extrabold font-headline mb-2">Catalog KPI pin / exclude</h1>
+    <p class="text-sm text-on-surface-variant mb-6">
+        Tenant: <strong>@(Model.Tenant?.Name)</strong> — applies when <code>UseDynamicTop7</code> is enabled.
+    </p>
+
+    @if (Model.Rows.Count == 0)
+    {
+        <p class="text-sm">No catalog KPIs imported yet. <a href="/Admin/Catalog/Import" class="text-primary">Import catalog</a>.</p>
+    }
+    else
+    {
+        <div class="overflow-x-auto rounded-xl border">
+            <table class="w-full text-sm">
+                <thead class="bg-surface-container-low text-left">
+                    <tr>
+                        <th class="px-4 py-3">ID</th>
+                        <th class="px-4 py-3">Name</th>
+                        <th class="px-4 py-3">Legacy</th>
+                        <th class="px-4 py-3">Pinned</th>
+                        <th class="px-4 py-3">Excluded</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr class="border-t">
+                            <td class="px-4 py-3 font-mono text-xs">@row.CatalogKpiId</td>
+                            <td class="px-4 py-3">@row.Name</td>
+                            <td class="px-4 py-3">@(row.LegacyCode ?? "—")</td>
+                            <td class="px-4 py-3">
+                                <form method="post" asp-page-handler="Toggle">
+                                    <input type="hidden" name="tenantId" value="@Model.TenantId" />
+                                    <input type="hidden" name="catalogKpiId" value="@row.CatalogKpiId" />
+                                    <input type="hidden" name="action" value="pin" />
+                                    <button type="submit" class="text-primary font-semibold">@(row.IsPinned ? "Unpin" : "Pin")</button>
+                                </form>
+                            </td>
+                            <td class="px-4 py-3">
+                                <form method="post" asp-page-handler="Toggle">
+                                    <input type="hidden" name="tenantId" value="@Model.TenantId" />
+                                    <input type="hidden" name="catalogKpiId" value="@row.CatalogKpiId" />
+                                    <input type="hidden" name="action" value="exclude" />
+                                    <button type="submit" class="text-primary font-semibold">@(row.IsExcluded ? "Include" : "Exclude")</button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <a href="/Admin/Tenants/Overrides/Kpis?tenantId=@Model.TenantId" class="inline-block mt-6 text-sm text-primary font-semibold">← Threshold overrides</a>
+</div>

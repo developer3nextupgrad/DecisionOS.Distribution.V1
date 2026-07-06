@@ -45,7 +45,7 @@ See `docs/Solution-Linkage-and-Import-Analysis.md` for an end-to-end explanation
 
 **Simplified detection rules (V1):** Authoritative week-ending dates come from **Weekly rollup** and **Sales** week columns (plausible years only). AR invoice/due dates are not used as reporting weeks. AR/AP/Inventory detail is staged for the **latest operational week** (last week with sales); rollup supplies per-week KPI inputs where present.
 
-**Dashboard:** `/` selects tenant, optional buyer, and week; `/Dashboard` shows KPIs, top alert, weekly focus, and holdover improvements. Week list excludes invalid legacy dates. Buyer filter scopes the holdover table; KPI cards stay distributor-wide unless data is missing for that week.
+**Dashboard:** `/` selects tenant, optional buyer, and week; `/Dashboard` shows KPIs, top alert, weekly focus, and holdover improvements. Holdover modal supports **assign to user**, **activity/comments**, and links from **/Notifications**. Week list excludes invalid legacy dates. Buyer filter scopes the holdover table; KPI cards stay distributor-wide unless data is missing for that week.
 
 ### Layer Responsibilities
 

@@ -17,6 +17,7 @@ public class IndexModel : PageModel
     public SelectList? ProfileOptions { get; private set; }
 
     public IReadOnlyList<Domain.KpiDefinition> Items { get; private set; } = Array.Empty<Domain.KpiDefinition>();
+    public bool ShowProfileEmptyHint { get; private set; }
 
     public async Task OnGetAsync()
     {
@@ -27,11 +28,23 @@ public class IndexModel : PageModel
             .ToListAsync();
         ProfileOptions = new SelectList(profiles, "Id", "Name", ProfileId);
 
+        if (ProfileId is null)
+        {
+            Items = await _db.KpiDefinitions
+                .Where(k => k.BusinessProfileId == null)
+                .OrderBy(k => k.AlertPriority)
+                .ThenBy(k => k.Name)
+                .ToListAsync();
+            return;
+        }
+
         Items = await _db.KpiDefinitions
             .Where(k => k.BusinessProfileId == ProfileId)
             .OrderBy(k => k.AlertPriority)
             .ThenBy(k => k.Name)
             .ToListAsync();
+
+        ShowProfileEmptyHint = Items.Count == 0;
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(int id)

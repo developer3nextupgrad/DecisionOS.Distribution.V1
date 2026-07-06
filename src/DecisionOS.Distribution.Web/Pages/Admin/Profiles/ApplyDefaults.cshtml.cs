@@ -16,6 +16,7 @@ public class ApplyDefaultsModel : PageModel
     public Domain.BusinessProfile? Profile { get; private set; }
     public int KpisCloned { get; private set; }
     public int DriversCloned { get; private set; }
+    public int InfluencersCloned { get; private set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -31,6 +32,7 @@ public class ApplyDefaultsModel : PageModel
 
         var existingKpis = await _db.KpiDefinitions.AnyAsync(k => k.BusinessProfileId == Id);
         var existingDrivers = await _db.DriverDefinitions.AnyAsync(d => d.BusinessProfileId == Id);
+        var existingInfluencers = await _db.InfluencerDefinitions.AnyAsync(i => i.BusinessProfileId == Id);
 
         if (!existingKpis)
         {
@@ -76,6 +78,28 @@ public class ApplyDefaultsModel : PageModel
             }
 
             DriversCloned = globals.Count;
+        }
+
+        if (!existingInfluencers)
+        {
+            var globals = await _db.InfluencerDefinitions.Where(i => i.BusinessProfileId == null).ToListAsync();
+            foreach (var g in globals)
+            {
+                _db.InfluencerDefinitions.Add(new Domain.InfluencerDefinition
+                {
+                    BusinessProfileId = Id,
+                    PillarCode = g.PillarCode,
+                    DriverCode = g.DriverCode,
+                    InfluencerCode = g.InfluencerCode,
+                    DisplayName = g.DisplayName,
+                    Description = g.Description,
+                    Weight = g.Weight,
+                    Direction = g.Direction,
+                    IsActive = g.IsActive
+                });
+            }
+
+            InfluencersCloned = globals.Count;
         }
 
         await _db.SaveChangesAsync();
