@@ -178,6 +178,7 @@ builder.Services.AddScoped<ICatalogKpiDefinitionSyncService, CatalogKpiDefinitio
 builder.Services.AddScoped<IWorkbookAnalyzer, WorkbookAnalyzer>();
 builder.Services.AddScoped<ISimplifiedWorkbookImportService, SimplifiedWorkbookImportService>();
 builder.Services.AddScoped<ISimplifiedWorkbookReviewService, SimplifiedWorkbookReviewService>();
+builder.Services.AddScoped<IExcelMapperService, ExcelMapperService>();
 builder.Services.AddScoped<UploadBatchImportService>();
 builder.Services.AddScoped<DashboardContextService>();
 

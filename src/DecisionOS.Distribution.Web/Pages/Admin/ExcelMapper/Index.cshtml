@@ -1,0 +1,49 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.ExcelMapper.IndexModel
+@{
+    ViewData["Title"] = "Excel Mapper";
+    Layout = "_Layout";
+}
+
+<div class="max-w-[900px] mx-auto space-y-8">
+    <div>
+        <h1 class="text-3xl font-headline font-bold">Excel Mapper</h1>
+        <p class="text-sm text-on-surface-variant mt-1">
+            Upload a distributor Excel pack, review automatic sheet and column mappings, then download a
+            DecisionOS-ready workbook for Simplified upload.
+        </p>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.Error</div>
+    }
+
+    <div class="rounded-xl border border-surface-container-high bg-surface-container-lowest p-5 space-y-3">
+        <div class="text-sm font-semibold">How it works</div>
+        <ol class="text-sm text-on-surface-variant list-decimal pl-5 space-y-1">
+            <li><strong>Analyze</strong> — <span class="font-mono">WorkbookAnalyzer</span> classifies each tab (Sales, AR, Weekly rollup, etc.) using sheet names and column headers.</li>
+            <li><strong>Map columns</strong> — <span class="font-mono">ColumnSynonymMatcher</span> suggests field mappings; you can override roles and columns before export.</li>
+            <li><strong>Download</strong> — generates a workbook with standard tab names and headers matching the Simplified template.</li>
+            <li><strong>Upload</strong> — use the file in Operations → Uploads → Simplified.</li>
+        </ol>
+        <a href="/downloads/DecisionOS_Simplified_Workbook_Template.xlsx"
+           download="DecisionOS_Simplified_Workbook_Template.xlsx"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-bold hover:bg-primary/5">
+            Download reference template (.xlsx)
+        </a>
+    </div>
+
+    <form method="post" asp-page-handler="Upload" enctype="multipart/form-data"
+          class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-4">
+        @Html.AntiForgeryToken()
+        <div>
+            <label class="block text-sm font-semibold mb-2">Source Excel workbook</label>
+            <input type="file" name="WorkbookFile" accept=".xlsx,.xls" class="w-full" />
+            <p class="text-xs text-on-surface-variant mt-1">
+                Multi-tab .xlsx from your ERP or DPOS export. README and documentation tabs are auto-classified as Skip.
+            </p>
+        </div>
+        <button type="submit" class="bg-primary text-white px-6 py-2 rounded-xl font-bold">Analyze workbook</button>
+    </form>
+</div>

@@ -15,6 +15,7 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.4" />
     <PackageReference Include="ExcelDataReader" Version="3.8.0" />
     <PackageReference Include="ExcelDataReader.DataSet" Version="3.8.0" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="3.0.2" />
   </ItemGroup>
 
   <ItemGroup>

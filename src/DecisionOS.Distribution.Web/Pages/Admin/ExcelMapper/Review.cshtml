@@ -1,0 +1,186 @@
+@page
+@model DecisionOS.Distribution.Web.Pages.Admin.ExcelMapper.ReviewModel
+@using DecisionOS.Distribution.Domain.Uploads
+@using DecisionOS.Distribution.Infrastructure.Workbooks
+@{
+    ViewData["Title"] = "Excel Mapper — Review";
+    Layout = "_Layout";
+}
+
+@if (Model.Detection is null)
+{
+    <div class="text-error font-semibold">@(!string.IsNullOrWhiteSpace(Model.ActionError) ? Model.ActionError : "Session not found.")</div>
+    <a href="/Admin/ExcelMapper" class="text-sm text-primary mt-4 inline-block">← Start over</a>
+    return;
+}
+
+<div class="max-w-[1280px] mx-auto space-y-8">
+    <div class="flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-headline font-bold">Map workbook</h1>
+            <p class="text-sm text-on-surface-variant mt-1">
+                @Model.Detection.Sheets.Count sheet(s) detected · @Model.Detection.FilteredPeriodEnds.Count period(s) found
+            </p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ActionError))
+    {
+        <div class="p-3 rounded-lg bg-error/10 text-error text-sm font-semibold">@Model.ActionError</div>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.ActionSuccess))
+    {
+        <div class="p-3 rounded-lg bg-green-500/10 text-green-800 text-sm font-semibold">@Model.ActionSuccess</div>
+    }
+
+    <form method="post" id="reviewForm">
+        @Html.AntiForgeryToken()
+
+        <div class="space-y-6">
+            <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                <div class="text-xs uppercase text-on-surface-variant mb-2">Sheet roles (override classification)</div>
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-on-surface-variant text-xs">
+                            <th class="pb-2">Sheet</th>
+                            <th class="pb-2">Role</th>
+                            <th class="pb-2">Export tab</th>
+                            <th class="pb-2">Rows</th>
+                            <th class="pb-2"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var si = 0; si < Model.ReviewSheets.Count; si++)
+                        {
+                            var row = Model.ReviewSheets[si];
+                            var detected = Model.Detection.Sheets.FirstOrDefault(s => s.SheetName == row.SheetName);
+                            var exportName = ExcelMapperOutputCatalog.SheetNameForKind(row.Kind);
+                            <tr class="border-t border-surface-container-high">
+                                <td class="py-2 font-mono">
+                                    <input type="hidden" asp-for="ReviewSheets[si].SheetName" />
+                                    @row.SheetName
+                                    @if (detected is not null && detected.Confidence < 0.7)
+                                    {
+                                        <span class="text-[10px] text-amber-700 ml-1">low conf</span>
+                                    }
+                                </td>
+                                <td class="py-2">
+                                    <select asp-for="ReviewSheets[si].Kind" asp-items="Model.SheetKindOptions" class="text-sm rounded border-surface-container-high"></select>
+                                </td>
+                                <td class="py-2 text-on-surface-variant font-mono text-xs">
+                                    @(exportName ?? "— skip —")
+                                </td>
+                                <td class="py-2 text-on-surface-variant">@(detected?.DataRowCount ?? 0)</td>
+                                <td class="py-2 text-right">
+                                    <a href="?sessionId=@Model.SessionId&editSheet=@Uri.EscapeDataString(row.SheetName)" class="text-primary text-xs font-semibold">Edit mappings</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.MappingEditSheet is not null)
+            {
+                var editIndex = Model.ReviewSheets.FindIndex(r => string.Equals(r.SheetName, Model.MappingEditSheet.SheetName, StringComparison.OrdinalIgnoreCase));
+                if (editIndex >= 0)
+                {
+                    <div class="bg-surface-container-lowest border border-primary/30 rounded-xl p-6">
+                        <div class="text-xs uppercase text-on-surface-variant mb-2">
+                            Column mapping — <span class="font-mono">@Model.MappingEditSheet.SheetName</span>
+                            <span class="normal-case text-on-surface-variant">(@Model.MappingEditSheet.Kind)</span>
+                        </div>
+                        @if (Model.MappingEditIsReferenceOnly)
+                        {
+                            <p class="text-sm text-on-surface-variant mb-3">
+                                Reference/documentation tab — set <strong>Role</strong> to <strong>Skip</strong>. No data columns are exported.
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="text-sm text-on-surface-variant mb-3">
+                                Map each Excel column (left) to a DecisionOS field (right). Auto-suggestions come from
+                                <span class="font-mono">ColumnSynonymMatcher</span> header synonyms.
+                            </p>
+                            <div class="space-y-2 max-h-96 overflow-auto">
+                                @for (var mi = 0; mi < Model.ReviewSheets[editIndex].MappingKeys!.Count; mi++)
+                                {
+                                    var sourceHeader = Model.ReviewSheets[editIndex].MappingKeys![mi];
+                                    var mappedValue = Model.ReviewSheets[editIndex].MappingValues![mi];
+                                    var mappingWarning = SystemFieldDisplayCatalog.GetMappingWarning(sourceHeader, mappedValue);
+                                    <div class="flex flex-wrap gap-2 items-start text-sm border-b border-surface-container-high/60 pb-2">
+                                        <input type="hidden" asp-for="ReviewSheets[editIndex].MappingKeys[mi]" />
+                                        <div class="w-48 shrink-0">
+                                            <div class="font-mono truncate" title="@sourceHeader">@sourceHeader</div>
+                                            <div class="text-[10px] text-on-surface-variant">Excel column</div>
+                                        </div>
+                                        <span class="pt-1">→</span>
+                                        <div class="flex-1 min-w-[200px]">
+                                            <select asp-for="ReviewSheets[editIndex].MappingValues[mi]" class="rounded border-surface-container-high text-sm w-full">
+                                                <option value="">— not mapped —</option>
+                                                <option value="Ignore">@SystemFieldDisplayCatalog.FormatOption("Ignore")</option>
+                                                @foreach (var sf in Model.SystemFieldsForEdit.Where(f => !string.Equals(f, "Ignore", StringComparison.OrdinalIgnoreCase)))
+                                                {
+                                                    <option value="@sf" title="@SystemFieldDisplayCatalog.GetHelp(sf)">@SystemFieldDisplayCatalog.FormatOption(sf)</option>
+                                                }
+                                            </select>
+                                            @if (!string.IsNullOrWhiteSpace(mappedValue) && mappedValue != "Ignore")
+                                            {
+                                                <div class="text-[11px] text-on-surface-variant mt-1">@SystemFieldDisplayCatalog.GetHelp(mappedValue)</div>
+                                            }
+                                            @if (!string.IsNullOrWhiteSpace(mappingWarning))
+                                            {
+                                                <div class="text-[11px] text-amber-800 mt-1">⚠ @mappingWarning</div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            }
+
+            @if (Model.Detection.Warnings.Count > 0)
+            {
+                <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
+                    <div class="font-semibold mb-2">Detection warnings</div>
+                    <ul class="list-disc pl-5 space-y-1">
+                        @foreach (var w in Model.Detection.Warnings)
+                        {
+                            <li>@w</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (Model.Detection.FilteredPeriodEnds.Count > 0)
+            {
+                <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
+                    <div class="text-xs uppercase text-on-surface-variant mb-2">Week-ending dates detected</div>
+                    <div class="flex flex-wrap gap-2 text-sm font-mono">
+                        @foreach (var d in Model.Detection.FilteredPeriodEnds.OrderBy(x => x))
+                        {
+                            <span class="px-2 py-1 rounded border border-surface-container-high">@d.ToString("yyyy-MM-dd")</span>
+                        }
+                    </div>
+                </div>
+            }
+
+            <div class="flex flex-wrap gap-3">
+                <button type="submit" formaction="?sessionId=@Model.SessionId&amp;handler=SaveReview"
+                        class="px-6 py-3 rounded-xl font-bold bg-surface-container-high border">
+                    Save mappings
+                </button>
+                <button type="submit" formaction="?sessionId=@Model.SessionId&amp;handler=Generate"
+                        class="px-6 py-3 rounded-xl font-bold bg-primary text-white">
+                    Generate &amp; download mapped workbook
+                </button>
+            </div>
+        </div>
+    </form>
+
+    <div class="border-t border-surface-container-high pt-6">
+        <a href="/Admin/ExcelMapper" class="text-sm text-on-surface-variant hover:text-primary">← Upload another file</a>
+    </div>
+</div>
