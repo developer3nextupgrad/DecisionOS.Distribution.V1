@@ -1,0 +1,16 @@
+@if (User.Identity?.IsAuthenticated == true)
+{
+    <script>
+        (async function () {
+            try {
+                const res = await fetch("/api/notifications/unread-count", { credentials: "same-origin" });
+                if (!res.ok) return;
+                const data = await res.json();
+                const badge = document.getElementById("notificationsBadge");
+                if (!badge || !data.count) return;
+                badge.textContent = data.count > 9 ? "9+" : String(data.count);
+                badge.classList.remove("hidden");
+            } catch { /* ignore */ }
+        })();
+    </script>
+}

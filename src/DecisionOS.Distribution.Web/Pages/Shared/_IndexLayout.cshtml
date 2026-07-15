@@ -87,6 +87,7 @@
                                     || User.IsInRole(DecisionOS.Distribution.Domain.Security.AppRoles.Developer))
                     {
                         <a href="/Operations/ImportRuns" class="hover:text-primary">Imports</a>
+                        <a href="/Operations/Uploads" class="hover:text-primary">Uploads</a>
                     }
                 }
             </nav>
@@ -94,9 +95,7 @@
             <!-- RIGHT -->
             <div class="flex items-center gap-4">
 
-                <span class="material-symbols-outlined text-on-surface-variant cursor-pointer">
-                    notifications
-                </span>
+                @await Component.InvokeAsync("NotificationBell")
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -139,5 +138,6 @@
     </footer>
 
     @await RenderSectionAsync("Scripts", required: false)
+    <partial name="Shared/_NotificationsScript" />
 </body>
 </html>  

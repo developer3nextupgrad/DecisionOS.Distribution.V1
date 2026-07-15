@@ -1,0 +1,9 @@
+@model int
+
+<a href="/Notifications" id="notificationsLink" class="relative material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary" title="Notifications">
+    notifications
+    <span id="notificationsBadge"
+          class="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[10px] font-bold flex items-center justify-center @(Model > 0 ? "" : "hidden")">
+        @(Model > 9 ? "9+" : Model.ToString())
+    </span>
+</a>

@@ -96,10 +96,7 @@
 
             <div class="flex items-center gap-4">
 
-                <a href="/Notifications" id="notificationsLink" class="relative material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary" title="Notifications">
-                    notifications
-                    <span id="notificationsBadge" class="hidden absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 rounded-full bg-error text-white text-[10px] font-bold flex items-center justify-center">0</span>
-                </a>
+                @await Component.InvokeAsync("NotificationBell")
 
                 @if (User.Identity?.IsAuthenticated == true)
                 {
@@ -216,22 +213,7 @@
         © @DateTime.UtcNow.Year Decision OS • All Rights Reserved
     </footer>
 
-    @if (User.Identity?.IsAuthenticated == true)
-    {
-        <script>
-            (async function () {
-                try {
-                    const res = await fetch("/api/notifications/unread-count", { credentials: "same-origin" });
-                    if (!res.ok) return;
-                    const data = await res.json();
-                    const badge = document.getElementById("notificationsBadge");
-                    if (!badge || !data.count) return;
-                    badge.textContent = data.count > 9 ? "9+" : String(data.count);
-                    badge.classList.remove("hidden");
-                } catch { /* ignore */ }
-            })();
-        </script>
-    }
+    <partial name="Shared/_NotificationsScript" />
 
 </body>
 </html>
