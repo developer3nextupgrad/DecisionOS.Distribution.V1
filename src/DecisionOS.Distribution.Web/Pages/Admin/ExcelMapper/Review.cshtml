@@ -15,13 +15,26 @@
 }
 
 <div class="max-w-[1280px] mx-auto space-y-8">
-    <div class="flex items-end justify-between">
+    <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
-            <h1 class="text-3xl font-headline font-bold">Map workbook</h1>
+            <h1 class="text-3xl font-headline font-bold">Review &amp; map your workbook</h1>
             <p class="text-sm text-on-surface-variant mt-1">
-                @Model.Detection.Sheets.Count sheet(s) detected · @Model.Detection.FilteredPeriodEnds.Count period(s) found
+                @Model.Detection.Sheets.Count sheet(s) found · @Model.Detection.FilteredPeriodEnds.Count week-ending date(s) found
             </p>
         </div>
+    </div>
+
+    <div class="rounded-xl border border-surface-container-high bg-surface-container-lowest p-4">
+        <div class="text-xs uppercase text-on-surface-variant mb-2">Your progress</div>
+        <ol class="grid grid-cols-1 md:grid-cols-4 gap-3 text-sm">
+            <li class="opacity-60"><span class="font-bold text-primary">1.</span> Upload file</li>
+            <li><span class="font-bold text-primary">2.</span> Check each tab’s role</li>
+            <li><span class="font-bold text-primary">3.</span> Fix column mappings if needed</li>
+            <li><span class="font-bold text-primary">4.</span> Download → upload in Simplified</li>
+        </ol>
+        <p class="text-xs text-on-surface-variant mt-3">
+            Tip: set every tab’s Role, click <strong>Save mappings</strong>, then download. Use <strong>Skip</strong> for README or unused tabs.
+        </p>
     </div>
 
     @if (!string.IsNullOrWhiteSpace(Model.ActionError))
@@ -33,18 +46,46 @@
         <div class="p-3 rounded-lg bg-green-500/10 text-green-800 text-sm font-semibold">@Model.ActionSuccess</div>
     }
 
+    @if (Model.Readiness is not null && (Model.Readiness.BlockingIssues.Count > 0 || Model.Readiness.Warnings.Count > 0))
+    {
+        <div class="rounded-xl border p-4 text-sm space-y-3 @(Model.Readiness.CanGenerate ? "border-amber-500/40 bg-amber-500/10" : "border-error/40 bg-error/10")">
+            <div class="font-semibold">@(Model.Readiness.CanGenerate ? "Before you download — check these" : "Fix these before download")</div>
+            @if (Model.Readiness.BlockingIssues.Count > 0)
+            {
+                <ul class="list-disc pl-5 space-y-1 text-error">
+                    @foreach (var issue in Model.Readiness.BlockingIssues)
+                    {
+                        <li>@issue</li>
+                    }
+                </ul>
+            }
+            @if (Model.Readiness.Warnings.Count > 0)
+            {
+                <ul class="list-disc pl-5 space-y-1 text-amber-900">
+                    @foreach (var w in Model.Readiness.Warnings)
+                    {
+                        <li>@w</li>
+                    }
+                </ul>
+            }
+        </div>
+    }
+
     <form method="post" id="reviewForm">
         @Html.AntiForgeryToken()
 
         <div class="space-y-6">
             <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
-                <div class="text-xs uppercase text-on-surface-variant mb-2">Sheet roles (override classification)</div>
+                <div class="text-xs uppercase text-on-surface-variant mb-1">Step 2 — What is each Excel tab?</div>
+                <p class="text-sm text-on-surface-variant mb-3">
+                    The system guessed each tab’s purpose. Change the Role if a guess is wrong, then Save.
+                </p>
                 <table class="w-full text-sm">
                     <thead>
                         <tr class="text-left text-on-surface-variant text-xs">
-                            <th class="pb-2">Sheet</th>
-                            <th class="pb-2">Role</th>
-                            <th class="pb-2">Export tab</th>
+                            <th class="pb-2">Your Excel tab</th>
+                            <th class="pb-2">Role (what it is)</th>
+                            <th class="pb-2">Becomes in download</th>
                             <th class="pb-2">Rows</th>
                             <th class="pb-2"></th>
                         </tr>
@@ -55,24 +96,32 @@
                             var row = Model.ReviewSheets[si];
                             var detected = Model.Detection.Sheets.FirstOrDefault(s => s.SheetName == row.SheetName);
                             var exportName = ExcelMapperOutputCatalog.SheetNameForKind(row.Kind);
+                            var lowConf = detected is not null && detected.Confidence < 0.7;
                             <tr class="border-t border-surface-container-high">
                                 <td class="py-2 font-mono">
                                     <input type="hidden" asp-for="ReviewSheets[si].SheetName" />
                                     @row.SheetName
-                                    @if (detected is not null && detected.Confidence < 0.7)
+                                    @if (lowConf)
                                     {
-                                        <span class="text-[10px] text-amber-700 ml-1">low conf</span>
+                                        <div class="text-[11px] text-amber-800 mt-1 max-w-xs">
+                                            ⚠ @ExcelMapperWarningGuide.LowConfidenceMessage(row.SheetName)
+                                            <div class="text-on-surface-variant">@ExcelMapperWarningGuide.LowConfidenceFix()</div>
+                                        </div>
                                     }
                                 </td>
                                 <td class="py-2">
-                                    <select asp-for="ReviewSheets[si].Kind" asp-items="Model.SheetKindOptions" class="text-sm rounded border-surface-container-high"></select>
+                                    <select asp-for="ReviewSheets[si].Kind" asp-items="Model.SheetKindOptions"
+                                            class="text-sm rounded border-surface-container-high max-w-xs"
+                                            title="@WorkbookSheetKindDisplay.Help(row.Kind)"></select>
+                                    <div class="text-[10px] text-on-surface-variant mt-1 max-w-xs">@WorkbookSheetKindDisplay.Help(row.Kind)</div>
                                 </td>
                                 <td class="py-2 text-on-surface-variant font-mono text-xs">
-                                    @(exportName ?? "— skip —")
+                                    @(exportName ?? "— not exported —")
                                 </td>
                                 <td class="py-2 text-on-surface-variant">@(detected?.DataRowCount ?? 0)</td>
                                 <td class="py-2 text-right">
-                                    <a href="?sessionId=@Model.SessionId&editSheet=@Uri.EscapeDataString(row.SheetName)" class="text-primary text-xs font-semibold">Edit mappings</a>
+                                    <a href="?sessionId=@Model.SessionId&editSheet=@Uri.EscapeDataString(row.SheetName)"
+                                       class="text-primary text-xs font-semibold">Edit columns</a>
                                 </td>
                             </tr>
                         }
@@ -87,20 +136,23 @@
                 {
                     <div class="bg-surface-container-lowest border border-primary/30 rounded-xl p-6">
                         <div class="text-xs uppercase text-on-surface-variant mb-2">
-                            Column mapping — <span class="font-mono">@Model.MappingEditSheet.SheetName</span>
-                            <span class="normal-case text-on-surface-variant">(@Model.MappingEditSheet.Kind)</span>
+                            Step 3 — Match columns for
+                            <span class="font-mono">@Model.MappingEditSheet.SheetName</span>
                         </div>
+                        <p class="text-sm text-on-surface-variant mb-1">
+                            Role: <strong>@WorkbookSheetKindDisplay.Label(Model.MappingEditSheet.Kind)</strong>
+                        </p>
                         @if (Model.MappingEditIsReferenceOnly)
                         {
                             <p class="text-sm text-on-surface-variant mb-3">
-                                Reference/documentation tab — set <strong>Role</strong> to <strong>Skip</strong>. No data columns are exported.
+                                This is a notes / reference tab. Set <strong>Role</strong> to <strong>Skip</strong> so it is not exported.
                             </p>
                         }
                         else
                         {
                             <p class="text-sm text-on-surface-variant mb-3">
-                                Map each Excel column (left) to a DecisionOS field (right). Auto-suggestions come from
-                                <span class="font-mono">ColumnSynonymMatcher</span> header synonyms.
+                                For each column in your Excel (left), choose the DecisionOS field it matches (right).
+                                Leave “not mapped” or choose Ignore for columns you do not need.
                             </p>
                             <div class="space-y-2 max-h-96 overflow-auto">
                                 @for (var mi = 0; mi < Model.ReviewSheets[editIndex].MappingKeys!.Count; mi++)
@@ -112,7 +164,7 @@
                                         <input type="hidden" asp-for="ReviewSheets[editIndex].MappingKeys[mi]" />
                                         <div class="w-48 shrink-0">
                                             <div class="font-mono truncate" title="@sourceHeader">@sourceHeader</div>
-                                            <div class="text-[10px] text-on-surface-variant">Excel column</div>
+                                            <div class="text-[10px] text-on-surface-variant">Your Excel column</div>
                                         </div>
                                         <span class="pt-1">→</span>
                                         <div class="flex-1 min-w-[200px]">
@@ -144,11 +196,18 @@
             @if (Model.Detection.Warnings.Count > 0)
             {
                 <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 text-sm">
-                    <div class="font-semibold mb-2">Detection warnings</div>
-                    <ul class="list-disc pl-5 space-y-1">
+                    <div class="font-semibold mb-2">Things to double-check</div>
+                    <ul class="space-y-3">
                         @foreach (var w in Model.Detection.Warnings)
                         {
-                            <li>@w</li>
+                            var explained = ExcelMapperWarningGuide.Explain(w);
+                            <li>
+                                <div>@explained.Message</div>
+                                @if (!string.IsNullOrWhiteSpace(explained.SuggestedFix))
+                                {
+                                    <div class="text-amber-900 mt-0.5">→ @explained.SuggestedFix</div>
+                                }
+                            </li>
                         }
                     </ul>
                 </div>
@@ -157,7 +216,8 @@
             @if (Model.Detection.FilteredPeriodEnds.Count > 0)
             {
                 <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6">
-                    <div class="text-xs uppercase text-on-surface-variant mb-2">Week-ending dates detected</div>
+                    <div class="text-xs uppercase text-on-surface-variant mb-2">Week-ending dates found</div>
+                    <p class="text-xs text-on-surface-variant mb-2">These weeks can be imported after you download and use Simplified upload.</p>
                     <div class="flex flex-wrap gap-2 text-sm font-mono">
                         @foreach (var d in Model.Detection.FilteredPeriodEnds.OrderBy(x => x))
                         {
@@ -167,15 +227,19 @@
                 </div>
             }
 
-            <div class="flex flex-wrap gap-3">
+            <div class="flex flex-wrap gap-3 items-center">
                 <button type="submit" formaction="?sessionId=@Model.SessionId&amp;handler=SaveReview"
                         class="px-6 py-3 rounded-xl font-bold bg-surface-container-high border">
                     Save mappings
                 </button>
                 <button type="submit" formaction="?sessionId=@Model.SessionId&amp;handler=Generate"
-                        class="px-6 py-3 rounded-xl font-bold bg-primary text-white">
+                        class="px-6 py-3 rounded-xl font-bold bg-primary text-white @(Model.Readiness?.CanGenerate == false ? "opacity-80" : "")"
+                        title="@(Model.Readiness?.CanGenerate == false ? "Fix blocking issues first" : "Download DecisionOS-ready workbook")">
                     Generate &amp; download mapped workbook
                 </button>
+                <span class="text-xs text-on-surface-variant">
+                    Next: Operations → Uploads → Simplified → upload the downloaded file.
+                </span>
             </div>
         </div>
     </form>

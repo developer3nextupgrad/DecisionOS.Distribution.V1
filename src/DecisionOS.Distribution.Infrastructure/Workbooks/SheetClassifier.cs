@@ -94,8 +94,9 @@ public static class SheetClassifier
         if (candidates.Count == 0)
             return (WorkbookSheetKind.Unknown, null, 0.3);
 
+        // Third tuple value is already a 0–1 confidence constant (not a raw token match count).
         var best = candidates.OrderByDescending(c => c.Score).First();
-        return (best.Kind, best.Rt, Math.Min(1.0, best.Score / 3.0 + 0.4));
+        return (best.Kind, best.Rt, Math.Clamp(best.Score, 0.0, 1.0));
     }
 
     private static string NormalizeSheetName(string sheetName)

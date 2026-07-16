@@ -89,15 +89,18 @@ public static class SystemFieldDisplayCatalog
         if (Meta.TryGetValue(systemField, out var meta))
         {
             if (meta.Kind == MappingValueKind.Percent && looksLikeDollars && !looksLikePercent)
-                return "This Excel column looks like dollars; the selected field expects a percent/ratio.";
+                return "Mismatch: this Excel column looks like dollars, but you mapped it to a percent field. " +
+                       "Fix: pick a dollar field (e.g. AR ending balance) or map a column that contains % / ratio values.";
 
             if (meta.Kind == MappingValueKind.Dollars && looksLikePercent && !looksLikeDollars)
-                return "This Excel column looks like a percent; the selected field expects a dollar amount.";
+                return "Mismatch: this Excel column looks like a percent, but you mapped it to a dollar field. " +
+                       "Fix: pick the matching percent field (e.g. Gross margin %) or map a dollar amount column instead.";
         }
 
         if (systemField.Equals("AR_Over_60_Pct", StringComparison.OrdinalIgnoreCase) &&
             (norm.Contains("artotal", StringComparison.Ordinal) || norm.Equals("artotal", StringComparison.Ordinal)))
-            return "AR Total is a dollar column — leave unmapped or Ignore; past-due % is computed from aging buckets when possible.";
+            return "AR Total is dollars, not past-due %. Fix: set this column to Ignore (or AR ending balance), " +
+                   "and map a past-due % column — or leave past-due blank so aging detail can compute it.";
 
         return null;
     }

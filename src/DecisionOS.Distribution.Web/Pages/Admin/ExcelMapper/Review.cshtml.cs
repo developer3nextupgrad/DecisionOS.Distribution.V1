@@ -19,6 +19,8 @@ public class ReviewModel : PageModel
     [BindProperty] public List<SheetReviewFormRow> ReviewSheets { get; set; } = [];
 
     public WorkbookDetectionResult? Detection { get; private set; }
+    public ExcelMapperReviewInput? Review { get; private set; }
+    public ExcelMapperReadinessResult? Readiness { get; private set; }
     public string? ActionError { get; private set; }
     public string? ActionSuccess { get; private set; }
 
@@ -31,9 +33,8 @@ public class ReviewModel : PageModel
     {
         try
         {
-            Detection = await _mapper.GetDetectionAsync(SessionId, ct);
-            BuildReviewFormFromDetection();
-            LoadMappingEditor();
+            await LoadStateAsync(ct);
+            ActionSuccess = TempData["ExcelMapperSuccess"] as string;
             return Page();
         }
         catch (Exception ex)
@@ -49,14 +50,14 @@ public class ReviewModel : PageModel
         {
             var input = BuildReviewInputFromForm();
             await _mapper.SaveReviewAsync(SessionId, input, ct);
-            ActionSuccess = "Mappings saved.";
+            TempData["ExcelMapperSuccess"] =
+                "Mappings saved. Uncertain tab warnings clear after you choose a Role and save.";
             return RedirectToPage(new { sessionId = SessionId, editSheet = EditSheet });
         }
         catch (Exception ex)
         {
             ActionError = ex.Message;
-            Detection = await _mapper.GetDetectionAsync(SessionId, ct);
-            LoadMappingEditor();
+            await LoadStateAsync(ct);
             return Page();
         }
     }
@@ -67,6 +68,17 @@ public class ReviewModel : PageModel
         {
             var input = BuildReviewInputFromForm();
             await _mapper.SaveReviewAsync(SessionId, input, ct);
+
+            var detection = await _mapper.GetDetectionAsync(SessionId, ct);
+            var review = await _mapper.GetReviewAsync(SessionId, ct);
+            var readiness = _mapper.EvaluateReadiness(detection, review);
+            if (!readiness.CanGenerate)
+            {
+                ActionError = string.Join(" ", readiness.BlockingIssues);
+                await LoadStateAsync(ct);
+                return Page();
+            }
+
             var bytes = await _mapper.GenerateMappedWorkbookAsync(SessionId, ct);
             var fileName = _mapper.GetSuggestedDownloadName(SessionId);
             return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
@@ -74,11 +86,18 @@ public class ReviewModel : PageModel
         catch (Exception ex)
         {
             ActionError = ex.Message;
-            Detection = await _mapper.GetDetectionAsync(SessionId, ct);
-            BuildReviewFormFromDetection();
-            LoadMappingEditor();
+            await LoadStateAsync(ct);
             return Page();
         }
+    }
+
+    private async Task LoadStateAsync(CancellationToken ct)
+    {
+        Detection = await _mapper.GetDetectionAsync(SessionId, ct);
+        Review = await _mapper.GetReviewAsync(SessionId, ct);
+        BuildReviewFormFromReview();
+        Readiness = _mapper.EvaluateReadiness(Detection, Review);
+        LoadMappingEditor();
     }
 
     private ExcelMapperReviewInput BuildReviewInputFromForm()
@@ -88,9 +107,10 @@ public class ReviewModel : PageModel
         {
             if (string.IsNullOrWhiteSpace(row.SheetName)) continue;
             var mappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (row.MappingKeys is not null && row.MappingValues is not null)
+            var mappingsProvided = row.MappingKeys is not null;
+            if (mappingsProvided && row.MappingValues is not null)
             {
-                for (var i = 0; i < Math.Min(row.MappingKeys.Count, row.MappingValues.Count); i++)
+                for (var i = 0; i < Math.Min(row.MappingKeys!.Count, row.MappingValues.Count); i++)
                 {
                     var key = row.MappingKeys[i];
                     var val = row.MappingValues[i];
@@ -103,42 +123,69 @@ public class ReviewModel : PageModel
             {
                 SheetName = row.SheetName,
                 Kind = row.Kind,
-                ColumnMappings = mappings
+                ColumnMappings = mappings,
+                ColumnMappingsProvided = mappingsProvided
             });
         }
 
         return new ExcelMapperReviewInput { Sheets = sheets };
     }
 
-    private void BuildReviewFormFromDetection()
+    private void BuildReviewFormFromReview()
     {
-        if (Detection is null) return;
+        if (Detection is null || Review is null) return;
 
-        ReviewSheets = Detection.Sheets.Select(s => new SheetReviewFormRow
+        var reviewByName = Review.Sheets.ToDictionary(s => s.SheetName, StringComparer.OrdinalIgnoreCase);
+
+        ReviewSheets = Detection.Sheets.Select(s =>
         {
-            SheetName = s.SheetName,
-            Kind = s.Kind,
-            MappingKeys = s.Headers.ToList(),
-            MappingValues = s.Headers.Select(h =>
-                s.ColumnMappings.TryGetValue(h, out var m) ? m : "").ToList()
+            reviewByName.TryGetValue(s.SheetName, out var rev);
+            var kind = rev?.Kind ?? s.Kind;
+            var maps = rev?.ColumnMappings ?? s.ColumnMappings;
+            return new SheetReviewFormRow
+            {
+                SheetName = s.SheetName,
+                Kind = kind,
+                MappingKeys = s.Headers.ToList(),
+                MappingValues = s.Headers.Select(h =>
+                    maps.TryGetValue(h, out var m) ? m : "").ToList()
+            };
         }).ToList();
     }
 
     private void LoadMappingEditor()
     {
         SheetKindOptions = new SelectList(
-            Enum.GetValues<WorkbookSheetKind>().Select(k => new { Value = (int)k, Text = k.ToString() }),
+            Enum.GetValues<WorkbookSheetKind>()
+                .Select(k => new { Value = (int)k, Text = WorkbookSheetKindDisplay.Label(k) }),
             "Value",
             "Text");
 
-        if (!string.IsNullOrWhiteSpace(EditSheet) && Detection is not null)
+        if (!string.IsNullOrWhiteSpace(EditSheet) && Detection is not null && Review is not null)
         {
+            var reviewSheet = Review.Sheets.FirstOrDefault(s =>
+                string.Equals(s.SheetName, EditSheet, StringComparison.OrdinalIgnoreCase));
             MappingEditSheet = Detection.Sheets.FirstOrDefault(s =>
                 string.Equals(s.SheetName, EditSheet, StringComparison.OrdinalIgnoreCase));
+
             if (MappingEditSheet is not null)
             {
-                MappingEditIsReferenceOnly = WorkbookReviewFieldCatalog.IsReferenceOnly(MappingEditSheet.Kind);
-                SystemFieldsForEdit = WorkbookReviewFieldCatalog.ForKind(MappingEditSheet.Kind);
+                var kind = reviewSheet?.Kind ?? MappingEditSheet.Kind;
+                MappingEditIsReferenceOnly = WorkbookReviewFieldCatalog.IsReferenceOnly(kind);
+                SystemFieldsForEdit = WorkbookReviewFieldCatalog.ForKind(kind);
+                // Present the operator-confirmed kind in the editor subtitle
+                MappingEditSheet = new DetectedSheet
+                {
+                    SheetName = MappingEditSheet.SheetName,
+                    SheetIndex = MappingEditSheet.SheetIndex,
+                    Kind = kind,
+                    ReportType = WorkbookReviewFieldCatalog.ReportTypeForKind(kind),
+                    Confidence = MappingEditSheet.Confidence,
+                    DataRowCount = MappingEditSheet.DataRowCount,
+                    HeaderRowNumber = MappingEditSheet.HeaderRowNumber,
+                    Headers = MappingEditSheet.Headers,
+                    ColumnMappings = reviewSheet?.ColumnMappings ?? MappingEditSheet.ColumnMappings
+                };
             }
         }
     }

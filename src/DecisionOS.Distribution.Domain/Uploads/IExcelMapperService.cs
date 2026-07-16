@@ -6,7 +6,11 @@ public interface IExcelMapperService
 
     Task<WorkbookDetectionResult> GetDetectionAsync(Guid sessionId, CancellationToken ct = default);
 
+    Task<ExcelMapperReviewInput> GetReviewAsync(Guid sessionId, CancellationToken ct = default);
+
     Task SaveReviewAsync(Guid sessionId, ExcelMapperReviewInput input, CancellationToken ct = default);
+
+    ExcelMapperReadinessResult EvaluateReadiness(WorkbookDetectionResult detection, ExcelMapperReviewInput review);
 
     Task<byte[]> GenerateMappedWorkbookAsync(Guid sessionId, CancellationToken ct = default);
 
