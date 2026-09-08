@@ -28,14 +28,21 @@
     <div class="rounded-xl border border-surface-container-high bg-surface-container-lowest p-5 space-y-3">
         <div class="text-sm font-semibold">Need a starter file?</div>
         <p class="text-xs text-on-surface-variant">
-            Download the official multi-tab template (Weekly_Financials, Sales, AR, AP, Inventory, Customers, Vendors, Holdovers).
-            Includes <span class="font-mono">Net_Profit_%</span>, <span class="font-mono">AR_Ending</span>, and other fields for full dashboard coverage.
+            Financials template: P&amp;L, balance sheet, cash flow, and invoice AR (headers on row 1; add months as new rows).
+            Full template also includes sales, inventory, AP, and holdovers for all seven dashboard KPIs.
         </p>
-        <a href="/downloads/DecisionOS_Simplified_Workbook_Template.xlsx"
-           download="DecisionOS_Simplified_Workbook_Template.xlsx"
-           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-bold hover:bg-primary/5">
-            Download workbook template (.xlsx)
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="/downloads/DecisionOS_Financials_Upload_Template.xlsx"
+               download="DecisionOS_Financials_Upload_Template.xlsx"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-bold hover:opacity-90">
+                Download financials template (.xlsx)
+            </a>
+            <a href="/downloads/DecisionOS_Simplified_Workbook_Template.xlsx"
+               download="DecisionOS_Simplified_Workbook_Template.xlsx"
+               class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-bold hover:bg-primary/5">
+                Full 7-KPI workbook template (.xlsx)
+            </a>
+        </div>
     </div>
 
     <form method="post" asp-page-handler="Upload" asp-route-id="@Model.Batch.Id" enctype="multipart/form-data"
