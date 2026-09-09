@@ -142,7 +142,9 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
                     UploadBatchId = batchId,
                     Severity = UploadIssueSeverity.Critical,
                     Category = "Periods",
-                    Message = "No periods found at or after anchor date.",
+                    Message = detection.ExcludedPeriodEnds.Count > 0
+                        ? "No months are checked to import. Check the months you want, then Save review."
+                        : "No periods found at or after anchor date.",
                     Field = "anchor"
                 });
             }
@@ -214,7 +216,9 @@ public sealed class SimplifiedWorkbookImportService : ISimplifiedWorkbookImportS
             .Distinct()
             .OrderBy(p => p)
             .ToList();
-        if (periods.Count == 0) return;
+        if (periods.Count == 0)
+            throw new InvalidOperationException(
+                "No months are selected to import. Check the months you want on Import review, click Save review, then Import.");
 
         await WorkbookKpiDefinitionEnsurer.EnsureAsync(_db, detection, ct);
 

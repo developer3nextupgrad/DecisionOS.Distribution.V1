@@ -55,7 +55,7 @@ public class DashboardContextServiceTests
     }
 
     [Fact]
-    public async Task GetWeeksAsync_ForCustomer_UsesStagingPeriods()
+    public async Task GetWeeksAsync_ForCustomer_IncludesKpiSnapshotWeeks()
     {
         await using var db = CreateDb();
         var tenantId = Guid.NewGuid();
@@ -78,13 +78,23 @@ public class DashboardContextServiceTests
             Value = 1m,
             Status = "GREEN"
         });
+        db.KpiSnapshots.Add(new KpiSnapshot
+        {
+            TenantId = tenantId,
+            PeriodEnd = new DateOnly(2026, 7, 31),
+            KpiDefinitionId = 1,
+            Value = 1m,
+            Status = "GREEN"
+        });
         await db.SaveChangesAsync();
 
         var sut = new DashboardContextService(db);
         var weeks = await sut.GetWeeksAsync(tenantId, "C1");
 
-        Assert.Single(weeks);
-        Assert.Equal(new DateOnly(2026, 2, 7), weeks[0]);
+        Assert.Equal(3, weeks.Count);
+        Assert.Equal(new DateOnly(2026, 7, 31), weeks[0]);
+        Assert.Contains(new DateOnly(2026, 1, 31), weeks);
+        Assert.Contains(new DateOnly(2026, 2, 7), weeks);
     }
 
     [Fact]

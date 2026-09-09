@@ -278,7 +278,7 @@ The UI explains: **no operational mapping**. Set role **Skip**; columns are not 
 | Section | Purpose |
 |---------|---------|
 | **KPI coverage (before import)** | Per KPI: Ready / Missing (expect GRAY) / Depends on other — use **Suggested fix** links |
-| **Periods to import** | Checkboxes to **exclude** specific week-ending dates |
+| **Periods to import** | Check the months to import (checked = include). Uncheck to skip, then Save review |
 | **Detection warnings** | Analyzer notes (anchor adjusted, weak detection, etc.) |
 | **Readiness** | After **Save review** and **Validate package** |
 | **Re-detect periods** | Change **Anchor** and re-run detection |

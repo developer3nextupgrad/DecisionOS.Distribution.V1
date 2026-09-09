@@ -187,19 +187,19 @@
 
                 <div class="bg-surface-container-lowest border border-surface-container-high rounded-xl p-6 space-y-3">
                     <div class="text-xs uppercase text-on-surface-variant">Periods to import</div>
-                    <p class="text-sm text-on-surface-variant">Uncheck a week to exclude it from import (anchor re-detect below still applies).</p>
+                    <p class="text-sm text-on-surface-variant">Leave a month checked to import it. Uncheck a month to skip it, then Save review.</p>
                     <div class="flex flex-wrap gap-3 text-sm font-mono">
-                        @foreach (var d in Model.Detection.FilteredPeriodEnds.OrderBy(x => x))
+                        @foreach (var d in Model.PeriodChoices)
                         {
                             var key = d.ToString("yyyy-MM-dd");
-                            var excluded = Model.ExcludedPeriodKeys.Contains(key);
+                            var included = Model.IncludedPeriodKeys.Contains(key);
                             <label class="inline-flex items-center gap-1 px-2 py-1 rounded border border-surface-container-high">
-                                <input type="checkbox" name="ExcludedPeriodKeys" value="@key" checked="@excluded" />
+                                <input type="checkbox" name="IncludedPeriodKeys" value="@key" checked="@included" />
                                 @key
                             </label>
                         }
                     </div>
-                    <p class="text-xs text-on-surface-variant">Checked = excluded from import.</p>
+                    <p class="text-xs text-on-surface-variant">Checked = import this month. Then click Save review before Import.</p>
                 </div>
 
                 @if (Model.Detection.Warnings.Count > 0)

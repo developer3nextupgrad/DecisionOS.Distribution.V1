@@ -50,46 +50,46 @@ public sealed class DashboardContextService
             .ToList();
     }
 
+    /// <summary>
+    /// Reporting weeks for the dashboard dropdown. Always includes KPI snapshot
+    /// periods so a buyer filter does not hide months (AR/inventory detail is
+    /// often stored on the latest period only).
+    /// </summary>
     public async Task<IReadOnlyList<DateOnly>> GetWeeksAsync(
         Guid tenantId,
         string? customerId,
         CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(customerId))
-        {
-            var snapshotWeeks = await _db.KpiSnapshots.AsNoTracking()
-                .Where(s => s.TenantId == tenantId)
-                .Select(s => s.PeriodEnd)
-                .Distinct()
-                .OrderByDescending(p => p)
-                .ToListAsync(ct);
-            return FilterPlausibleWeeks(snapshotWeeks);
-        }
-
-        var cid = customerId.Trim();
-        var fromSales = _db.NormalizedSalesRows.AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.CustomerId == cid)
-            .Select(r => r.PeriodEnd);
-
-        var fromAr = _db.NormalizedArRows.AsNoTracking()
-            .Where(r => r.TenantId == tenantId && r.CustomerId == cid)
-            .Select(r => r.PeriodEnd);
-
-        var weeks = await fromSales.Union(fromAr)
-            .Distinct()
-            .OrderByDescending(p => p)
-            .ToListAsync(ct);
-
-        if (weeks.Count > 0)
-            return FilterPlausibleWeeks(weeks);
-
-        var fallback = await _db.KpiSnapshots.AsNoTracking()
+        var snapshotWeeks = await _db.KpiSnapshots.AsNoTracking()
             .Where(s => s.TenantId == tenantId)
             .Select(s => s.PeriodEnd)
             .Distinct()
-            .OrderByDescending(p => p)
             .ToListAsync(ct);
-        return FilterPlausibleWeeks(fallback);
+
+        if (string.IsNullOrWhiteSpace(customerId))
+            return FilterPlausibleWeeks(snapshotWeeks.OrderByDescending(p => p).ToList());
+
+        var cid = customerId.Trim();
+        var fromSales = await _db.NormalizedSalesRows.AsNoTracking()
+            .Where(r => r.TenantId == tenantId && r.CustomerId == cid)
+            .Select(r => r.PeriodEnd)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var fromAr = await _db.NormalizedArRows.AsNoTracking()
+            .Where(r => r.TenantId == tenantId && r.CustomerId == cid)
+            .Select(r => r.PeriodEnd)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var weeks = snapshotWeeks
+            .Concat(fromSales)
+            .Concat(fromAr)
+            .Distinct()
+            .OrderByDescending(p => p)
+            .ToList();
+
+        return FilterPlausibleWeeks(weeks);
     }
 
     private static IReadOnlyList<DateOnly> FilterPlausibleWeeks(IReadOnlyList<DateOnly> weeks)

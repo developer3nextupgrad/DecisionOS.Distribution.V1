@@ -34,7 +34,9 @@ public class VerifyModel : PageModel
     [BindProperty(SupportsGet = true)] public string? EditSheet { get; set; }
     [BindProperty] public bool AcknowledgeGrayKpis { get; set; }
     [BindProperty] public List<SheetReviewFormRow> ReviewSheets { get; set; } = [];
-    [BindProperty] public List<string> ExcludedPeriodKeys { get; set; } = [];
+    [BindProperty] public List<string> IncludedPeriodKeys { get; set; } = [];
+
+    public IReadOnlyList<DateOnly> PeriodChoices { get; private set; } = Array.Empty<DateOnly>();
 
     public UploadBatch? Batch { get; private set; }
     public WorkbookDetectionResult? Detection { get; private set; }
@@ -144,11 +146,12 @@ public class VerifyModel : PageModel
 
     private WorkbookReviewInput BuildReviewInputFromForm()
     {
-        var excluded = ExcludedPeriodKeys
+        var included = IncludedPeriodKeys
             .Select(k => DateOnly.TryParse(k, out var d) ? (DateOnly?)d : null)
             .Where(d => d is not null)
             .Select(d => d!.Value)
-            .ToList();
+            .ToHashSet();
+        var excluded = PeriodChoices.Where(d => !included.Contains(d)).ToList();
 
         var sheets = new List<SheetReviewInput>();
         foreach (var row in ReviewSheets)
@@ -186,13 +189,16 @@ public class VerifyModel : PageModel
     {
         if (Detection is null) return;
 
-        var excludedSet = Detection.ExcludedPeriodEnds.ToHashSet();
-        ExcludedPeriodKeys = Detection.FilteredPeriodEnds
-            .Concat(Detection.RawPeriodEnds)
-            .Distinct()
-            .Where(d => excludedSet.Contains(d))
+        var importSet = Detection.FilteredPeriodEnds.ToHashSet();
+        IncludedPeriodKeys = PeriodChoices
+            .Where(d => importSet.Contains(d))
             .Select(d => d.ToString("yyyy-MM-dd"))
             .ToList();
+
+        if (IncludedPeriodKeys.Count == 0 && PeriodChoices.Count > 0 && Detection.ExcludedPeriodEnds.Count == 0)
+        {
+            IncludedPeriodKeys = PeriodChoices.Select(d => d.ToString("yyyy-MM-dd")).ToList();
+        }
 
         ReviewSheets = Detection.Sheets.Select(s => new SheetReviewFormRow
         {
@@ -210,6 +216,15 @@ public class VerifyModel : PageModel
         if (Batch is null || Batch.ImportMode != UploadImportMode.Simplified) return;
 
         Detection = WorkbookAnalyzer.Deserialize(Batch.DetectionSummaryJson);
+        if (Detection is not null)
+            PeriodChoices = Detection.RawPeriodEnds
+                .Concat(Detection.FilteredPeriodEnds)
+                .Concat(Detection.ExcludedPeriodEnds)
+                .Where(WorkbookDateRules.IsPlausiblePeriod)
+                .Distinct()
+                .OrderBy(d => d)
+                .ToList();
+
         Issues = await _db.UploadBatchIssues.AsNoTracking()
             .Where(i => i.UploadBatchId == Id)
             .OrderByDescending(i => i.Severity)
