@@ -59,4 +59,32 @@ public class WorkbookAnalyzerTests
         var monthly = PeriodExtractor.ApplyCadenceAndAnchor(raw, UploadCadence.Monthly, null);
         Assert.Equal(2, monthly.Count);
     }
+
+    [Fact]
+    public void Analyze_ClientMayQbDecisionOsFiles_ClassifiesRollupAndPeriod()
+    {
+        var dir = Path.GetFullPath(Path.Combine(
+            AppContext.BaseDirectory, "..", "..", "..", "..", "..",
+            "_client_docs", "Data Ingestion Normal vs Reformatted"));
+        var cases = new[]
+        {
+            ("SCBS_May_P&L_Decision_OS.xlsx", "Net_Sales", "COGS"),
+            ("SCBSMAYBS_Decision_OS_Format.xlsx", "Cash_Balance", "AR_Balance"),
+            ("SCBSMAYCFS_Decision_OS_Format.xlsx", "Net_Income", "Cash_Balance")
+        };
+
+        var analyzer = new WorkbookAnalyzer();
+        foreach (var (file, fieldA, fieldB) in cases)
+        {
+            var path = Path.Combine(dir, file);
+            if (!File.Exists(path)) return;
+
+            var result = analyzer.AnalyzeFile(path, UploadCadence.Monthly, null);
+            var rollup = Assert.Single(result.Sheets, s => s.Kind == WorkbookSheetKind.WeeklyRollup);
+            Assert.Equal("Period_End_Date", rollup.ColumnMappings["Date"]);
+            Assert.Contains(fieldA, rollup.ColumnMappings.Values, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(fieldB, rollup.ColumnMappings.Values, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(new DateOnly(2026, 5, 31), result.FilteredPeriodEnds);
+        }
+    }
 }

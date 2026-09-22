@@ -247,6 +247,28 @@ public class ExcelMapperServiceTests
         Assert.True(conf >= 0.7, $"Expected confidence >= 0.7 but was {conf}");
     }
 
+    [Theory]
+    [InlineData("Decision OS P&L", new[] { "Date", "Total Income", "Total COGS", "Gross Profit" })]
+    [InlineData("Accounts Across Top", new[] { "Date", "Total Checking/Savings", "1000 AR-KS", "1100 Inventory - KS", "TOTAL ASSETS", "Total Accounts Payable" })]
+    [InlineData("Decision OS Format", new[] { "Date", "Net Income", "Cash at end of period", "1000 AR-KS" })]
+    public void SheetClassifier_QbDecisionOsFinancials_AreWeeklyRollup(string sheetName, string[] headers)
+    {
+        var (kind, rt, conf) = SheetClassifier.Classify(sheetName, headers);
+        Assert.Equal(WorkbookSheetKind.WeeklyRollup, kind);
+        Assert.Equal(ReportType.FinancialStatement, rt);
+        Assert.True(conf >= 0.9, $"Expected confidence >= 0.9 but was {conf}");
+    }
+
+    [Fact]
+    public void SheetClassifier_InvoiceArSheet_IsNotWeeklyRollup()
+    {
+        var (kind, rt, _) = SheetClassifier.Classify(
+            "Accounts_Receivable",
+            ["Invoice_ID", "Customer_ID", "Invoice_Date", "Open_Balance", "Due_Date"]);
+        Assert.Equal(WorkbookSheetKind.AccountsReceivable, kind);
+        Assert.Equal(ReportType.AccountsReceivable, rt);
+    }
+
     [Fact]
     public void WarningGuide_ProvidesSuggestedFix_ForUnclassified()
     {

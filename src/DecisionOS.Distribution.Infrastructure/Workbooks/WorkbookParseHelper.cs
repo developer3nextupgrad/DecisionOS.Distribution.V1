@@ -115,9 +115,13 @@ public static class WorkbookParseHelper
     public static DateOnly? ParseDate(string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return null;
-        if (DateOnly.TryParse(raw.Trim(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+        var text = raw.Trim();
+        if (DateOnly.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AllowWhiteSpaces, out var d))
             return d;
-        if (double.TryParse(raw.Trim(), NumberStyles.Any, CultureInfo.InvariantCulture, out var oa) &&
+        if (text.Any(char.IsLetter) && text.Any(char.IsDigit) &&
+            DateTime.TryParse(text, CultureInfo.GetCultureInfo("en-US"), DateTimeStyles.AllowWhiteSpaces, out var dt))
+            return DateOnly.FromDateTime(dt);
+        if (double.TryParse(text, NumberStyles.Any, CultureInfo.InvariantCulture, out var oa) &&
             oa > 20000 && oa < 60000)
         {
             try { return DateOnly.FromDateTime(DateTime.FromOADate(oa)); }

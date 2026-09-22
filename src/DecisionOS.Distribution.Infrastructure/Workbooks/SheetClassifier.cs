@@ -50,6 +50,9 @@ public static class SheetClassifier
         if (!hasSkuColumn && Score("weekenddate", "netsales", "grossmargin", "cogs") >= 2)
             candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.9));
 
+        if (!hasSkuColumn && LooksLikeQbDecisionOsFinancials(name, norms))
+            candidates.Add((WorkbookSheetKind.WeeklyRollup, ReportType.FinancialStatement, 0.93));
+
         if (Score("sku", "onhandunits", "inventoryvalue", "quantityonhand") >= 2 ||
             name.Contains("inventory") || name.Contains("stock_on_hand"))
             candidates.Add((WorkbookSheetKind.Inventory, ReportType.Inventory, 0.85));
@@ -97,6 +100,38 @@ public static class SheetClassifier
         // Third tuple value is already a 0–1 confidence constant (not a raw token match count).
         var best = candidates.OrderByDescending(c => c.Score).First();
         return (best.Kind, best.Rt, Math.Clamp(best.Score, 0.0, 1.0));
+    }
+
+    /// <summary>
+    /// Client QuickBooks "Decision OS format" tabs: months as rows, account titles as columns.
+    /// Distinctive headers/names only — do not treat a bare "Date" column or "accounts" in the name as rollup.
+    /// </summary>
+    private static bool LooksLikeQbDecisionOsFinancials(string name, HashSet<string> norms)
+    {
+        if (name.Contains("p_and_l") || name.EndsWith("p_l") || name.Contains("_p_l") ||
+            name.Contains("pandl") || name.Contains("profit_and_loss") ||
+            name.Contains("cash_flow") || name.Contains("cashflow") ||
+            name.Contains("balance_sheet") || name.Contains("balancesheet") ||
+            name.Contains("accounts_across"))
+            return true;
+
+        var hasTotalIncome = norms.Contains("totalincome");
+        var hasCogsOrGp = norms.Contains("totalcogs") || norms.Contains("grossprofit");
+        if (hasTotalIncome && hasCogsOrGp)
+            return true;
+
+        if (norms.Contains("cashatendofperiod") &&
+            (norms.Contains("netincome") || norms.Contains("cashatbeginningofperiod")))
+            return true;
+
+        if (norms.Contains("totalcheckingsavings") || norms.Contains("totalassets"))
+            return true;
+
+        if ((norms.Contains("1000arks") || norms.Contains("arks")) &&
+            (norms.Contains("1100inventoryks") || norms.Contains("inventoryks")))
+            return true;
+
+        return false;
     }
 
     private static string NormalizeSheetName(string sheetName)

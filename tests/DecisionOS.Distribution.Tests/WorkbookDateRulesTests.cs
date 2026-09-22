@@ -15,6 +15,16 @@ public class WorkbookDateRulesTests
     }
 
     [Theory]
+    [InlineData("May 31, 2026", 2026, 5, 31)]
+    [InlineData("2026-05-31", 2026, 5, 31)]
+    public void TryParsePeriodDate_AcceptsMonthNameAndIso(string raw, int y, int m, int d)
+    {
+        var parsed = WorkbookDateRules.TryParsePeriodDate(raw);
+        Assert.NotNull(parsed);
+        Assert.Equal(new DateOnly(y, m, d), parsed);
+    }
+
+    [Theory]
     [InlineData("8818-03-01")]
     [InlineData("9648-03-01")]
     [InlineData("9025-07-01")]

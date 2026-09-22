@@ -106,8 +106,13 @@ public static class ColumnSynonymMatcher
                 result[best.Header] = best.SystemField;
         }
 
-        ApplyRollupExtras(normalizedHeaders, result);
+        ApplyRollupExtras(kind, normalizedHeaders, result);
         ApplyProfitabilityDisambiguation(normalizedHeaders, result);
+        if (kind == WorkbookSheetKind.WeeklyRollup)
+        {
+            PreferCanonicalDuplicates(result);
+            StripCashFlowChangeBalances(normalizedHeaders, result);
+        }
         return result;
     }
 
@@ -132,6 +137,7 @@ public static class ColumnSynonymMatcher
             : [WorkbookParseHelper.NormalizeHeader(sys)];
 
     private static void ApplyRollupExtras(
+        WorkbookSheetKind kind,
         List<(string Original, string Norm)> normalizedHeaders,
         Dictionary<string, string> result)
     {
@@ -150,6 +156,8 @@ public static class ColumnSynonymMatcher
                 result[orig] = "Cash_Balance";
             else if (norm.Contains("weekend", StringComparison.Ordinal) || norm.Contains("periodend", StringComparison.Ordinal))
                 result[orig] = "Period_End_Date";
+            else if (kind == WorkbookSheetKind.WeeklyRollup && IsQbDecisionOsRollupHeader(norm, out var qbField))
+                result[orig] = qbField;
             else if (norm.Contains("inventoryvalue", StringComparison.Ordinal))
                 result[orig] = "Inventory_Value";
             else if (norm is "arending" or "artotal" or "arbalance" ||
@@ -162,6 +170,132 @@ public static class ColumnSynonymMatcher
                      norm.Contains("operatingprofit", StringComparison.Ordinal) || norm.Contains("operatingincome", StringComparison.Ordinal))
                 result[orig] = InferProfitabilityField(norm);
         }
+    }
+
+    /// <summary>
+    /// Exact QuickBooks Decision-OS titles. Kept out of the global synonym dictionary so
+    /// header detection cannot match short fragments like "end", "income", or "payable" in data cells.
+    /// </summary>
+    private static bool IsQbDecisionOsRollupHeader(string norm, out string field)
+    {
+        switch (norm)
+        {
+            case "date":
+                field = "Period_End_Date";
+                return true;
+            case "totalincome":
+                field = "Net_Sales";
+                return true;
+            case "totalcogs":
+                field = "COGS";
+                return true;
+            case "cashatendofperiod":
+            case "totalcheckingsavings":
+                field = "Cash_Balance";
+                return true;
+            case "inventoryks":
+            case "1100inventoryks":
+                field = "Inventory_Value";
+                return true;
+            case "accountspayable":
+            case "totalaccountspayable":
+                field = "AP_Balance";
+                return true;
+        }
+
+        if (IsQbArKsHeader(norm))
+        {
+            field = "AR_Balance";
+            return true;
+        }
+
+        if (norm.EndsWith("inventoryks", StringComparison.Ordinal) &&
+            (char.IsDigit(norm[0]) || norm.Contains("inventory", StringComparison.Ordinal)))
+        {
+            field = "Inventory_Value";
+            return true;
+        }
+
+        if (norm.Contains("accountspayable", StringComparison.Ordinal))
+        {
+            field = "AP_Balance";
+            return true;
+        }
+
+        field = "";
+        return false;
+    }
+
+    /// <summary>QuickBooks Decision-OS "1000 AR-KS" (not a global "arks" synonym — that would match "remarks").</summary>
+    private static bool IsQbArKsHeader(string norm) =>
+        norm is "arks" or "1000arks" ||
+        (norm.EndsWith("arks", StringComparison.Ordinal) &&
+         (char.IsDigit(norm[0]) || norm.StartsWith("ar", StringComparison.Ordinal)));
+
+    private static readonly HashSet<string> CanonicalDedupeFields = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Net_Sales", "COGS", "Cash_Balance", "AR_Balance", "AP_Balance", "Inventory_Value", "Gross_Profit"
+    };
+
+    /// <summary>
+    /// When several columns map to one rollup field (line-item COGS vs Total COGS), keep the Total* / canonical header.
+    /// Date fields are excluded — a bare "Date" must not replace Week_End_Date.
+    /// </summary>
+    private static void PreferCanonicalDuplicates(Dictionary<string, string> result)
+    {
+        var duplicateFields = result
+            .Where(kv => CanonicalDedupeFields.Contains(kv.Value))
+            .GroupBy(kv => kv.Value, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        foreach (var group in duplicateFields)
+        {
+            var ranked = group
+                .Select(kv => (kv.Key, Score: CanonicalHeaderPreference(WorkbookParseHelper.NormalizeHeader(kv.Key))))
+                .OrderByDescending(x => x.Score)
+                .ThenBy(x => x.Key.Length)
+                .ToList();
+            foreach (var extra in ranked.Skip(1))
+                result.Remove(extra.Key);
+        }
+    }
+
+    private static int CanonicalHeaderPreference(string norm)
+    {
+        var score = 0;
+        if (norm.StartsWith("total", StringComparison.Ordinal)) score += 50;
+        if (norm.Contains("total", StringComparison.Ordinal)) score += 20;
+        if (norm is "totalcogs" or "totalincome" or "totalaccountspayable" or "totalcheckingsavings"
+            or "cashatendofperiod" or "grossprofit" or "netincome")
+            score += 40;
+        if (norm.Length > 0 && char.IsDigit(norm[0])) score -= 40;
+        return score;
+    }
+
+    /// <summary>
+    /// Cash-flow "1000 AR-KS" / inventory / AP columns are period changes, not ending balances.
+    /// Leave those unmapped so a later BS tab cannot be overwritten with flow amounts.
+    /// </summary>
+    private static void StripCashFlowChangeBalances(
+        List<(string Original, string Norm)> normalizedHeaders,
+        Dictionary<string, string> result)
+    {
+        var norms = normalizedHeaders.Select(x => x.Norm).ToHashSet(StringComparer.Ordinal);
+        var looksLikeCashFlow =
+            norms.Contains("cashatendofperiod") ||
+            norms.Contains("cashatbeginningofperiod") ||
+            norms.Contains("netcashincreaseforperiod");
+        if (!looksLikeCashFlow) return;
+        if (norms.Contains("totalassets") || norms.Contains("totalcheckingsavings") ||
+            norms.Contains("totalaccountspayable"))
+            return;
+
+        foreach (var header in result
+                     .Where(kv => kv.Value is "AR_Balance" or "AP_Balance" or "Inventory_Value")
+                     .Select(kv => kv.Key)
+                     .ToList())
+            result.Remove(header);
     }
 
     private static void ApplyProfitabilityDisambiguation(
